@@ -31,7 +31,9 @@ $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{round(final)}}
 | `@vchernoy/active-runtime` | A browser runtime that makes the rendered page live |
 | `@vchernoy/active-react` | A React/MDX wrapper (later) |
 
-## Used by
+## Planned integrations
+
+Neither integration exists yet; both are tracked in #1.
 
 - [TypeBridge](https://github.com/vchernoy/typebridge): the Markdown document format and shareable pages
 - [course-platform](https://github.com/vchernoy/course-platform): websites, blogs, lessons and tests

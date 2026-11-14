@@ -213,3 +213,11 @@ describe('review fixes (#4, third round)', () => {
     expect(m(':input[x]{widget=slider min=0.1 max=0.9 step=0.2}')).toEqual([]);
   });
 });
+
+describe('review fixes (#4, fourth round)', () => {
+  it('measures steps from the value when the control has no min, as HTML does', () => {
+    const { html, messages } = render(calc('input x = 0.5') + ':input[x]{step=0.2}');
+    expect(messages).toEqual([]);
+    expect(html).toContain('<input type="number" value="0.5" data-active-input="x" step="0.2" aria-label="x">');
+  });
+});

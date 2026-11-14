@@ -136,11 +136,18 @@ export function remarkActive(options: ActiveOptions = {}) {
       // The browser would silently clamp a value outside the control, and the page would disagree with the model.
       if ((lo !== undefined && shown < lo) || (hi !== undefined && shown > hi))
         return fail(`${name} starts at ${shown}, outside this control's range ${lo ?? '…'}..${hi ?? '…'}`);
+      // A control whose step can't land on the starting value would snap it, and the page would disagree
+      // with the model. An explicit step must fit; an inferred slider step falls back to "any".
+      const base = lo ?? 0;
+      if (step !== undefined && !onStep(shown, base, step as number))
+        return fail(`${name} starts at ${shown}, which step ${step} from ${base} can't reach`);
+      const inferred = widget === 'slider' ? sliderStep(lo!, hi!) : undefined;
+      const controlStep: number | string = (step as number | undefined) ?? (inferred !== undefined && onStep(shown, base, inferred) ? inferred : 'any');
       const label = attrs.label ?? undefined;
       const props: Record<string, string | number> = {
         type: widget === 'slider' ? 'range' : 'number', value: String(shown), dataActiveInput: name,
         ...(lo !== undefined ? { min: lo } : {}), ...(hi !== undefined ? { max: hi } : {}),
-        step: (step as number | undefined) ?? (widget === 'slider' ? sliderStep(lo!, hi!) : 'any'),
+        step: controlStep,
         ...(label ? {} : { ariaLabel: name }),
       };
       const children: ElementContent[] = [];
@@ -206,6 +213,12 @@ export function remarkActive(options: ActiveOptions = {}) {
       };
     }
   };
+}
+
+/** Whether value = base + k·step for a whole k (within floating-point noise). */
+function onStep(value: number, base: number, step: number): boolean {
+  const k = (value - base) / step;
+  return Math.abs(k - Math.round(k)) < 1e-9;
 }
 
 /** A slider step that gives about 100 positions, rounded to 1, 2 or 5 × 10^k. */

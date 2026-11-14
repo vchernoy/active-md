@@ -199,3 +199,17 @@ describe('review fixes (#4, second round)', () => {
     ]);
   });
 });
+
+describe('review fixes (#4, third round)', () => {
+  it('never emits a slider step that would move the starting value', () => {
+    // Inferred step 1 can't show 0.5: fall back to a continuous slider.
+    expect(render(calc('input x = 0.5 in 0..100') + ':input[x]{widget=slider}').html).toContain('min="0" max="100" step="any"');
+    expect(render(calc('input x = 3 in 0..100') + ':input[x]{widget=slider}').html).toContain('step="1"');
+    // An explicit step must reach the value, for sliders and number boxes.
+    const m = (s: string) => render(calc('input x = 0.5 in 0..10') + s).messages.map(e => e.message);
+    expect(m(':input[x]{widget=slider step=1}')).toEqual(["x starts at 0.5, which step 1 from 0 can't reach"]);
+    expect(m(':input[x]{step=0.2}')).toEqual(["x starts at 0.5, which step 0.2 from 0 can't reach"]);
+    expect(m(':input[x]{widget=slider step=0.25}')).toEqual([]);
+    expect(m(':input[x]{widget=slider min=0.1 max=0.9 step=0.2}')).toEqual([]);
+  });
+});

@@ -138,7 +138,8 @@ export function remarkActive(options: ActiveOptions = {}) {
         return fail(`${name} starts at ${shown}, outside this control's range ${lo ?? '…'}..${hi ?? '…'}`);
       // A control whose step can't land on the starting value would snap it, and the page would disagree
       // with the model. An explicit step must fit; an inferred slider step falls back to "any".
-      const base = lo ?? 0;
+      // HTML measures steps from min, or from the value attribute when there is no min.
+      const base = lo ?? shown;
       if (step !== undefined && !onStep(shown, base, step as number))
         return fail(`${name} starts at ${shown}, which step ${step} from ${base} can't reach`);
       const inferred = widget === 'slider' ? sliderStep(lo!, hi!) : undefined;

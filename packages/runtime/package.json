@@ -1,0 +1,15 @@
+{
+  "name": "@vchernoy/active-runtime",
+  "version": "0.0.0",
+  "description": "The browser runtime for active-md: makes rendered documents live",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": { "build": "tsc -p tsconfig.build.json" },
+  "repository": { "type": "git", "url": "git+https://github.com/vchernoy/active-md.git", "directory": "packages/runtime" },
+  "dependencies": { "@vchernoy/calc": "0.0.0", "@vchernoy/remark-active": "0.0.0", "katex": "0.19.1" }
+}

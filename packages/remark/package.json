@@ -1,7 +1,7 @@
 {
   "name": "@vchernoy/remark-active",
   "version": "0.0.0",
-  "description": "A remark plugin for active-md: calc blocks, :input, :value and {{…}} in math",
+  "description": "A remark plugin for active-md: calc blocks, :input, :value and {{\u2026}} in math",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./tex": {
+      "types": "./dist/tex.d.ts",
+      "import": "./dist/tex.js"
     }
   },
   "files": [

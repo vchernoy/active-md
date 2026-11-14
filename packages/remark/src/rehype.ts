@@ -1,16 +1,9 @@
 import type { Element, ElementContent, Root } from 'hast';
 import katex from 'katex';
 import type { VFile } from 'vfile';
+import { katexSettings, type MathOutput } from './tex.js';
 
-export type KatexOptions = {
-  /** "mathml" (default) needs no CSS or fonts; "htmlAndMathml" needs the host to load KaTeX's CSS. */
-  output?: 'mathml' | 'htmlAndMathml';
-};
-
-/** KaTeX options that are always safe for untrusted documents. */
-export function katexSettings(displayMode: boolean, output: KatexOptions['output'] = 'mathml'): katex.KatexOptions {
-  return { displayMode, output, throwOnError: false, trust: false, strict: 'ignore', maxSize: 50, maxExpand: 1000 };
-}
+export type KatexOptions = { output?: MathOutput };
 
 /** Render TeX to an HTML string. Never throws; KaTeX shows parse errors in place. */
 export function renderTex(tex: string, displayMode: boolean, output?: KatexOptions['output']): string {

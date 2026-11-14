@@ -180,3 +180,22 @@ describe('review fixes (#4)', () => {
     expect(render('- item\n\n  ```calc\n  b = 1\n  a = nope\n  ```').messages).toEqual([{ message: 'unknown name "nope"', line: 5, column: 7, severity: 'error' }]);
   });
 });
+
+describe('review fixes (#4, second round)', () => {
+  it('rejects reversed control bounds and bounds that exclude the starting value', () => {
+    const m = (s: string) => render(calc('input x = 5 in 0..10') + s).messages.map(e => e.message);
+    expect(m(':input[x]{widget=slider min=8 max=2}')).toEqual(['min 8 is greater than max 2']);
+    expect(m(':input[x]{widget=slider min=8 max=10}')).toEqual(["x starts at 5, outside this control's range 8..10"]);
+    expect(m(':input[x]{max=3}')).toEqual(["x starts at 5, outside this control's range 0..3"]);
+    expect(render(calc('input y = 5') + ':input[y]{min=6}').messages[0]?.message).toBe("y starts at 5, outside this control's range 6..…");
+    expect(m(':input[x]{widget=slider min=2 max=8}')).toEqual([]);
+  });
+
+  it('reports evaluation errors in math bindings, with their position', () => {
+    const { messages } = render(calc('input d = 0\nq = 1 / d') + 'Then $q = {{q}}$ and $${{q + 1}}$$');
+    expect(messages).toEqual([
+      { message: 'in {{q}}: division by zero', line: 6, column: 6, severity: 'error' },
+      { message: 'in {{q + 1}}: depends on an error in q', line: 6, column: 22, severity: 'error' },
+    ]);
+  });
+});

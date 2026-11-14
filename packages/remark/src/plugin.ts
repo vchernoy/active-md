@@ -129,9 +129,13 @@ export function remarkActive(options: ActiveOptions = {}) {
       if (def.range && ((lo !== undefined && lo < def.range.min) || (hi !== undefined && hi > def.range.max)))
         return fail(`min/max can only narrow ${name}'s range ${def.range.min}..${def.range.max}`);
       if (widget === 'slider' && (lo === undefined || hi === undefined)) return fail(`a slider needs a range: give ${name} "in a..b" or min and max`);
+      if (lo !== undefined && hi !== undefined && lo > hi) return fail(`min ${lo} is greater than max ${hi}`);
       if (step !== undefined && (step as number) <= 0) return fail('step must be positive');
       const current = session.get(name);
       const shown = current?.kind === 'value' ? current.value : def.default;
+      // The browser would silently clamp a value outside the control, and the page would disagree with the model.
+      if ((lo !== undefined && shown < lo) || (hi !== undefined && shown > hi))
+        return fail(`${name} starts at ${shown}, outside this control's range ${lo ?? '…'}..${hi ?? '…'}`);
       const label = attrs.label ?? undefined;
       const props: Record<string, string | number> = {
         type: widget === 'slider' ? 'range' : 'number', value: String(shown), dataActiveInput: name,
@@ -189,8 +193,11 @@ export function remarkActive(options: ActiveOptions = {}) {
       const exprs = placeholders(node.value);
       const results: Result[] = exprs.map(e => {
         const c = session.compile(e, 'math');
-        if (c.diagnostics[0]) report({ message: `in {{${e}}}: ${c.diagnostics[0].message}`, severity: 'error' }, at(node));
-        return c.evaluate();
+        const r = c.evaluate();
+        // The formula only shows a red "?", so the author needs the reason: a compile or an evaluation error.
+        const problem = c.diagnostics[0]?.message ?? (r.kind === 'error' ? r.message : undefined);
+        if (problem) report({ message: `in {{${e}}}: ${problem}`, severity: 'error' }, at(node));
+        return r;
       });
       node.data = {
         hName: node.type === 'math' ? 'div' : 'span',

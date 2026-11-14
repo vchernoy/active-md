@@ -26,12 +26,16 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./style.css": "./style.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "style.css"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "./style.css"
+  ],
   "engines": {
     "node": ">=18"
   },

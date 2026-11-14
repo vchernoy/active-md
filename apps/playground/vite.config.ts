@@ -11,6 +11,7 @@ export default defineConfig({
       '@vchernoy/calc': src('calc/src/index.ts'),
       '@vchernoy/remark-active/tex': src('remark/src/tex.ts'),
       '@vchernoy/remark-active': src('remark/src/index.ts'),
+      '@vchernoy/active-runtime/style.css': src('runtime/style.css'),
       '@vchernoy/active-runtime': src('runtime/src/index.ts'),
     },
   },

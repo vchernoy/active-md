@@ -1,6 +1,6 @@
 {
   "name": "@vchernoy/active-runtime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The browser runtime for active-md: makes rendered documents live",
   "keywords": [
     "markdown",
@@ -43,8 +43,8 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@vchernoy/calc": "0.1.0",
-    "@vchernoy/remark-active": "0.1.0",
+    "@vchernoy/calc": "0.1.1",
+    "@vchernoy/remark-active": "0.1.1",
     "katex": "0.19.1"
   }
 }

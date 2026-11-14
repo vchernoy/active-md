@@ -5,7 +5,7 @@ import type { ContainerDirective, LeafDirective, TextDirective } from 'mdast-uti
 import type { InlineMath, Math } from 'mdast-util-math';
 import { toString } from 'mdast-util-to-string';
 import type { VFile } from 'vfile';
-import { placeholders, substitute } from './tex.js';
+import { mathBinding, PLACEHOLDER, substitute } from './tex.js';
 
 export type ActiveOptions = {
   /** Locale for formatting values (default: the runtime's). */
@@ -204,19 +204,20 @@ export function remarkActive(options: ActiveOptions = {}) {
       // `$$…$$` written inside a line is inline math to remark-math, but authors mean display math.
       const start = node.position?.start.offset;
       const display = node.type === 'math' || (start !== undefined && String(file.value).startsWith('$$', start));
-      const exprs = placeholders(node.value);
+      const exprs = [...node.value.matchAll(PLACEHOLDER)].map(m => m[1]!.trim());
       const results: Result[] = exprs.map(e => {
-        const c = session.compile(e, 'math');
+        const binding = mathBinding(e);
+        const c = session.compile(binding.expression, 'math');
         const r = c.evaluate();
         // The formula only shows a red "?", so the author needs the reason: a compile or an evaluation error.
-        const problem = c.diagnostics[0]?.message ?? (r.kind === 'error' ? r.message : undefined);
+        const problem = binding.problem ?? c.diagnostics[0]?.message ?? (r.kind === 'error' ? r.message : undefined);
         if (problem) report({ message: `in {{${e}}}: ${problem}`, severity: 'error' }, at(node));
         return r;
       });
       node.data = {
         hName: node.type === 'math' ? 'div' : 'span',
         hProperties: { className: ['active-math', display ? 'active-math-display' : 'active-math-inline'], dataActiveTex: node.value, ...(display ? { dataActiveDisplay: 'true' } : {}) },
-        hChildren: [{ type: 'text', value: substitute(node.value, results) }],
+        hChildren: [{ type: 'text', value: substitute(node.value, results, options.locale) }],
       };
     }
   };

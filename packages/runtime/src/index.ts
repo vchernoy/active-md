@@ -73,7 +73,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     views.push({
       el, deps,
       update: () => {
-        const source = substitute(tex, exprs.map(c => c.evaluate()));
+        const source = substitute(tex, exprs.map(c => c.evaluate()), options.locale);
         pending = pending.then(async () => {
           const k = await loadKatex();
           // A destroyed mount must not touch the page (a newer mount may own these elements now).

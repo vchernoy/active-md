@@ -39,12 +39,20 @@ export function remarkActive(options: ActiveOptions = {}) {
   return (tree: Root, file: VFile): void => {
     const blocks: CalcBlock[] = [];
     const blockStart = new Map<string, number>();
+    /** Per block, the number of source characters (indentation, "> ") Markdown removed before each line. */
+    const blockIndent = new Map<string, number[]>();
+    const sourceLines = String(file.value).split(/\r?\n/);
     walk(tree, (node, parent, index) => {
       if (node.type !== 'code' || (node as Code).lang !== 'calc') return;
       const id = `calc-${blocks.length + 1}`;
       blocks.push({ id, text: (node as Code).value });
       // The block's text starts on the line after the opening fence.
-      blockStart.set(id, (node.position?.start.line ?? 1) + 1);
+      const first = (node.position?.start.line ?? 1) + 1;
+      blockStart.set(id, first);
+      blockIndent.set(id, (node as Code).value.split('\n').map((text, i) => {
+        const line = sourceLines[first - 1 + i] ?? '';
+        return text && line.endsWith(text) ? line.length - text.length : 0;
+      }));
       // Shown as an ordinary `language-calc` code block.
       if (options.showCalc) return;
       parent.children.splice(index, 1);
@@ -61,7 +69,8 @@ export function remarkActive(options: ActiveOptions = {}) {
     };
     for (const d of program.diagnostics) {
       const start = blockStart.get(d.span.block);
-      report(d, start === undefined ? undefined : { line: start + d.span.line - 1, column: d.span.column });
+      const indent = blockIndent.get(d.span.block)?.[d.span.line - 1] ?? 0;
+      report(d, start === undefined ? undefined : { line: start + d.span.line - 1, column: d.span.column + indent });
     }
 
     const controlled = new Set<string>();
@@ -99,7 +108,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     }
 
     function input(node: TextDirective, attrs: Record<string, string | null | undefined>): void {
-      const name = toString(node).trim();
+      const name = labelSource(node, file).trim();
       const def = program.inputs.find(i => i.name === name);
       const fail = (message: string) => showError(node, message);
       if (!def) return fail(program.names.has(name) ? `"${name}" is not an input, so it can't have a control` : `unknown input "${name}"`);
@@ -140,7 +149,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     }
 
     function value(node: TextDirective, attrs: Record<string, string | null | undefined>): void {
-      const expr = toString(node).trim();
+      const expr = labelSource(node, file).trim();
       const format = parseFormat(attrs.format ?? undefined);
       const compiled = session.compile(expr, 'value');
       const problem = typeof format === 'string' ? format : compiled.diagnostics[0]?.message;
@@ -199,6 +208,17 @@ function sliderStep(min: number, max: number): number {
   const p = 10 ** Math.floor(Math.log10(raw));
   const m = raw / p;
   return Number(((m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p).toPrecision(12));
+}
+
+/**
+ * The directive label exactly as written. The label is parsed as Markdown, so `:value[2*3*4]` has an
+ * emphasis child; flattening it to text would drop the operators. Use the source between the children.
+ */
+function labelSource(node: TextDirective, file: VFile): string {
+  const first = node.children[0]?.position?.start.offset;
+  const last = node.children[node.children.length - 1]?.position?.end.offset;
+  if (first === undefined || last === undefined) return toString(node);
+  return String(file.value).slice(first, last);
 }
 
 function sourceOf(node: Directive, file: VFile): string {

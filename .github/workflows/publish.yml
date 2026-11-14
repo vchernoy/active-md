@@ -1,10 +1,9 @@
 name: release
 # Publishes @vchernoy/calc, @vchernoy/remark-active and @vchernoy/active-runtime to npm when a version
-# tag is pushed (git tag v0.1.0 && git push origin v0.1.0).
+# tag is pushed (git tag v0.1.1 && git push origin v0.1.1).
 #
 # Authentication: npm trusted publishing (OIDC) once each package lists this repository and
-# release.yml as a trusted publisher on npmjs.com; no secret is needed then. The very first
-# publish of a package (before it exists on npm) uses the NPM_TOKEN secret; delete it afterwards.
+# publish.yml as a trusted publisher on npmjs.com; no npm token secret is used.
 on:
   push:
     tags: ['v*']
@@ -34,10 +33,8 @@ jobs:
       - run: npm run build
       - run: node scripts/check-release.mjs "$GITHUB_REF_NAME"
       # In dependency order, so each package's internal dependencies are already on npm.
-      # npm uses OIDC when a trusted publisher is configured; otherwise the token, if the secret exists.
+      # Publishing uses OIDC only, so a successful release verifies the trusted publisher configuration.
       - run: |
           for dir in packages/calc packages/remark packages/runtime; do
             npm publish --workspace "$dir" --provenance --access public
           done
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

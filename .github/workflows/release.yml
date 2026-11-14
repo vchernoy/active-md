@@ -1,12 +1,16 @@
 name: release
 # Publishes @vchernoy/calc, @vchernoy/remark-active and @vchernoy/active-runtime to npm when a version
-# tag is pushed (git tag v0.1.0 && git push origin v0.1.0). Needs the NPM_TOKEN repository secret.
+# tag is pushed (git tag v0.1.0 && git push origin v0.1.0).
+#
+# Authentication: npm trusted publishing (OIDC) once each package lists this repository and
+# release.yml as a trusted publisher on npmjs.com; no secret is needed then. The very first
+# publish of a package (before it exists on npm) uses the NPM_TOKEN secret; delete it afterwards.
 on:
   push:
     tags: ['v*']
 permissions:
   contents: read
-  id-token: write # npm provenance
+  id-token: write # OIDC for trusted publishing and provenance
 concurrency:
   group: release
   cancel-in-progress: false
@@ -17,15 +21,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24 # ships npm 11, which trusted publishing requires (>= 11.5.1)
           cache: npm
           registry-url: https://registry.npmjs.org
+      - name: Check npm version
+        run: |
+          npm --version
+          node -e "const [a,b,c]=process.argv[1].split('.').map(Number); if (a<11||(a===11&&(b<5||(b===5&&c<1)))) { console.error('npm >= 11.5.1 is needed for trusted publishing'); process.exit(1) }" "$(npm --version)"
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
       - run: node scripts/check-release.mjs "$GITHUB_REF_NAME"
       # In dependency order, so each package's internal dependencies are already on npm.
+      # npm uses OIDC when a trusted publisher is configured; otherwise the token, if the secret exists.
       - run: |
           for dir in packages/calc packages/remark packages/runtime; do
             npm publish --workspace "$dir" --provenance --access public

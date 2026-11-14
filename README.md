@@ -49,7 +49,9 @@ mount(container);                                   // make it live
 
 ### Releasing
 
-All packages share one version. Set it in each `packages/*/package.json` (and the internal dependencies), update `CHANGELOG.md`, run `npm run build && npm run release:check`, merge, then push a tag: `git tag v0.1.0 && git push origin v0.1.0`. The `release` workflow tests, checks and publishes to npm with provenance. It needs the `NPM_TOKEN` repository secret: an npm token that can publish `@vchernoy/*`.
+All packages share one version. Set it in each `packages/*/package.json` (and the internal dependencies), update `CHANGELOG.md`, run `npm run build && npm run release:check`, merge, then push a tag: `git tag v0.1.0 && git push origin v0.1.0`. The `release` workflow tests, checks and publishes to npm with provenance.
+
+Publishing uses **npm trusted publishing**: each package on npmjs.com lists `vchernoy/active-md` and `release.yml` as its trusted publisher (Settings → Trusted publishing → GitHub Actions), so no secret is stored. npm can only attach a trusted publisher to an existing package, so the **first** release of a package uses a short-lived granular token in the `NPM_TOKEN` secret (read/write for `@vchernoy`, 7-day expiry). After that release, add the trusted publisher to each package, then delete the token on npm and the secret on GitHub.
 
 ## Planned integrations
 

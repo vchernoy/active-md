@@ -107,11 +107,11 @@ describe('math', () => {
 
   it('formats numbers for TeX', () => {
     expect(texNumber(1234.5)).toBe('1234.5');
-    expect(texNumber(-2)).toBe('{-2}');
+    expect(texNumber(-2)).toBe('-2');
     expect(texNumber(1 / 3)).toBe('0.333333');
-    expect(texNumber(1e21)).toBe('{1\\times 10^{21}}');
+    expect(texNumber(1e21)).toBe('1\\times 10^{21}');
     expect(placeholders('a {{ x + 1 }} b {{y}}')).toEqual(['x + 1', 'y']);
-    expect(substitute('{{a}}+{{b}}', [{ kind: 'value', value: 1 }, { kind: 'error', message: 'no' }])).toBe('1+{\\color{red}?}');
+    expect(substitute('{{a}}+{{b}}', [{ kind: 'value', value: 1 }, { kind: 'error', message: 'no' }])).toBe('{1}+{\\color{red}?}');
   });
 });
 
@@ -146,5 +146,37 @@ describe('markdown and safety', () => {
     expect(render('Note:this and :span[x]{.a} 10:30').html).toBe('<div class="active-doc"><p>Note:this and :span[x]{.a} 10:30</p></div>');
     expect(render('::video{src=x}').html).toBe('<div class="active-doc"><p>::video{src=x}</p></div>');
     expect(render(':::toString\nx\n:::').html).toContain(':::toString');
+  });
+});
+
+describe('review fixes (#4)', () => {
+  it('turns images into links so nothing loads until the reader clicks', () => {
+    const { html } = render('![pixel](https://attacker.example/p.png) ![](//cdn.example/x.png) ![rel](img/a.png)');
+    expect(html).not.toMatch(/<img|<picture|<source|src=/);
+    expect(html).toContain('<a href="https://attacker.example/p.png" class="active-image" rel="nofollow noopener noreferrer">Image: pixel</a>');
+    expect(html).toContain('<a href="//cdn.example/x.png" class="active-image" rel="nofollow noopener noreferrer">Image: image</a>');
+    expect(html).toContain('>Image: rel</a>');
+    // Trusted hosts can keep images.
+    expect(render('![a](https://example.com/a.png)', { images: 'load' }).html).toContain('<img src="https://example.com/a.png" alt="a">');
+  });
+
+  it('reads binding expressions as written, even where Markdown sees emphasis', () => {
+    const { html } = render(calc('input a = 2') + ':value[2*3*4] :value[a*a*a] :value[a * 3 * a]');
+    expect(html).toContain('data-active-value="2*3*4" aria-live="polite">24</output>');
+    expect(html).toContain('data-active-value="a*a*a" aria-live="polite">8</output>');
+    expect(html).toContain('data-active-value="a * 3 * a" aria-live="polite">12</output>');
+    expect(render(calc('input x_y = 1') + ':input[x_y]').html).toContain('data-active-input="x_y"');
+  });
+
+  it('keeps substituted numbers as one TeX group', () => {
+    expect(substitute('x^{{n}} \\sqrt{{n}}', [{ kind: 'value', value: 12 }, { kind: 'value', value: 25 }])).toBe('x^{12} \\sqrt{25}');
+    const { html } = render(calc('input n = 12') + '$x^{{n}}$');
+    expect(html).toContain('<msup><mi>x</mi><mn>12</mn></msup>');
+  });
+
+  it('maps calc diagnostic columns through indentation and quotes', () => {
+    expect(render('  ```calc\n  a = nope\n  ```').messages).toEqual([{ message: 'unknown name "nope"', line: 2, column: 7, severity: 'error' }]);
+    expect(render('> ```calc\n> a = nope\n> ```').messages).toEqual([{ message: 'unknown name "nope"', line: 2, column: 7, severity: 'error' }]);
+    expect(render('- item\n\n  ```calc\n  b = 1\n  a = nope\n  ```').messages).toEqual([{ message: 'unknown name "nope"', line: 5, column: 7, severity: 'error' }]);
   });
 });

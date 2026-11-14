@@ -33,6 +33,24 @@ $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{round(final)}}
 
 `apps/playground` is the GitHub Pages app: `npm run dev -w apps/playground`.
 
+### Install (once 0.1.0 is published)
+
+```sh
+npm install @vchernoy/remark-active @vchernoy/active-runtime
+```
+
+```ts
+import { renderActive } from '@vchernoy/remark-active';
+import { mount } from '@vchernoy/active-runtime';
+
+container.innerHTML = renderActive(markdown).html; // sanitized, default values filled in
+mount(container);                                   // make it live
+```
+
+### Releasing
+
+All packages share one version. Set it in each `packages/*/package.json` (and the internal dependencies), update `CHANGELOG.md`, run `npm run build && npm run release:check`, merge, then push a tag: `git tag v0.1.0 && git push origin v0.1.0`. The `release` workflow tests, checks and publishes to npm with provenance. It needs the `NPM_TOKEN` repository secret: an npm token that can publish `@vchernoy/*`.
+
 ## Planned integrations
 
 Neither integration exists yet; both are tracked in #1.

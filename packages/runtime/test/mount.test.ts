@@ -109,3 +109,41 @@ describe('mount', () => {
     expect($('.active-error').textContent).toBe('⚠ unknown name "nope"');
   });
 });
+
+describe('review fixes (#5)', () => {
+  it("enforces the control's narrowed range, also for restored values", () => {
+    const { $, m, type } = setup(calc('input x = 5 in 0..100\ny = x * 2') + ':input[x]{min=0 max=10} :value[y]');
+    type('[data-active-input="x"]', '50');
+    const x = $<HTMLInputElement>('[data-active-input="x"]');
+    expect(x.getAttribute('aria-invalid')).toBe('true');
+    expect(x.title).toBe('enter a number from 0 to 10');
+    expect(m.session.inputValues().get('x')).toBe(5);
+    expect($('[data-active-value="y"]').textContent).toBe('10');
+
+    const host = document.createElement('div');
+    host.innerHTML = renderActive(calc('input n = 2 in 0..100') + ':input[n]{max=10}', { locale: 'en-US' }).html;
+    host.querySelector<HTMLInputElement>('input')!.value = '50';
+    expect(mount(host).session.inputValues().get('n')).toBe(2);
+  });
+
+  it('updates formulas of a detached document, so inserting it later shows current values', async () => {
+    const host = document.createElement('div');
+    host.innerHTML = renderActive(calc('input n = 2') + ':input[n] $n = {{n}}$', { locale: 'en-US' }).html;
+    host.querySelector<HTMLInputElement>('input')!.value = '7';
+    const m = mount(host, { loadKatex: async () => katex });
+    await m.settled();
+    expect(host.querySelector('[data-active-tex]')!.innerHTML).toContain('<mn>7</mn>');
+  });
+
+  it('drops pending formula renders after destroy', async () => {
+    let release!: (k: typeof katex) => void;
+    const gate = new Promise<typeof katex>(r => { release = r; });
+    const { $, m, type } = setup(SRC, { loadKatex: () => gate });
+    const before = $('[data-active-tex="f = {{f}}"]').innerHTML;
+    type('[data-active-input="p"]', '2000');
+    m.destroy();
+    release(katex);
+    await m.settled();
+    expect($('[data-active-tex="f = {{f}}"]').innerHTML).toBe(before);
+  });
+});

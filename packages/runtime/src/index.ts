@@ -50,6 +50,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   const views: View[] = [];
   const cleanups: (() => void)[] = [];
   let pending: Promise<void> = Promise.resolve();
+  let destroyed = false;
   let katexPromise: Promise<Katex> | undefined;
   const loadKatex = () => (katexPromise ??= (options.loadKatex ?? (async () => (await import('katex')).default))());
 
@@ -75,7 +76,9 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
         const source = substitute(tex, exprs.map(c => c.evaluate()));
         pending = pending.then(async () => {
           const k = await loadKatex();
-          if (el.isConnected) el.innerHTML = k.renderToString(source, katexSettings(display, options.output));
+          // A destroyed mount must not touch the page (a newer mount may own these elements now).
+          // Detached roots still update: the host may insert the document later.
+          if (!destroyed) el.innerHTML = k.renderToString(source, katexSettings(display, options.output));
         }).catch(() => { /* keep the last rendering if KaTeX can't load */ });
       },
     });
@@ -92,7 +95,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     if (!program.inputs.some(i => i.name === name)) continue;
     const apply = () => {
       const value = input.valueAsNumber;
-      const problem = Number.isNaN(value) ? 'enter a number' : session.set(name, value);
+      const problem = Number.isNaN(value) ? 'enter a number' : outsideControl(input, value) ?? session.set(name, value);
       input.setCustomValidity(problem ?? '');
       if (problem) {
         input.setAttribute('aria-invalid', 'true');
@@ -113,8 +116,20 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     session,
     program,
     settled: () => pending,
-    destroy: () => { for (const c of cleanups.splice(0)) c(); },
+    destroy: () => {
+      destroyed = true;
+      for (const c of cleanups.splice(0)) c();
+    },
   };
+}
+
+/** A control may narrow the input's range (min/max attributes); the session only knows the model's range. */
+function outsideControl(input: HTMLInputElement, value: number): string | undefined {
+  const min = input.min === '' ? -Infinity : Number(input.min);
+  const max = input.max === '' ? Infinity : Number(input.max);
+  if (value >= min && value <= max) return undefined;
+  if (Number.isFinite(min) && Number.isFinite(max)) return `enter a number from ${min} to ${max}`;
+  return Number.isFinite(min) ? `enter a number of at least ${min}` : `enter a number of at most ${max}`;
 }
 
 function showResult(el: HTMLElement, result: Result, format: Format, locale: string | undefined): void {

@@ -32,8 +32,15 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
   return out;
 }
 
+export class DocumentTooLarge extends Error {
+  constructor(readonly bytes: number) { super('the document is too large to share'); }
+}
+
+/** Throws DocumentTooLarge for documents that a link couldn't open again (see MAX_DOCUMENT_BYTES). */
 export async function encodeDocument(markdown: string): Promise<string> {
-  const packed = await pipe(new TextEncoder().encode(markdown), new CompressionStream('deflate-raw'));
+  const bytes = new TextEncoder().encode(markdown);
+  if (bytes.byteLength > MAX_DOCUMENT_BYTES) throw new DocumentTooLarge(bytes.byteLength);
+  const packed = await pipe(bytes, new CompressionStream('deflate-raw'));
   return PREFIX + toBase64Url(packed);
 }
 

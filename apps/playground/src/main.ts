@@ -3,7 +3,7 @@ import { renderActive, type RenderMessage } from '@vchernoy/remark-active';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { SAMPLE } from './sample';
-import { decodeDocument, encodeDocument } from './share';
+import { decodeDocument, DocumentTooLarge, encodeDocument, MAX_DOCUMENT_BYTES } from './share';
 import './style.css';
 
 const STORE_KEY = 'active-md.playground.source.v1';
@@ -90,9 +90,13 @@ function setMode(next: 'edit' | 'view', focus = true): void {
 }
 
 let pendingCheck: number | undefined;
-source.addEventListener('input', () => {
-  // Once edited, the page is no longer the shared link's document.
+/** Once the text changes, the address bar must not keep pointing at an older shared document. */
+function dropShareHash(): void {
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+}
+
+source.addEventListener('input', () => {
+  dropShareHash();
   save();
   clearTimeout(pendingCheck);
   pendingCheck = window.setTimeout(check, 250);
@@ -110,6 +114,7 @@ document.addEventListener('keydown', e => {
 $('sample').addEventListener('click', () => {
   if (source.value !== SAMPLE && source.value.trim() && !confirm('Replace your text with the example?')) return;
   source.value = SAMPLE;
+  dropShareHash();
   save();
   setMode(mode, false);
   say('Example loaded.');
@@ -126,8 +131,10 @@ $('share').addEventListener('click', async () => {
     } catch {
       say('Link is in the address bar; copy it from there.');
     }
-  } catch {
-    say('This browser can\'t make share links.');
+  } catch (e) {
+    say(e instanceof DocumentTooLarge
+      ? `This document is too large for a link (${e.bytes.toLocaleString(locale)} bytes; the limit is ${MAX_DOCUMENT_BYTES.toLocaleString(locale)}).`
+      : 'This browser can\'t make share links.');
   }
 });
 

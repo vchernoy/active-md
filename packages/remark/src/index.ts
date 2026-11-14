@@ -8,7 +8,7 @@ import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
 import { unified } from 'unified';
 import { remarkActive, type ActiveOptions } from './plugin.js';
-import { rehypeActiveKatex, rehypeActiveWrap, type KatexOptions } from './rehype.js';
+import { rehypeActiveImages, rehypeActiveKatex, rehypeActiveWrap, type ImageOptions, type KatexOptions } from './rehype.js';
 import { activeSchema } from './sanitize.js';
 
 export { remarkActive, type ActiveData, type ActiveOptions, type CalcBlock } from './plugin.js';
@@ -16,7 +16,7 @@ export { rehypeActiveKatex, rehypeActiveWrap, renderTex, type KatexOptions } fro
 export { activeSchema } from './sanitize.js';
 export { placeholders, substitute, texNumber, katexSettings, PLACEHOLDER, type MathOutput } from './tex.js';
 
-export type RenderOptions = ActiveOptions & KatexOptions;
+export type RenderOptions = ActiveOptions & KatexOptions & ImageOptions;
 
 export type RenderMessage = { message: string; line?: number; column?: number; severity: 'error' | 'warning' };
 
@@ -37,12 +37,16 @@ export function createProcessor(options: RenderOptions = {}) {
     .use(remarkActive, options)
     .use(remarkRehype)
     .use(rehypeActiveWrap)
+    .use(rehypeActiveImages, options)
     .use(rehypeSanitize, activeSchema)
     .use(rehypeActiveKatex, options)
     .use(rehypeStringify, { allowDangerousHtml: true });
 }
 
-/** Render a document. Raw HTML in the Markdown is dropped; output is sanitized before math is typeset. */
+/**
+ * Render a document. Raw HTML in the Markdown is dropped, images become links (unless `images: 'load'`),
+ * and output is sanitized before math is typeset.
+ */
 export function renderActive(markdown: string, options: RenderOptions = {}): RenderResult {
   const file = createProcessor(options).processSync(markdown);
   return {

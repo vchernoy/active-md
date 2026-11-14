@@ -9,10 +9,17 @@ const ACTIVE = ['dataActiveInput', 'dataActiveValue', 'dataActiveFormat', 'dataA
  */
 export const activeSchema: Schema = {
   ...defaultSchema,
-  tagNames: [...(defaultSchema.tagNames ?? []), 'input', 'output', 'aside', 'label'],
+  // <picture>/<source> would fetch images on display; images become links instead (rehypeActiveImages).
+  tagNames: [...(defaultSchema.tagNames ?? []).filter(t => t !== 'picture' && t !== 'source'), 'input', 'output', 'aside', 'label'],
   attributes: {
     ...defaultSchema.attributes,
     '*': [...(defaultSchema.attributes?.['*'] ?? []), ...ACTIVE, 'className', 'role', 'ariaLive', 'ariaLabel', 'title'],
+    // Image links (rehypeActiveImages); GitHub's schema otherwise allows only footnote classes on <a>.
+    a: [
+      ...(defaultSchema.attributes?.['a'] ?? []).filter(a => !(Array.isArray(a) && a[0] === 'className')),
+      ['className', 'data-footnote-backref', 'active-image'],
+      'rel',
+    ],
     // Task-list checkboxes keep GitHub's rule (disabled checkbox) through remark-gfm; our inputs are number/range.
     input: [['disabled', true], ['type', 'checkbox', 'number', 'range'], 'checked', 'value', 'min', 'max', 'step', 'inputMode'],
   },

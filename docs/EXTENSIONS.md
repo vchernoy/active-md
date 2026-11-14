@@ -12,29 +12,44 @@
 
 ## 2. The extension object
 
-```ts
-import { defineExtension } from '@vchernoy/remark-active';
+An extension has three parts. Each part goes to the side that needs it:
 
-export const course = defineExtension({
-  name: 'course',                 // namespace for diagnostics and events
-  untrusted: false,               // may it run at the untrusted level? (default false)
-  directives: [/* DirectiveSpec */],
-  functions: [/* FunctionSpec */], // calc functions (trusted only)
-  formats: [/* FormatSpec */],
+| Part | Contains | Used by |
+|---|---|---|
+| **Calc** (`defineCalc`, in `@vchernoy/calc`) | `functions`, `formats` | **both** the renderer and the runtime, since server-rendered values and live updates must use the same implementations |
+| **Render** (`defineExtension`, in `@vchernoy/remark-active`) | `directives`, plus the calc part | the renderer (server or browser) |
+| **Behavior** (`defineBehavior`, in `@vchernoy/active-runtime`) | `controls`, plus the calc part | the runtime in the browser |
+
+```ts
+// course-calc.ts: pure code, safe to import on both sides
+import { defineCalc } from '@vchernoy/calc';
+export const courseCalc = defineCalc({
+  name: 'course',
+  untrusted: false,                // may it run at the untrusted level? (default false)
+  functions: [/* FunctionSpec */], // e.g. pmt(rate, n, pv)
+  formats: [/* FormatSpec */],     // e.g. currency:RUB
 });
 
-// Browser half, a separate module so static pages don't load it:
+// course-render.ts
+import { defineExtension } from '@vchernoy/remark-active';
+export const course = defineExtension({ name: 'course', calc: courseCalc, directives: [/* DirectiveSpec */] });
+
+// course-behavior.ts: a separate module, so static pages don't load it
 import { defineBehavior } from '@vchernoy/active-runtime';
-export const courseBehavior = defineBehavior({ name: 'course', controls: [/* ControlSpec */] });
+export const courseBehavior = defineBehavior({ name: 'course', calc: courseCalc, controls: [/* ControlSpec */] });
 ```
 
-Hosts pass extensions where they render and where they mount:
+Hosts pass the render part where they render, and the behavior part where they mount:
 
 ```ts
 renderActive(markdown, { trust: 'trusted', extensions: [course] });
-mount(root, { behaviors: [courseBehavior], onEvent });
-// React hosts: <ActiveDocument program={…} components={{ video: VideoPlayer }} onEvent={…}>
+mount(root, { trust: 'trusted', behaviors: [courseBehavior], onEvent });
+// React hosts: <ActiveDocument trust="trusted" calc={[courseCalc]} components={{ video: VideoPlayer }} onEvent={…}>
 ```
+
+- **No code goes into the document.** The rendered HTML names what it uses: `data-active-calc` keeps the calc source text, and the root carries `data-active-uses="course"`. The runtime gets the implementations only from what the host passes to `mount`.
+- **The same rules apply on both sides.** `mount` rebuilds the session with the calc parts from its `behaviors`, filtered by its own `trust` exactly as the renderer filters by its `trust`. So `parse`, `evaluate`, `compile` and `format` resolve the same names on both sides.
+- **A mismatch is visible, never silent.** If the page uses an extension that `mount` wasn't given (or the trust levels differ), the affected values show an error ("unknown function pmt") and `mount` reports it through `onEvent({ type: 'error', … })`. The server-rendered text stays as it was.
 
 A name that collides with a built-in or with another extension is an error at registration, not in a document.
 
@@ -117,6 +132,7 @@ type FormatSpec = {
 };
 ```
 
+- **Functions and formats are in the calc part** (§2), so the renderer and the runtime use the same implementations.
 - **Functions are trusted only.** They must be pure and deterministic. Results are checked to be finite, and they count against the step budget like built-ins. An exception becomes an error value, so a function can never break a page.
 - **Formats** run at both levels if the extension is `untrusted: true`. They only turn a number into text.
 
@@ -128,6 +144,7 @@ mount(root, { onEvent(e: ActiveEvent) { … } });
 type ActiveEvent =
   | { type: 'change'; name: string; value: number }
   | { type: 'answer'; id: string; response: string; correct: boolean; points: number; max: number }
+  | { type: 'error'; message: string }   // e.g. the page uses an extension mount wasn't given
   | { type: `${string}.${string}`; id: string; data: unknown };   // extension events
 ```
 
@@ -155,8 +172,8 @@ The quiz itself (`:answer[expr]{tolerance points}`, `:::quiz`) ships in active-m
 
 ## 9. Plan
 
-1. **0.2:** the registries in `remark-active` (directives, formats) and `active-runtime` (controls, events), with `:input` and `:value` moved onto them, plus `defineExtension` / `defineBehavior` and tests that a host extension renders, validates and runs.
-2. **0.2:** functions in `calc` (options `functions`), trusted only.
+1. **0.2:** the registries in `remark-active` (directives) and `active-runtime` (controls, events), with `:input` and `:value` moved onto them, plus `defineExtension` / `defineBehavior` and tests that a host extension renders, validates and runs.
+2. **0.2:** `defineCalc` (functions, formats), accepted by `parse`, `evaluate`, `createSession`, the renderer and `mount`. Acceptance test: a document using a custom function and a custom format, rendered on the server, mounted, then an input changed. The live values must match a fresh server render, and a `mount` without the extension must show an error, not a wrong value.
 3. **0.3:** the quiz as a built-in extension, and `@vchernoy/active-react` (components and hooks).
 4. **course-platform:** its extension package (video, resources, downloads, images), and then calc in its MDX pipeline (#9 phase 1–2).
 

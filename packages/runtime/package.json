@@ -1,15 +1,50 @@
 {
   "name": "@vchernoy/active-runtime",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The browser runtime for active-md: makes rendered documents live",
+  "keywords": [
+    "markdown",
+    "interactive",
+    "calculator",
+    "runtime",
+    "active-md"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/vchernoy/active-md/tree/main/packages/runtime#readme",
+  "bugs": {
+    "url": "https://github.com/vchernoy/active-md/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vchernoy/active-md.git",
+    "directory": "packages/runtime"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
-  "scripts": { "build": "tsc -p tsconfig.build.json" },
-  "repository": { "type": "git", "url": "git+https://github.com/vchernoy/active-md.git", "directory": "packages/runtime" },
-  "dependencies": { "@vchernoy/calc": "0.0.0", "@vchernoy/remark-active": "0.0.0", "katex": "0.19.1" }
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@vchernoy/calc": "0.1.0",
+    "@vchernoy/remark-active": "0.1.0",
+    "katex": "0.19.1"
+  }
 }

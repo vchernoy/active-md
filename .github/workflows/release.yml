@@ -1,0 +1,34 @@
+name: release
+# Publishes @vchernoy/calc, @vchernoy/remark-active and @vchernoy/active-runtime to npm when a version
+# tag is pushed (git tag v0.1.0 && git push origin v0.1.0). Needs the NPM_TOKEN repository secret.
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+  id-token: write # npm provenance
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: node scripts/check-release.mjs "$GITHUB_REF_NAME"
+      # In dependency order, so each package's internal dependencies are already on npm.
+      - run: |
+          for dir in packages/calc packages/remark packages/runtime; do
+            npm publish --workspace "$dir" --provenance --access public
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

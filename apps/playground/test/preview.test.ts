@@ -24,10 +24,24 @@ describe('social link preview', () => {
     expect(named('twitter:description')).toBe(property('og:description'));
     expect(named('twitter:image:alt')).toBe(property('og:image:alt'));
 
-    const png = readFileSync(new URL(`../public/${image.pathname.slice(url.pathname.length)}`, import.meta.url));
-    expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
-    expect(png.readUInt32BE(16)).toBe(Number(property('og:image:width')));
-    expect(png.readUInt32BE(20)).toBe(Number(property('og:image:height')));
-    expect(property('og:image:type')).toBe('image/png');
+    const jpeg = readFileSync(new URL(`../public/${image.pathname.slice(url.pathname.length)}`, import.meta.url));
+    expect(jpeg.subarray(0, 2).toString('hex')).toBe('ffd8');
+    expect(jpeg.subarray(-2).toString('hex')).toBe('ffd9');
+    expect(jpeg.length).toBeLessThan(250_000);
+    // Read dimensions from the baseline/progressive JPEG frame, rather than trusting metadata constants.
+    let dimensions: { width: number; height: number } | undefined;
+    for (let offset = 2; offset + 8 < jpeg.length;) {
+      expect(jpeg[offset]).toBe(0xff);
+      const marker = jpeg[offset + 1];
+      if (marker === 0xc0 || marker === 0xc2) {
+        dimensions = { height: jpeg.readUInt16BE(offset + 5), width: jpeg.readUInt16BE(offset + 7) };
+        break;
+      }
+      const length = jpeg.readUInt16BE(offset + 2);
+      expect(length).toBeGreaterThanOrEqual(2);
+      offset += length + 2;
+    }
+    expect(dimensions).toEqual({ width: Number(property('og:image:width')), height: Number(property('og:image:height')) });
+    expect(property('og:image:type')).toBe('image/jpeg');
   });
 });

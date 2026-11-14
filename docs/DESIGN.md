@@ -404,6 +404,8 @@ b = randomInt(seed + 1, 2, 9)
 
 ## 10. Extensibility
 
+The concrete API proposal is in [EXTENSIONS.md](EXTENSIONS.md) (#9).
+
 - **`functions`:** a registry of pure functions `{ name, arity, types, impl }`. A name collision with a built-in is an error.
 - **`components`:** a registry for new directive names, in the trusted level only.
 - **`formats`:** named formatters, such as `currency:RUB` or `date:short`.

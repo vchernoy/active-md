@@ -3,7 +3,7 @@ export type Builtin = { min: number; max: number; fn: (args: number[]) => number
 
 const check = (x: number): number | string => Number.isFinite(x) ? x : 'result is not a finite number';
 
-export const BUILTINS: Readonly<Record<string, Builtin>> = {
+const REGISTRY: Record<string, Builtin> = {
   round: { min: 1, max: 2, fn: ([x, d = 0]) => {
     if (!Number.isInteger(d) || d! < 0 || d! > 15) return 'round: digits must be a whole number from 0 to 15';
     const f = 10 ** d!;
@@ -16,5 +16,13 @@ export const BUILTINS: Readonly<Record<string, Builtin>> = {
   min: { min: 1, max: Infinity, fn: args => Math.min(...args) },
   max: { min: 1, max: Infinity, fn: args => Math.max(...args) },
 };
+
+/** Built-ins by name, with no inherited properties ("toString", "constructor" are not built-ins). */
+export const BUILTINS: Readonly<Record<string, Builtin>> = Object.freeze(Object.assign(Object.create(null) as Record<string, Builtin>, REGISTRY));
+
+/** Look up a built-in by its own name only. */
+export function builtin(name: string): Builtin | undefined {
+  return Object.hasOwn(BUILTINS, name) ? BUILTINS[name] : undefined;
+}
 
 export const RESERVED = new Set(['input', 'in']);

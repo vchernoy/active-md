@@ -1,4 +1,4 @@
-import { BUILTINS } from './builtins.js';
+import { builtin } from './builtins.js';
 import { DEFAULT_LIMITS, type Expr, type Limits, type Program, type Result } from './types.js';
 
 class EvalError extends Error { constructor(readonly result: Extract<Result, { kind: 'error' }>) { super(result.message); } }
@@ -30,7 +30,7 @@ function evalExpr(expr: Expr, lookup: Lookup, budget: Budget): number {
     case 'neg': return -evalExpr(expr.arg, lookup, budget);
     case 'bin': return binary(expr, evalExpr(expr.left, lookup, budget), evalExpr(expr.right, lookup, budget));
     case 'call': {
-      const b = BUILTINS[expr.fn];
+      const b = builtin(expr.fn);
       if (!b) throw new EvalError({ kind: 'error', message: `unknown function "${expr.fn}"`, span: expr.span });
       const args = expr.args.map(a => evalExpr(a, lookup, budget));
       const r = b.fn(args);

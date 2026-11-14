@@ -209,3 +209,61 @@ describe('program shape', () => {
     expect(p.definitions[p.names.get('c')!.index]?.name).toBe('c');
   });
 });
+
+describe('review fixes (#3)', () => {
+  const chain = (n: number, op = '+') => Array(n).fill('1').join(` ${op} `);
+
+  it('rejects long flat operator chains with a diagnostic instead of overflowing the stack', () => {
+    for (const op of ['+', '*', '-', '^']) {
+      const p = prog(`x = ${chain(10_000, op)}\ny = 2`);
+      expect(p.diagnostics[0]?.message).toMatch(/nested too deeply/);
+      const r = evaluate(p);
+      expect(r.get('x')?.kind).toBe('error');
+      expect(val(r.get('y'))).toBe(2);
+    }
+    const s = createSession(prog('input a = 1'));
+    const e = s.compile(chain(10_000));
+    expect(e.diagnostics[0]?.message).toMatch(/nested too deeply/);
+    expect(e.evaluate().kind).toBe('error');
+    // Chains within the limit still work.
+    expect(val(run(`x = ${chain(150)}`).get('x'))).toBe(150);
+  });
+
+  it('treats inherited object properties as unknown functions, not built-ins', () => {
+    for (const fn of ['toString', 'constructor', 'hasOwnProperty', '__proto__', 'valueOf']) {
+      const p = prog(`x = ${fn}(1)`);
+      expect(p.diagnostics[0]?.message).toBe(`unknown function "${fn}"`);
+      expect(evaluate(p).get('x')?.kind).toBe('error');
+      expect(createSession(prog('input a = 1')).compile(`${fn}(a)`).evaluate().kind).toBe('error');
+    }
+    // Such names are ordinary names, not reserved.
+    expect(val(run('toString = 3\ny = toString * 2').get('y'))).toBe(6);
+  });
+
+  it('keeps the names of definitions that fail to parse', () => {
+    const p = prog('a = 1 +\na = 2\nb = a');
+    expect(p.diagnostics.map(d => d.message)).toEqual([
+      'the expression is incomplete',
+      expect.stringMatching(/"a" is already defined on line 1/),
+    ]);
+    const r = evaluate(p);
+    expect(r.get('a')).toMatchObject({ kind: 'error', message: 'the expression is incomplete' });
+    expect(r.get('b')).toMatchObject({ kind: 'error', message: 'depends on an error in a' });
+    expect(evaluate(prog('a = 1 +')).get('a')?.kind).toBe('error');
+    expect(evaluate(prog('input n = x')).get('n')?.kind).toBe('error');
+    // A later reference reports "used before defined", not "unknown name".
+    expect(messages('b = c\nc = (')[0]).toMatch(/"c" is used before it is defined \(line 2\)/);
+    // A broken duplicate reports both problems.
+    expect(messages('a = 1\na = 2 +')).toEqual([expect.stringMatching(/already defined/), 'the expression is incomplete']);
+  });
+
+  it('never shows negative zero, in any locale', () => {
+    expect(formatNumber(-0.0001, { kind: 'percent', digits: 1 }, 'de-DE')).toBe(formatNumber(0, { kind: 'percent', digits: 1 }, 'de-DE'));
+    expect(formatNumber(-0.0001, { kind: 'percent', digits: 1 }, 'de-DE')).not.toMatch(/^[-−]/);
+    expect(formatNumber(-0.0001, { kind: 'fixed', digits: 2 }, 'sv-SE')).toBe(formatNumber(0, { kind: 'fixed', digits: 2 }, 'sv-SE'));
+    expect(formatNumber(-0.0001, { kind: 'fixed', digits: 1 }, 'ar-EG')).toBe(formatNumber(0, { kind: 'fixed', digits: 1 }, 'ar-EG'));
+    expect(formatNumber(-0.4, { kind: 'int' }, 'en-US')).toBe('0');
+    expect(formatNumber(-0, undefined, 'en-US')).toBe('0');
+    expect(formatNumber(-0.06, { kind: 'fixed', digits: 1 }, 'en-US')).toBe('-0.1');
+  });
+});

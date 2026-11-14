@@ -1,10 +1,12 @@
-import { BUILTINS, RESERVED } from './builtins.js';
+import { builtin, RESERVED } from './builtins.js';
 import { tokenize, type Token } from './lexer.js';
 import { DEFAULT_LIMITS, type Definition, type Diagnostic, type Expr, type Limits, type NameInfo, type Program, type Span } from './types.js';
 
 type Raw =
   | { kind: 'input'; name: string; nameSpan: Span; default: number; range?: { min: number; max: number }; span: Span }
-  | { kind: 'value'; name: string; nameSpan: Span; expr: Expr; span: Span };
+  | { kind: 'value'; name: string; nameSpan: Span; expr: Expr; span: Span }
+  /** A statement that failed to parse but clearly defines `name`; the name exists, as an error. */
+  | { kind: 'broken'; name: string; nameSpan: Span; error: Diagnostic };
 
 class ParseError extends Error { constructor(message: string, readonly span: Span) { super(message); } }
 
@@ -13,9 +15,18 @@ const BIN_PREC: Record<string, number> = { '+': 1, '-': 1, '*': 2, '/': 2, '%': 
 /** Pratt parser over one statement's tokens. */
 class ExprParser {
   private p = 0;
+  /** Height of every node built so far. Left-associative chains grow the tree without recursing, so recursion depth alone doesn't bound it. */
+  private heights = new WeakMap<Expr, number>();
   constructor(private tokens: Token[], private maxDepth: number) {}
   peek(): Token { return this.tokens[this.p]!; }
   next(): Token { return this.tokens[this.p++]!; }
+  /** Record a new node's height and reject trees deeper than the limit, so later recursive walks stay bounded. */
+  private node<E extends Expr>(e: E, ...children: Expr[]): E {
+    const h = 1 + Math.max(0, ...children.map(c => this.heights.get(c) ?? 1));
+    if (h > this.maxDepth) throw new ParseError('expression is nested too deeply', e.span);
+    this.heights.set(e, h);
+    return e;
+  }
   atEnd(): boolean { const t = this.peek(); return t.t === 'nl' || t.t === 'eof'; }
   expectOp(value: string): Token {
     const t = this.next();
@@ -33,7 +44,7 @@ class ExprParser {
       this.next();
       // ^ is right-associative; the others are left-associative.
       const right = this.expr(t.value === '^' ? prec : prec + 1, depth + 1);
-      left = { kind: 'bin', op: t.value as '+', left, right, span: join(left.span, right.span) };
+      left = this.node({ kind: 'bin', op: t.value as '+', left, right, span: join(left.span, right.span) }, left, right);
     }
     return left;
   }
@@ -43,7 +54,7 @@ class ExprParser {
     if (t.t === 'op' && t.value === '-') {
       this.next();
       const arg = this.expr(3, depth + 1);
-      return { kind: 'neg', arg, span: join(t.span, arg.span) };
+      return this.node({ kind: 'neg', arg, span: join(t.span, arg.span) }, arg);
     }
     if (t.t === 'op' && t.value === '+') { this.next(); return this.expr(3, depth + 1); }
     return this.primary(depth);
@@ -71,7 +82,7 @@ class ExprParser {
           }
         }
         const close = this.expectOp(')');
-        return { kind: 'call', fn: t.value, args, span: join(t.span, close.span) };
+        return this.node({ kind: 'call', fn: t.value, args, span: join(t.span, close.span) }, ...args);
       }
       return { kind: 'ref', name: t.value, span: t.span };
     }
@@ -104,10 +115,22 @@ function parseStatements(block: string, text: string, limits: Limits, diagnostic
       out.push(parseStatement(stmt, limits));
     } catch (e) {
       if (!(e instanceof ParseError)) throw e;
-      diagnostics.push({ severity: 'error', message: e.message, span: e.span });
+      const error: Diagnostic = { severity: 'error', message: e.message, span: e.span };
+      const named = definedName(stmt);
+      if (named) out.push({ kind: 'broken', name: named.value, nameSpan: named.span, error });
+      else diagnostics.push(error);
     }
   }
   return out;
+}
+
+/** The name a statement defines, if its start is well-formed ("name =" or "input name"), and the name is allowed. */
+function definedName(tokens: Token[]): { value: string; span: Span } | undefined {
+  const [a, b] = tokens;
+  const name = a?.t === 'name' && a.value === 'input' ? (b?.t === 'name' ? b : undefined)
+    : a?.t === 'name' && b?.t === 'op' && b.value === '=' ? a : undefined;
+  if (!name || RESERVED.has(name.value) || builtin(name.value)) return undefined;
+  return { value: name.value, span: name.span };
 }
 
 function parseStatement(tokens: Token[], limits: Limits): Raw {
@@ -152,7 +175,7 @@ function parseStatement(tokens: Token[], limits: Limits): Raw {
 
 function checkName(name: string, span: Span): void {
   if (RESERVED.has(name)) throw new ParseError(`"${name}" is a reserved word`, span);
-  if (name in BUILTINS) throw new ParseError(`"${name}" is a built-in function and can't be redefined`, span);
+  if (builtin(name)) throw new ParseError(`"${name}" is a built-in function and can't be redefined`, span);
 }
 
 /** Names an expression refers to; also checks calls against the built-ins. */
@@ -163,7 +186,7 @@ export function collectRefs(expr: Expr, refs: Map<string, Span>, problems: Diagn
     case 'neg': collectRefs(expr.arg, refs, problems); return;
     case 'bin': collectRefs(expr.left, refs, problems); collectRefs(expr.right, refs, problems); return;
     case 'call': {
-      const b = BUILTINS[expr.fn];
+      const b = builtin(expr.fn);
       if (!b) problems.push({ severity: 'error', message: `unknown function "${expr.fn}"`, span: expr.span });
       else if (expr.args.length < b.min || expr.args.length > b.max) {
         const want = b.min === b.max ? `${b.min}` : b.max === Infinity ? `at least ${b.min}` : `${b.min} or ${b.max}`;
@@ -202,6 +225,13 @@ export function parse(blocks: readonly { id: string; text: string }[], limits: L
     const prior = names.get(r.name);
     if (prior) {
       diagnostics.push({ severity: 'error', name: r.name, message: `"${r.name}" is already defined on line ${prior.span.line}; each name is defined once`, span: r.nameSpan });
+      if (r.kind === 'broken') diagnostics.push({ ...r.error, name: r.name });
+      continue;
+    }
+    if (r.kind === 'broken') {
+      diagnostics.push({ ...r.error, name: r.name });
+      names.set(r.name, { kind: 'value', span: r.nameSpan, index: -1 });
+      broken.set(r.name, { ...r.error, name: r.name });
       continue;
     }
     if (r.kind === 'input') {

@@ -18,9 +18,10 @@ export function formatNumber(value: number, format: Format = { kind: 'auto' }, l
     : format.kind === 'percent' ? { style: 'percent', minimumFractionDigits: format.digits, maximumFractionDigits: format.digits }
     : format.kind === 'int' ? { maximumFractionDigits: 0 }
     : { maximumFractionDigits: 6 };
-  const s = new Intl.NumberFormat(locale, opts).format(value);
-  // Avoid "-0" after rounding.
-  return /^-0([.,]0*)?%?$/.test(s) ? s.slice(1) : s;
+  const nf = new Intl.NumberFormat(locale, opts);
+  // A negative value that rounds to zero would show as "-0" in any locale's spelling; show zero instead.
+  if ((value < 0 || Object.is(value, -0)) && nf.format(-value) === nf.format(0)) return nf.format(0);
+  return nf.format(value);
 }
 
 /**

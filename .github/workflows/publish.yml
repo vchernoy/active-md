@@ -1,23 +1,52 @@
 name: release
-# Publishes @vchernoy/calc, @vchernoy/remark-active and @vchernoy/active-runtime to npm when a version
-# tag is pushed (git tag v0.1.1 && git push origin v0.1.1).
+# Publishes @vchernoy/calc, @vchernoy/remark-active and @vchernoy/active-runtime to npm.
 #
-# Authentication: npm trusted publishing (OIDC) once each package lists this repository and
-# publish.yml as a trusted publisher on npmjs.com; no npm token secret is used.
+# Two ways to start it:
+# - Actions → release → Run workflow, with the version (for example 0.1.2). It runs from main,
+#   publishes, then creates and pushes the tag v<version> on the commit it published.
+# - Push a version tag yourself (git tag v0.1.2 && git push origin v0.1.2).
+# A tag pushed by this workflow does not start it again (GITHUB_TOKEN pushes trigger no workflows).
+#
+# Authentication: npm trusted publishing (OIDC). Each package lists this repository and
+# publish.yml as its trusted publisher on npmjs.com; no npm token secret is used.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, without "v" (must match every packages/*/package.json)'
+        required: true
+        type: string
 permissions:
   contents: read
-  id-token: write # OIDC for trusted publishing and provenance
 concurrency:
   group: release
   cancel-in-progress: false
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the tag after a dispatched release
+      id-token: write # OIDC for trusted publishing and provenance
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
     steps:
+      - name: Dispatched releases run from main only
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Run this workflow from main (got $GITHUB_REF)." >&2
+          exit 1
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: The tag must not exist yet
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists; nothing to release." >&2
+            exit 1
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 24 # ships npm 11, which trusted publishing requires (>= 11.5.1)
@@ -31,10 +60,22 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - run: node scripts/check-release.mjs "$GITHUB_REF_NAME"
+      - run: node scripts/check-release.mjs "$TAG"
       # In dependency order, so each package's internal dependencies are already on npm.
-      # Publishing uses OIDC only, so a successful release verifies the trusted publisher configuration.
-      - run: |
+      # A version that is already on npm is skipped, so a release that failed half-way can be re-run.
+      - name: Publish
+        run: |
           for dir in packages/calc packages/remark packages/runtime; do
-            npm publish --workspace "$dir" --provenance --access public
+            name=$(node -p "require('./$dir/package.json').name")
+            version=$(node -p "require('./$dir/package.json').version")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version is already on npm; skipping."
+            else
+              npm publish --workspace "$dir" --provenance --access public
+            fi
           done
+      - name: Tag the published commit
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"

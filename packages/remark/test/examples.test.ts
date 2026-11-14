@@ -18,6 +18,8 @@ describe('examples/', () => {
     expect(messages).toEqual([]);
     expect(program).toBeDefined();
     expect(html).not.toContain('active-error');
+    // KaTeX renders with throwOnError: false, so malformed TeX shows up as markup, not a message.
+    expect(html).not.toContain('katex-error');
     // A failed {{…}} in math becomes a red "?".
     expect(html).not.toMatch(/mathcolor="red"|color:\s*red/);
     // Every :input and :value is bound to the program.

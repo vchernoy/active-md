@@ -147,3 +147,83 @@ describe('review fixes (#5)', () => {
     expect($('[data-active-tex="f = {{f}}"]').innerHTML).toBe(before);
   });
 });
+
+describe('several controls for one input', () => {
+  const DOC = calc('input r = 8 in 0..30\ny = r * 2') + 'Rate :input[r] :input[r]{widget=slider step=0.5} → :value[y]';
+  const both = (host: ReturnType<typeof setup>) => [...host.host.querySelectorAll<HTMLInputElement>('[data-active-input="r"]')];
+  const type = (el: HTMLInputElement, value: string) => { el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); };
+
+  it('keeps the number box and the slider in sync, both ways', () => {
+    const s = setup(DOC);
+    const [box, slider] = both(s);
+    type(box!, '12');
+    expect(slider!.value).toBe('12');
+    expect(s.$('[data-active-value="y"]').textContent).toBe('24');
+    type(slider!, '20.5');
+    expect(box!.value).toBe('20.5');
+    expect(s.$('[data-active-value="y"]').textContent).toBe('41');
+  });
+
+  it('never rewrites the control being typed in, and leaves the other one alone on invalid input', () => {
+    const s = setup(DOC);
+    const [box, slider] = both(s);
+    type(box!, '12.0');
+    expect(box!.value).toBe('12.0');
+    type(box!, '99');
+    expect(box!.getAttribute('aria-invalid')).toBe('true');
+    expect(slider!.value).toBe('12');
+    // Fixing the value elsewhere clears the stale error on the box and shows the current value.
+    type(slider!, '5');
+    expect(box!.value).toBe('5');
+    expect(box!.hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('syncs the other controls when a restored value is adopted', () => {
+    const host = document.createElement('div');
+    host.innerHTML = renderActive(DOC, { locale: 'en-US' }).html;
+    host.querySelector<HTMLInputElement>('input[type="number"]')!.value = '7';
+    mount(host, { locale: 'en-US' });
+    expect(host.querySelector<HTMLInputElement>('input[type="range"]')!.value).toBe('7');
+  });
+});
+
+describe('several controls: review fixes (#10)', () => {
+  const type = (el: HTMLInputElement, value: string) => { el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); };
+
+  it('repairs an invalid control when another submits the current value', () => {
+    const s = setup(calc('input r = 8 in 0..30') + ':input[r] :input[r]');
+    const [a, b] = [...s.host.querySelectorAll<HTMLInputElement>('[data-active-input="r"]')];
+    type(a!, '99');
+    expect(a!.getAttribute('aria-invalid')).toBe('true');
+    type(b!, '8'); // unchanged model value: no session notification
+    expect(a!.value).toBe('8');
+    expect(a!.hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('keeps an off-step value in the model and readout while the slider shows the nearest step', () => {
+    const s = setup(calc('input r = 8 in 0..30') + ':input[r] :input[r]{widget=slider step=0.5}');
+    const box = s.$<HTMLInputElement>('input[type="number"]');
+    type(box, '8.1');
+    expect(s.m.session.get('r')).toEqual({ kind: 'value', value: 8.1 });
+    // Browsers snap a range input to its step (jsdom doesn't); either way it stays within half a step.
+    expect(Math.abs(Number(s.$<HTMLInputElement>('input[type="range"]').value) - 8.1)).toBeLessThanOrEqual(0.25);
+    expect(s.$('output[data-active-value="r"]').textContent).toBe('8.1');
+    expect(box.value).toBe('8.1');
+  });
+
+  it('does not mistake a slider rounded by syncing for a restored value', () => {
+    const host = document.createElement('div');
+    host.innerHTML = renderActive(calc('input r = 5 in 0..30') + ':input[r] :input[r]{widget=slider step=0.5}', { locale: 'en-US' }).html;
+    host.querySelector<HTMLInputElement>('input[type="number"]')!.value = '8.1';
+    // Snap the slider to its step on assignment, as browsers do.
+    const slider = host.querySelector<HTMLInputElement>('input[type="range"]')!;
+    const proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!;
+    Object.defineProperty(slider, 'value', {
+      get() { return proto.get!.call(this); },
+      set(v: string) { proto.set!.call(this, String(Math.round(Number(v) / 0.5) * 0.5)); },
+    });
+    const m = mount(host, { locale: 'en-US' });
+    expect(slider.value).toBe('8');
+    expect(m.session.get('r')).toEqual({ kind: 'value', value: 8.1 });
+  });
+});

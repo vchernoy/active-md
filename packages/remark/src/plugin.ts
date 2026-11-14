@@ -73,7 +73,8 @@ export function remarkActive(options: ActiveOptions = {}) {
       report(d, start === undefined ? undefined : { line: start + d.span.line - 1, column: d.span.column + indent });
     }
 
-    const controlled = new Set<string>();
+    /** The range of the first control of each input; later controls of the same input must match it. */
+    const controlled = new Map<string, { lo: number | undefined; hi: number | undefined; line: number | undefined }>();
     walk(tree, (node, parent, index) => {
       if (node.type === 'textDirective' || node.type === 'leafDirective' || node.type === 'containerDirective') {
         return directive(node as Directive, parent, index);
@@ -112,8 +113,6 @@ export function remarkActive(options: ActiveOptions = {}) {
       const def = program.inputs.find(i => i.name === name);
       const fail = (message: string) => showError(node, message);
       if (!def) return fail(program.names.has(name) ? `"${name}" is not an input, so it can't have a control` : `unknown input "${name}"`);
-      if (controlled.has(name)) return fail(`"${name}" already has a control; show its value elsewhere with :value[${name}]`);
-      controlled.add(name);
       const widget = attrs.widget ?? 'number';
       if (widget !== 'number' && widget !== 'slider') return fail(`unknown widget "${widget}" (use number or slider)`);
       const num = (key: string): number | undefined | string => {
@@ -131,6 +130,12 @@ export function remarkActive(options: ActiveOptions = {}) {
       if (widget === 'slider' && (lo === undefined || hi === undefined)) return fail(`a slider needs a range: give ${name} "in a..b" or min and max`);
       if (lo !== undefined && hi !== undefined && lo > hi) return fail(`min ${lo} is greater than max ${hi}`);
       if (step !== undefined && (step as number) <= 0) return fail('step must be positive');
+      // Several controls may edit one input (a number box and a slider); they stay in sync, so they must agree on the range.
+      const first = controlled.get(name);
+      if (first && (first.lo !== lo || first.hi !== hi)) {
+        const range = (a: number | undefined, b: number | undefined) => `${a ?? '…'}..${b ?? '…'}`;
+        return fail(`every control of ${name} must use the same range: ${range(first.lo, first.hi)}${first.line ? ` (line ${first.line})` : ''}, not ${range(lo, hi)}`);
+      }
       const current = session.get(name);
       const shown = current?.kind === 'value' ? current.value : def.default;
       // The browser would silently clamp a value outside the control, and the page would disagree with the model.
@@ -157,6 +162,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       if (widget === 'slider') {
         children.push({ type: 'element', tagName: 'output', properties: { className: ['active-value'], dataActiveValue: name, ariaLive: 'polite' }, children: [{ type: 'text', value: formatNumber(shown, undefined, options.locale) }] });
       }
+      if (!first) controlled.set(name, { lo, hi, line: node.position?.start.line });
       node.data = { hName: 'label', hProperties: { className: ['active-input', `active-input-${widget}`] }, hChildren: children };
     }
 

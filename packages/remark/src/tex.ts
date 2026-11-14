@@ -1,4 +1,5 @@
 import type { Result } from '@vchernoy/calc';
+import type { KatexOptions as KatexSettings } from 'katex';
 
 /** `{{expr}}` inside TeX. An expression ends at the first "}}". */
 export const PLACEHOLDER = /\{\{([^{}]*?)\}\}/g;
@@ -25,4 +26,12 @@ export function substitute(tex: string, results: readonly Result[]): string {
     const r = results[i++];
     return r?.kind === 'value' ? texNumber(r.value) : '{\\color{red}?}';
   });
+}
+
+/** "mathml" (default) needs no CSS or fonts; "htmlAndMathml" needs the host to load KaTeX's CSS. */
+export type MathOutput = 'mathml' | 'htmlAndMathml';
+
+/** KaTeX options that are always safe for untrusted documents. */
+export function katexSettings(displayMode: boolean, output: MathOutput = 'mathml'): KatexSettings {
+  return { displayMode, output, throwOnError: false, trust: false, strict: 'ignore', maxSize: 50, maxExpand: 1000 };
 }

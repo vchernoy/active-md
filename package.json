@@ -6,11 +6,13 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "npm run build -w packages/calc && tsc -p packages/calc && tsc -p packages/remark",
+    "typecheck": "npm run build -w packages/calc -w packages/remark && tsc -p packages/calc && tsc -p packages/remark && tsc -p packages/runtime",
     "test": "vitest run",
     "build": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
+    "@types/jsdom": "30.0.0",
+    "jsdom": "26.1.0",
     "typescript": "5.9.3",
     "vitest": "3.2.7"
   }

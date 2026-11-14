@@ -12,9 +12,9 @@ import { rehypeActiveKatex, rehypeActiveWrap, type KatexOptions } from './rehype
 import { activeSchema } from './sanitize.js';
 
 export { remarkActive, type ActiveData, type ActiveOptions, type CalcBlock } from './plugin.js';
-export { rehypeActiveKatex, rehypeActiveWrap, renderTex, katexSettings, type KatexOptions } from './rehype.js';
+export { rehypeActiveKatex, rehypeActiveWrap, renderTex, type KatexOptions } from './rehype.js';
 export { activeSchema } from './sanitize.js';
-export { placeholders, substitute, texNumber, PLACEHOLDER } from './tex.js';
+export { placeholders, substitute, texNumber, katexSettings, PLACEHOLDER, type MathOutput } from './tex.js';
 
 export type RenderOptions = ActiveOptions & KatexOptions;
 

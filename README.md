@@ -33,10 +33,10 @@ $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{round(final)}}
 
 `apps/playground` is the GitHub Pages app: `npm run dev -w apps/playground`.
 
-### Install (once 0.1.0 is published)
+### Install
 
 ```sh
-npm install @vchernoy/remark-active @vchernoy/active-runtime
+npm install --save-exact @vchernoy/remark-active @vchernoy/active-runtime
 ```
 
 ```ts
@@ -51,7 +51,7 @@ mount(container);                                   // make it live
 
 All packages share one version. Set it in each `packages/*/package.json` (and the internal dependencies), update `CHANGELOG.md`, run `npm run build && npm run release:check`, merge, then push a tag: `git tag v0.1.0 && git push origin v0.1.0`. The `release` workflow tests, checks and publishes to npm with provenance.
 
-Publishing uses **npm trusted publishing**: each package on npmjs.com lists `vchernoy/active-md` and `release.yml` as its trusted publisher (Settings → Trusted publishing → GitHub Actions), so no secret is stored. npm can only attach a trusted publisher to an existing package, so the **first** release of a package uses a short-lived granular token in the `NPM_TOKEN` secret (read/write for `@vchernoy`, 7-day expiry). After that release, add the trusted publisher to each package, then delete the token on npm and the secret on GitHub.
+Publishing uses **npm trusted publishing** (OIDC). No npm token or secret is stored. Each package on npmjs.com lists `vchernoy/active-md` and the workflow `publish.yml` as its trusted publisher (Settings → Trusted publishing → GitHub Actions). If the workflow file is renamed, update the trusted publisher on all three packages, otherwise the next publish is refused. A **new** package (one that doesn't exist on npm yet) needs its first version published another way before a trusted publisher can be added.
 
 ## Planned integrations
 

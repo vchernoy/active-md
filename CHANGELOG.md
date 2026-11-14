@@ -2,7 +2,11 @@
 
 All three packages share one version.
 
-## 0.1.0 (unreleased)
+## 0.1.1 (2026-11-14)
+
+No code changes. This release was made to verify token-free npm trusted publishing (OIDC) through `publish.yml`. It is published with provenance.
+
+## 0.1.0 (2026-11-14)
 
 First release (v0, see [docs/DESIGN.md](docs/DESIGN.md) §0).
 

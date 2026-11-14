@@ -22,6 +22,8 @@ gives **:value[final]{format=fixed:0}**.
 $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{final | fixed:2}} $$
 ````
 
+More: **[examples/](examples/)** has eight complete documents (compound interest, a loan, a recipe that rescales, splitting a bill, running pace, free fall, appliance running cost, Pythagoras). Each is rendered in CI.
+
 ## Packages
 
 | Package | What it is |

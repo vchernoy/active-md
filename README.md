@@ -4,7 +4,7 @@ Markdown + LaTeX with **live calculations and form controls**: inputs the reader
 
 It's built for authors writing prose, and it's safe for documents that anyone may have written: no JavaScript in documents, no `eval`, no network.
 
-**Status:** design stage. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
+**Status:** v0 in progress. Try it in the **[playground](https://vchernoy.github.io/active-md/)**: one editor, one Edit/View switch, share links that keep the document in the URL. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
 
 ## Example (v0)
 
@@ -22,7 +22,7 @@ gives **:value[final]{format=fixed:0}**.
 $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{round(final)}} $$
 ````
 
-## Packages (planned)
+## Packages
 
 | Package | What it is |
 |---|---|
@@ -30,6 +30,8 @@ $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{round(final)}}
 | `@vchernoy/remark-active` | A remark plugin: calc blocks, `:input`, `:value`, `{{…}}` in math |
 | `@vchernoy/active-runtime` | A browser runtime that makes the rendered page live |
 | `@vchernoy/active-react` | A React/MDX wrapper (later) |
+
+`apps/playground` is the GitHub Pages app: `npm run dev -w apps/playground`.
 
 ## Planned integrations
 

@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
-    "typecheck": "npm run build -w packages/calc -w packages/remark && tsc -p packages/calc && tsc -p packages/remark && tsc -p packages/runtime",
+    "typecheck": "npm run build -w packages/calc -w packages/remark -w packages/runtime && tsc -p packages/calc && tsc -p packages/remark && tsc -p packages/runtime && tsc -p apps/playground",
     "test": "vitest run",
     "build": "npm run build --workspaces --if-present"
   },

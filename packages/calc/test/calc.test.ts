@@ -157,6 +157,10 @@ describe('session', () => {
     expect(val(e.evaluate())).toBe(5);
     expect(s.compile('nope + 1').diagnostics[0]?.message).toMatch(/unknown name/);
     expect(s.compile('1 +').evaluate().kind).toBe('error');
+    // A bare name shows its own error; an expression says what it depends on.
+    const z = createSession(prog('input d = 0\nq = 1 / d'));
+    expect(z.compile('q').evaluate()).toMatchObject({ kind: 'error', message: 'division by zero' });
+    expect(z.compile('q + 1').evaluate()).toMatchObject({ kind: 'error', message: 'depends on an error in q' });
   });
 
   it('unsubscribes', () => {

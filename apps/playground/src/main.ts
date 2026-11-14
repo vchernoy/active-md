@@ -4,6 +4,7 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { SAMPLE } from './sample';
 import { decodeDocument, DocumentTooLarge, MAX_DOCUMENT_BYTES, shareLink } from './share';
+import '@vchernoy/active-runtime/style.css';
 import './style.css';
 
 const STORE_KEY = 'active-md.playground.source.v1';

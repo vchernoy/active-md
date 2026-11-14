@@ -1,0 +1,39 @@
+/* Optional, theme-neutral layout defaults for rendered active-md documents. */
+.active-doc .active-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  vertical-align: middle;
+  flex-wrap: wrap;
+}
+.active-doc .active-input input[type="number"] {
+  box-sizing: border-box;
+  width: calc(var(--active-input-ch, 8) * 1ch + 2em);
+  max-width: 100%;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.active-doc .active-input input[type="range"] {
+  width: min(200px, 50vw);
+  max-width: 100%;
+}
+.active-doc .active-input input[aria-invalid="true"] {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+/* Native MathML Core engines do not consistently honor legacy columnalign.
+   KaTeX emits alternating right/left for aligned/align, left for cases, and
+   center for gathered. Direct children leave nested tables independent. */
+.active-doc mtable[columnalign] > mtr > mtd {
+  padding: 0;
+}
+.active-doc mtable[columnalign^="right left"] > mtr > mtd:nth-child(odd) {
+  text-align: right;
+}
+.active-doc mtable[columnalign^="right left"] > mtr > mtd:nth-child(even),
+.active-doc mtable[columnalign^="left"] > mtr > mtd {
+  text-align: left;
+}
+.active-doc mtable[columnalign^="center"] > mtr > mtd {
+  text-align: center;
+}

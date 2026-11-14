@@ -90,7 +90,12 @@ type RenderOutput =
 
 - **Attributes and labels are validated before `render`**, so an extension never sees a malformed node. The errors come with document positions, like the built-ins' errors.
 - **Behavior is linked through data attributes.** If a directive needs a browser half, its output carries `data-active-control="<extension>.<name>"` plus its own `data-*` attributes. The runtime finds controls by that name.
-- **At the untrusted level, extension output passes through the same sanitizer.** An extension that needs extra elements or attributes declares them (`schema: { tagNames, attributes }`), and only names, never `script`, `style` or `on*` attributes, are accepted.
+- **At the untrusted level, extension output passes through the same sanitizer**, and an extension may widen it only within a fixed allowlist. Denying a few names isn't enough: `iframe srcdoc` carries live HTML, and every `src` loads from the network without a click.
+  - **Elements an extension may add:** `span`, `div`, `p`, `strong`, `em`, `ul`, `ol`, `li`, `table` parts, `label`, `fieldset`, `legend`, `output`, `button` (type `button` only), `input` (types `number`, `range`, `text`, `checkbox`, `radio`), `select`, `option`, `textarea`, `progress`, `meter`.
+  - **Attributes an extension may add:** `className` (values starting `ext-<extension>-`), `data-*`, `aria-*`, `role`, `id` (still prefixed), and the form attributes `type`, `name`, `value`, `min`, `max`, `step`, `checked`, `disabled`, `readOnly`, `placeholder`, `rows`, `cols`, `maxLength`.
+  - **Never added at the untrusted level, whatever a schema asks:** `script`, `style`, `iframe`, `frame`, `object`, `embed`, `link`, `meta`, `base`, `form`, `img`, `picture`, `source`, `video`, `audio`, `svg` and `math` (KaTeX output is inserted after sanitizing, as today). Also never added: any `on*` attribute, `style`, `srcdoc`, `src`, `srcset`, `href`, `action`, `formaction`, `poster`, `background`, `ping`.
+  - **Registration rejects** a schema outside the allowlist. A rejected extension doesn't run, rather than running with part of its schema.
+  - **Anything that loads or embeds** (video, external links, images) is trusted-only, and it renders through the host's own components (`jsx` output), as `VideoPlayer` does today.
 - **Rendering is pure:** no network or storage. Host data such as an asset registry is passed in by closure when the host builds the extension (`courseExtension(assets)`).
 
 ## 4. Controls (behavior)
@@ -103,18 +108,30 @@ type ControlSpec = {
 
 type ControlContext = {
   locale?: string;
-  get(name: string): Result | undefined;
+  get(name: string): Readonly<Result> | undefined;      // a frozen copy, never the session's own object
   set(name: string, value: number): string | undefined;   // same validation as :input
-  compile(expr: string): CompiledExpression;
+  compile(expr: string): { deps: ReadonlySet<string>; evaluate(): Readonly<Result> }; // frozen copies too
   watch(deps: ReadonlySet<string>, fn: () => void): () => void; // called when any dep changes
   format(value: number, spec?: string): string;
-  emit(type: string, data: unknown): void;   // becomes { type: '<extension>.<type>', id, data } for the host
+  answer(result: AnswerResult): void;        // the standard 'answer' event (§6), validated
+  emit(type: string, data: unknown): void;   // anything else: { type: '<extension>.<type>', id, data }
   id: string;                                // the directive's stable id
 };
 ```
 
 - **The runtime calls `mount` once per element**, and calls the cleanup on `destroy()`.
-- **Controls get a session view, not the session.** Through it they can only set inputs and read values, the same as a reader.
+- **Controls get a session view, not the session.** Through it they can only set inputs (with the same validation as `:input`) and read values, the same as a reader.
+  - Today `Session.get()` and a compiled bare name return the session's stored `Result`. So the view returns **frozen copies**, from both `get` and `compile(...).evaluate()`. A control can't change a computed value in place, skipping validation, recomputation or watchers.
+  - The implementation needs a test that a control mutating what it got changes nothing.
+- **Answers go through `answer()`, not `emit()`:**
+
+  ```ts
+  type AnswerResult = { response: string; correct: boolean; points: number; max: number };
+  ```
+
+  - The runtime checks it: `0 <= points <= max`, finite numbers, `response` at most 10,000 characters.
+  - It then sends the host the standard `{ type: 'answer', id, source: '<extension>', … }` event (§6), the same event the built-in quiz sends. So the host's scoring code handles built-in and custom questions alike.
+  - `emit()` stays for everything else, and it's always namespaced, so an extension can't impersonate a standard event.
 - **React hosts** use components instead of `mount`, through hooks: `useActiveValue(expr)`, `useActiveInput(name)` and `useEmit()`. `@vchernoy/active-react` implements the context.
 
 ## 5. Functions and formats
@@ -143,7 +160,7 @@ mount(root, { onEvent(e: ActiveEvent) { … } });
 
 type ActiveEvent =
   | { type: 'change'; name: string; value: number }
-  | { type: 'answer'; id: string; response: string; correct: boolean; points: number; max: number }
+  | { type: 'answer'; id: string; source: string; response: string; correct: boolean; points: number; max: number } // from ctx.answer(); source is 'active' for the built-in quiz
   | { type: 'error'; message: string }   // e.g. the page uses an extension mount wasn't given
   | { type: `${string}.${string}`; id: string; data: unknown };   // extension events
 ```
@@ -163,7 +180,7 @@ Answers and progress have to survive edits to the document, so every interactive
 |---|---|
 | `VideoPlayer`, `ResourceLink`, `DownloadFile` | `directives` with `jsx` output (its existing React components), `asset` attribute validated against its registry |
 | `CourseImage`, `SiteImage` | a directive, or an image resolver hook for course-relative paths |
-| Custom question types | `directives` + `controls` (or React components), `emit('answer', …)` |
+| Custom question types | `directives` + `controls` (or React components), reporting through `ctx.answer(…)` |
 | Finance helpers (`pmt`, `fv`) | `functions` |
 | `currency:RUB`, dates | `formats` |
 | Quiz storage, scores, unlocking | `onEvent` in the host |

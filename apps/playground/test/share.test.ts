@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeDocument, DocumentTooLarge, encodeDocument, MAX_DOCUMENT_BYTES } from '../src/share.js';
+import { decodeDocument, DocumentTooLarge, encodeDocument, MAX_DOCUMENT_BYTES, shareLink } from '../src/share.js';
 
 describe('share links', () => {
   it('round-trips documents, including non-Latin text', async () => {
@@ -31,5 +31,21 @@ describe('share links', () => {
     // The limit counts UTF-8 bytes: Cyrillic letters take two.
     await expect(encodeDocument('я'.repeat(MAX_DOCUMENT_BYTES / 2 + 1))).rejects.toMatchObject({ bytes: MAX_DOCUMENT_BYTES + 2 });
     expect(await decodeDocument(await encodeDocument('я'.repeat(MAX_DOCUMENT_BYTES / 2)))).toHaveLength(MAX_DOCUMENT_BYTES / 2);
+  });
+});
+
+describe('shareLink', () => {
+  it('returns the link when the text stayed the same', async () => {
+    const hash = await shareLink('# Same', () => 1);
+    expect(await decodeDocument(hash!)).toBe('# Same');
+  });
+
+  it('discards a link whose text changed while it was being made', async () => {
+    let revision = 0;
+    let finish!: (hash: string) => void;
+    const pending = shareLink('# Old document', () => revision, () => new Promise(r => { finish = r; }));
+    revision++; // the reader typed "# New document" (or loaded the example) meanwhile
+    finish('#doc=OLD');
+    expect(await pending).toBeUndefined();
   });
 });

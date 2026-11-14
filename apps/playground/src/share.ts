@@ -50,3 +50,14 @@ export async function decodeDocument(hash: string): Promise<string | undefined> 
   const raw = await pipe(fromBase64Url(hash.slice(PREFIX.length)), new DecompressionStream('deflate-raw'), MAX_DOCUMENT_BYTES);
   return new TextDecoder('utf-8', { fatal: true }).decode(raw);
 }
+
+/**
+ * Encode `text` for a share link, unless the document changed while compressing (the reader typed,
+ * or loaded the example): then the result would describe an older text, so return undefined.
+ * `revision()` is a counter the page bumps on every change.
+ */
+export async function shareLink(text: string, revision: () => number, encode: (t: string) => Promise<string> = encodeDocument): Promise<string | undefined> {
+  const before = revision();
+  const hash = await encode(text);
+  return revision() === before ? hash : undefined;
+}

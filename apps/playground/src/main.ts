@@ -3,7 +3,7 @@ import { renderActive, type RenderMessage } from '@vchernoy/remark-active';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { SAMPLE } from './sample';
-import { decodeDocument, DocumentTooLarge, encodeDocument, MAX_DOCUMENT_BYTES } from './share';
+import { decodeDocument, DocumentTooLarge, MAX_DOCUMENT_BYTES, shareLink } from './share';
 import './style.css';
 
 const STORE_KEY = 'active-md.playground.source.v1';
@@ -90,8 +90,11 @@ function setMode(next: 'edit' | 'view', focus = true): void {
 }
 
 let pendingCheck: number | undefined;
+/** Bumped on every change to the text, so a share link made from an older text is discarded. */
+let revision = 0;
 /** Once the text changes, the address bar must not keep pointing at an older shared document. */
 function dropShareHash(): void {
+  revision++;
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 }
 
@@ -122,7 +125,11 @@ $('sample').addEventListener('click', () => {
 
 $('share').addEventListener('click', async () => {
   try {
-    const hash = await encodeDocument(source.value);
+    const hash = await shareLink(source.value, () => revision);
+    if (hash === undefined) {
+      say('The text changed while making the link; press Share link again.');
+      return;
+    }
     history.replaceState(null, '', hash);
     const url = location.href;
     try {

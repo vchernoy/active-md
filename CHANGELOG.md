@@ -2,6 +2,12 @@
 
 All three packages share one version.
 
+## 0.1.2 (unreleased)
+
+- Optional `@vchernoy/active-runtime/style.css`: scoped compact inputs, invalid-input outline and native MathML column alignment; consumed by the playground.
+- `{{expr | spec}}` math placeholders share `:value` formats and locale-aware, TeX-safe substitution for server defaults and runtime updates. Existing `{{expr}}` output is unchanged; invalid formats report positioned diagnostics.
+- All three packages and internal dependencies are pinned to0.1.2. Maintainer release: merge the reviewed steps, then push `v0.1.2` to run `publish.yml`; publication has not occurred.
+
 ## 0.1.1 (2026-11-14)
 
 No code changes. This release was made to verify token-free npm trusted publishing (OIDC) through `publish.yml`. It is published with provenance.

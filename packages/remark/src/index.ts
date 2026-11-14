@@ -14,7 +14,7 @@ import { activeSchema } from './sanitize.js';
 export { remarkActive, type ActiveData, type ActiveOptions, type CalcBlock } from './plugin.js';
 export { rehypeActiveKatex, rehypeActiveWrap, renderTex, type KatexOptions } from './rehype.js';
 export { activeSchema } from './sanitize.js';
-export { placeholders, substitute, texNumber, katexSettings, PLACEHOLDER, type MathOutput } from './tex.js';
+export { mathBinding, formattedTexNumber, type MathBinding, placeholders, substitute, texNumber, katexSettings, PLACEHOLDER, type MathOutput } from './tex.js';
 
 export type RenderOptions = ActiveOptions & KatexOptions & ImageOptions;
 

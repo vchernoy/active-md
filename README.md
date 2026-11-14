@@ -19,7 +19,7 @@ final = principal * (1 + rate / 100) ^ years
 Investing :input[principal] at :input[rate]{widget=slider step=0.5} % for :input[years] years
 gives **:value[final]{format=fixed:0}**.
 
-$$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{round(final)}} $$
+$$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{final | fixed:2}} $$
 ````
 
 ## Packages
@@ -63,3 +63,5 @@ Neither integration exists yet; both are tracked in #1.
 ## License
 
 MIT
+
+In math, `{{expr}}` retains its original numeric TeX output; `{{expr | fixed:2}}` uses locale-aware formatting, like `:value[expr]{format=fixed:2}`. Supported specs are `auto`, `int`, `fixed:N` and `percent:N` (N:0–15). Commas and percent signs are TeX-escaped, locale spacing becomes a thin space. Invalid specs show a red `?` with a positioned renderer diagnostic. Only placeholders are live; literal numbers stay as authored.

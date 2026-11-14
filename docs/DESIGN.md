@@ -22,7 +22,7 @@ Small, safe and usable as soon as possible in both course-platform and TypeBridg
   - `:input[x]`, a number box;
   - `:input[x]{widget=slider min=… max=… step=…}`;
   - `:value[expr]{format=…}`, read-only;
-  - `{{expr}}` inside math.
+  - `{{expr}}` inside math (unchanged numeric TeX), or `{{expr | spec}}` for the same locale-aware formats as `:value` (`auto`, `int`, `fixed:N`, `percent:N`). A single `|` separates the expression and format; pipes are not calc operators. Formatted separators and TeX special characters are escaped before KaTeX sees them; invalid formats produce a red `?` and a positioned diagnostic. Server defaults and live updates share this substitution path.
 - **Not in v0:**
   - functions;
   - lists and tables generated from them;

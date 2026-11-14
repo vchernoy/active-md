@@ -32,3 +32,45 @@ test('controls are compact, theme-neutral, scoped, and do not style unmarked mat
   await expect(page.locator('mtd')).toHaveCSS('padding-left', '7px');
   await expect(page.locator('[aria-invalid]')).toHaveCSS('outline-style', 'solid');
 });
+
+
+test('matrix and cases spacing stays intact and aligned pairs stay separated', async ({ page }) => {
+  await page.setContent(renderActive(String.raw`$$
+\begin{pmatrix}1&2&3\\4&5&6\end{pmatrix}
+$$
+
+$$
+\begin{cases}x & \text{if } x \ge 0\\-x & \text{otherwise}\end{cases}
+$$
+
+$$
+\begin{aligned}a &= b & c &= d\\long &= e & f &= g\end{aligned}
+$$`).html);
+  const tables = page.locator('mtable[columnalign]');
+  await expect(tables).toHaveCount(3);
+  const snapshot = () => tables.evaluateAll(elements => elements.map(table =>
+    Array.from(table.querySelectorAll(':scope > mtr > mtd')).map(cell => ({
+      width: cell.getBoundingClientRect().width,
+      left: getComputedStyle(cell).paddingLeft,
+      right: getComputedStyle(cell).paddingRight,
+    }))));
+  const before = await snapshot();
+  await page.addStyleTag({ content: css });
+  const after = await snapshot();
+  for (const index of [0, 1]) {
+    after[index].forEach((cell, i) => {
+      expect(cell.width).toBeGreaterThanOrEqual(before[index][i].width - 0.1);
+      expect(cell.left).toBe(before[index][i].left);
+      expect(cell.right).toBe(before[index][i].right);
+    });
+  }
+  after[2].forEach((cell, i) => {
+    if (i % 2 === 0) {
+      expect(cell.left).toBe(before[2][i].left);
+      expect(cell.right).toBe('0px');
+    } else {
+      expect(cell.left).toBe('0px');
+      expect(cell.right).toBe(before[2][i].right);
+    }
+  });
+});

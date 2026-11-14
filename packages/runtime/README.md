@@ -11,7 +11,7 @@ const live = mount(container, { locale });   // later: live.destroy()
 ```
 
 - Reads the calc program from `data-active-calc` on `.active-doc` and starts a session.
-- `input[data-active-input]` controls set inputs; values outside the input's range are rejected (`aria-invalid`, a `title` and the browser's validation message), and nothing changes.
+- `input[data-active-input]` controls set inputs; several controls of one input stay in sync (the one being edited is never rewritten); values outside the input's range are rejected (`aria-invalid`, a `title` and the browser's validation message), and nothing changes.
 - `[data-active-value]` views and `[data-active-tex]` formulas are redrawn only when a value they use changes. KaTeX is loaded on the first formula update (`loadKatex` to supply it yourself).
 - Values the browser restored into controls (back/forward, autofill) are adopted on mount.
 - Use the same `locale` (and math `output`) as the renderer so updated text matches the first render.

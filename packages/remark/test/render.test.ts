@@ -44,13 +44,12 @@ describe('calc blocks and bindings', () => {
   });
 
   it('reports binding errors inline and as messages with document positions', () => {
-    const md = calc('input a = 1\nb = a') + 'x :value[nope] y\n\n:input[b] :input[zz] :input[a] :input[a]';
+    const md = calc('input a = 1\nb = a') + 'x :value[nope] y\n\n:input[b] :input[zz] :input[a]';
     const { html, messages } = render(md);
     expect(messages).toEqual([
       { message: 'unknown name "nope"', line: 6, column: 3, severity: 'error' },
       { message: '"b" is not an input, so it can\'t have a control', line: 8, column: 1, severity: 'error' },
       { message: 'unknown input "zz"', line: 8, column: 11, severity: 'error' },
-      { message: '"a" already has a control; show its value elsewhere with :value[a]', line: 8, column: 32, severity: 'error' },
     ]);
     expect(html).toContain('<span class="active-error" role="note">⚠ unknown name "nope"</span>');
     expect(html.match(/data-active-input="a"/g)?.length).toBe(1);
@@ -219,5 +218,22 @@ describe('review fixes (#4, fourth round)', () => {
     const { html, messages } = render(calc('input x = 0.5') + ':input[x]{step=0.2}');
     expect(messages).toEqual([]);
     expect(html).toContain('<input type="number" value="0.5" data-active-input="x" step="0.2" aria-label="x">');
+  });
+});
+
+describe('several controls for one input', () => {
+  it('allows a number box and a slider for the same input', () => {
+    const { html, messages } = render(calc('input r = 8 in 0..30') + 'Rate :input[r] or drag :input[r]{widget=slider step=0.5}');
+    expect(messages).toEqual([]);
+    expect(html.match(/data-active-input="r"/g)?.length).toBe(2);
+    expect(html).toContain('<input type="number" value="8" data-active-input="r" min="0" max="30" step="any"');
+    expect(html).toContain('<input type="range" value="8" data-active-input="r" min="0" max="30" step="0.5"');
+  });
+
+  it('requires every control of an input to use the same range', () => {
+    const { html, messages } = render(calc('input r = 8 in 0..30') + ':input[r]\n\n:input[r]{widget=slider min=0 max=10}');
+    expect(messages).toEqual([{ message: 'every control of r must use the same range: 0..30 (line 5), not 0..10', line: 7, column: 1, severity: 'error' }]);
+    expect(html.match(/data-active-input="r"/g)?.length).toBe(1);
+    expect(render(calc('input r = 8 in 0..30') + ':input[r]{max=20} :input[r]{widget=slider max=20}').messages).toEqual([]);
   });
 });

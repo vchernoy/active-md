@@ -95,7 +95,7 @@ It's built for authors writing prose, not for programmers writing code.
 1. **Single assignment.** Each name is defined exactly once. Function clauses (§4.6) on consecutive lines count as one definition.
 2. **Define before use.** Inside the model, an expression may use only names defined **above** it, in the same or an earlier calc block. Cycles are therefore impossible. The exception is a function referring to itself (v3, §4.7).
 3. **Bindings may refer to anything.** The text is rendered after the whole model is evaluated, so "**Total:** :value[total]" may come before `total` is defined.
-4. **An input has at most one control.** A second editable control is an error. Read-only views of an input are allowed anywhere.
+4. **An input may have several controls,** for example a number box and a slider. They all edit the same value and stay in sync, so they must use the same range (their steps may differ). Read-only views of an input are allowed anywhere.
 5. **An input without a control** keeps its default, or stays missing.
 6. **No zero-parameter functions.** Write `y = …`, not `y() = …`. Values are already live, so the two would mean the same thing.
 
@@ -320,7 +320,7 @@ $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX
 
 | Directive | Kind | Attributes |
 |---|---|---|
-| `:input[name]` | The one control for an input | `widget` = `number` \| `slider` \| `select` \| `checkbox` \| `text`; `label`; `step`; `min`/`max` (only to narrow the model's range); `placeholder`; `format` |
+| `:input[name]` | A control for an input (several may edit the same input, kept in sync) | `widget` = `number` \| `slider` \| `select` \| `checkbox` \| `text`; `label`; `step`; `min`/`max` (only to narrow the model's range); `placeholder`; `format` |
 | `:value[expr]` | A read-only view | `format` (`number` \| `percent` \| `currency` \| `fixed:2`…); `placeholder` (for missing) |
 | `::table{columns="a, b"}` / `:::table{for="x in list"}` | A table generated from lists (v2) | `columns`; `for`, with a template row; `max` |
 | `:answer[expr]` | A quiz answer box (§8) | `tolerance`, `relative`, `points`, `feedback` |

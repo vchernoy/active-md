@@ -84,32 +84,55 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     });
   }
 
+  /** Every control of each input: a number box and a slider may edit the same input and stay in sync. */
+  const controls = new Map<string, HTMLInputElement[]>();
+  /** The control the reader is editing; it's never rewritten under the cursor. */
+  let source: HTMLInputElement | undefined;
   const unsubscribe = session.subscribe(changed => {
     for (const v of views) if (intersects(v.deps, changed)) v.update();
+    for (const name of changed) {
+      const r = session.get(name);
+      if (r?.kind !== 'value') continue;
+      for (const other of controls.get(name) ?? []) {
+        if (other === source) continue;
+        if (other.valueAsNumber !== r.value) other.value = String(r.value);
+        clearProblem(other);
+      }
+    }
   });
   cleanups.push(unsubscribe);
 
+  const restorable: { input: HTMLInputElement; apply: () => void }[] = [];
   // Controls: <input data-active-input="name">
   for (const input of doc.querySelectorAll<HTMLInputElement>('input[data-active-input]')) {
     const name = input.dataset.activeInput ?? '';
     if (!program.inputs.some(i => i.name === name)) continue;
+    controls.set(name, [...(controls.get(name) ?? []), input]);
     const apply = () => {
       const value = input.valueAsNumber;
-      const problem = Number.isNaN(value) ? 'enter a number' : outsideControl(input, value) ?? session.set(name, value);
-      input.setCustomValidity(problem ?? '');
-      if (problem) {
-        input.setAttribute('aria-invalid', 'true');
-        input.title = problem;
-      } else {
-        input.removeAttribute('aria-invalid');
-        input.removeAttribute('title');
+      source = input;
+      try {
+        const problem = Number.isNaN(value) ? 'enter a number' : outsideControl(input, value) ?? session.set(name, value);
+        if (problem) {
+          input.setCustomValidity(problem);
+          input.setAttribute('aria-invalid', 'true');
+          input.title = problem;
+        } else {
+          clearProblem(input);
+        }
+      } finally {
+        source = undefined;
       }
     };
     input.addEventListener('input', apply);
     cleanups.push(() => input.removeEventListener('input', apply));
-    // The browser may have restored a different value (back/forward cache, autofill): adopt it.
-    const current = session.get(name);
-    if (!Number.isNaN(input.valueAsNumber) && (current?.kind !== 'value' || current.value !== input.valueAsNumber)) apply();
+    restorable.push({ input, apply });
+  }
+
+  // The browser may have restored a value (back/forward cache, autofill): adopt it. Only a control whose value
+  // differs from what was rendered counts as restored; the others then follow through the sync above.
+  for (const { input, apply } of restorable) {
+    if (!Number.isNaN(input.valueAsNumber) && input.value !== input.defaultValue) apply();
   }
 
   return {
@@ -121,6 +144,12 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
       for (const c of cleanups.splice(0)) c();
     },
   };
+}
+
+function clearProblem(input: HTMLInputElement): void {
+  input.setCustomValidity('');
+  input.removeAttribute('aria-invalid');
+  input.removeAttribute('title');
 }
 
 /** A control may narrow the input's range (min/max attributes); the session only knows the model's range. */

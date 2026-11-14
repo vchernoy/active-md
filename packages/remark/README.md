@@ -13,7 +13,7 @@ const { html, messages } = renderActive(markdown, { locale: 'en-US' });
 ## What it handles
 
 - ` ```calc ` blocks: collected in document order into one program (`@vchernoy/calc`), hidden from readers (`showCalc: true` shows them as code).
-- `:input[name]` is a number box. Add `{widget=slider}` for a slider, with `min`, `max` and `step` (they may only narrow the input's range) and `label="…"`. Each input has one control.
+- `:input[name]` is a number box. Add `{widget=slider}` for a slider, with `min`, `max` and `step` (they may only narrow the input's range) and `label="…"`. An input may have several controls (say a number box and a slider): they stay in sync and must use the same range.
 - `:value[expr]{format=fixed:2|percent:1|int}`: a read-only view of a value or expression.
 - `{{expr}}` inside `$…$` and `$$…$$` inserts the value; formulas are typeset by KaTeX as MathML (`output: 'htmlAndMathml'` if the page loads KaTeX's CSS). `$$…$$` written inside a line is display math.
 - GFM, plus callouts `:::note|tip|warning|danger|important|exercise` (optional `[Title]`) and `:::details[Summary]`.

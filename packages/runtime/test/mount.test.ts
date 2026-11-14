@@ -147,3 +147,42 @@ describe('review fixes (#5)', () => {
     expect($('[data-active-tex="f = {{f}}"]').innerHTML).toBe(before);
   });
 });
+
+describe('several controls for one input', () => {
+  const DOC = calc('input r = 8 in 0..30\ny = r * 2') + 'Rate :input[r] :input[r]{widget=slider step=0.5} → :value[y]';
+  const both = (host: ReturnType<typeof setup>) => [...host.host.querySelectorAll<HTMLInputElement>('[data-active-input="r"]')];
+  const type = (el: HTMLInputElement, value: string) => { el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); };
+
+  it('keeps the number box and the slider in sync, both ways', () => {
+    const s = setup(DOC);
+    const [box, slider] = both(s);
+    type(box!, '12');
+    expect(slider!.value).toBe('12');
+    expect(s.$('[data-active-value="y"]').textContent).toBe('24');
+    type(slider!, '20.5');
+    expect(box!.value).toBe('20.5');
+    expect(s.$('[data-active-value="y"]').textContent).toBe('41');
+  });
+
+  it('never rewrites the control being typed in, and leaves the other one alone on invalid input', () => {
+    const s = setup(DOC);
+    const [box, slider] = both(s);
+    type(box!, '12.0');
+    expect(box!.value).toBe('12.0');
+    type(box!, '99');
+    expect(box!.getAttribute('aria-invalid')).toBe('true');
+    expect(slider!.value).toBe('12');
+    // Fixing the value elsewhere clears the stale error on the box and shows the current value.
+    type(slider!, '5');
+    expect(box!.value).toBe('5');
+    expect(box!.hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('syncs the other controls when a restored value is adopted', () => {
+    const host = document.createElement('div');
+    host.innerHTML = renderActive(DOC, { locale: 'en-US' }).html;
+    host.querySelector<HTMLInputElement>('input[type="number"]')!.value = '7';
+    mount(host, { locale: 'en-US' });
+    expect(host.querySelector<HTMLInputElement>('input[type="range"]')!.value).toBe('7');
+  });
+});

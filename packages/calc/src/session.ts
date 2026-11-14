@@ -74,7 +74,9 @@ export function createSession(program: Program, limits: Limits = DEFAULT_LIMITS)
         deps: c.deps,
         diagnostics: c.diagnostics,
         evaluate: () => c.expr
-          ? evaluateExpr(c.expr, n => results.get(n), new Budget(limits.maxSteps))
+          // A bare name shows that name's own result, including its error message.
+          ? c.expr.kind === 'ref' ? results.get(c.expr.name) ?? { kind: 'error', message: `unknown name "${c.expr.name}"` }
+          : evaluateExpr(c.expr, n => results.get(n), new Budget(limits.maxSteps))
           : { kind: 'error', message: c.diagnostics[0]?.message ?? 'invalid expression', ...(c.diagnostics[0] ? { span: c.diagnostics[0].span } : {}) },
       };
     },

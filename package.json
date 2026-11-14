@@ -6,12 +6,12 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "tsc -p packages/calc",
+    "typecheck": "npm run build -w packages/calc && tsc -p packages/calc && tsc -p packages/remark",
     "test": "vitest run",
     "build": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
     "typescript": "5.9.3",
-    "vitest": "3.2.4"
+    "vitest": "3.2.7"
   }
 }

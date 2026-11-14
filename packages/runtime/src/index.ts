@@ -86,23 +86,27 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
 
   /** Every control of each input: a number box and a slider may edit the same input and stay in sync. */
   const controls = new Map<string, HTMLInputElement[]>();
-  /** The control the reader is editing; it's never rewritten under the cursor. */
-  let source: HTMLInputElement | undefined;
   const unsubscribe = session.subscribe(changed => {
     for (const v of views) if (intersects(v.deps, changed)) v.update();
-    for (const name of changed) {
-      const r = session.get(name);
-      if (r?.kind !== 'value') continue;
-      for (const other of controls.get(name) ?? []) {
-        if (other === source) continue;
-        if (other.valueAsNumber !== r.value) other.value = String(r.value);
-        clearProblem(other);
-      }
-    }
   });
   cleanups.push(unsubscribe);
 
-  const restorable: { input: HTMLInputElement; apply: () => void }[] = [];
+  /**
+   * After any accepted submission (even of the current value), show the input's value in every other control and
+   * clear their stale errors. The control the reader is editing is never rewritten under the cursor. A slider
+   * whose step can't represent the value shows the nearest position; the model and the readout keep the value.
+   */
+  const syncPeers = (name: string, editing: HTMLInputElement): void => {
+    const r = session.get(name);
+    if (r?.kind !== 'value') return;
+    for (const other of controls.get(name) ?? []) {
+      if (other === editing) continue;
+      if (other.valueAsNumber !== r.value) other.value = String(r.value);
+      clearProblem(other);
+    }
+  };
+
+  const restorable: { name: string; input: HTMLInputElement; apply: () => void }[] = [];
   // Controls: <input data-active-input="name">
   for (const input of doc.querySelectorAll<HTMLInputElement>('input[data-active-input]')) {
     const name = input.dataset.activeInput ?? '';
@@ -110,29 +114,30 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     controls.set(name, [...(controls.get(name) ?? []), input]);
     const apply = () => {
       const value = input.valueAsNumber;
-      source = input;
-      try {
-        const problem = Number.isNaN(value) ? 'enter a number' : outsideControl(input, value) ?? session.set(name, value);
-        if (problem) {
-          input.setCustomValidity(problem);
-          input.setAttribute('aria-invalid', 'true');
-          input.title = problem;
-        } else {
-          clearProblem(input);
-        }
-      } finally {
-        source = undefined;
+      const problem = Number.isNaN(value) ? 'enter a number' : outsideControl(input, value) ?? session.set(name, value);
+      if (problem) {
+        input.setCustomValidity(problem);
+        input.setAttribute('aria-invalid', 'true');
+        input.title = problem;
+        return;
       }
+      clearProblem(input);
+      syncPeers(name, input);
     };
     input.addEventListener('input', apply);
     cleanups.push(() => input.removeEventListener('input', apply));
-    restorable.push({ input, apply });
+    restorable.push({ name, input, apply });
   }
 
-  // The browser may have restored a value (back/forward cache, autofill): adopt it. Only a control whose value
-  // differs from what was rendered counts as restored; the others then follow through the sync above.
-  for (const { input, apply } of restorable) {
-    if (!Number.isNaN(input.valueAsNumber) && input.value !== input.defaultValue) apply();
+  // The browser may have restored a value (back/forward cache, autofill): adopt it. A control counts as restored
+  // if its value differs from what was rendered, decided before anything is applied, so values written by syncing
+  // (a slider rounded to its step, say) are never mistaken for restored ones. One restored control per input wins.
+  const restored = restorable.filter(({ input }) => !Number.isNaN(input.valueAsNumber) && input.value !== input.defaultValue);
+  const adopted = new Set<string>();
+  for (const { name, apply } of restored) {
+    if (adopted.has(name)) continue;
+    adopted.add(name);
+    apply();
   }
 
   return {

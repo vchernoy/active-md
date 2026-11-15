@@ -4,6 +4,8 @@ All three packages share one version.
 
 ## 0.1.3 (unreleased)
 
+- Optional stylesheet prefers locally installed STIX Two Math, Cambria Math and Latin Modern Math, with generic math fallback; no bundled fonts or requests.
+
 - Runtime number controls use a bounded character width derived from range, starting value and decimal step; unbounded controls retain the default.
 - Preserve native centered MathML matrix positions by removing the center-column override (#27).
 - All packages and internal dependencies are prepared at exact 0.1.3. Publication is a separate maintainer action through the Actions release workflow.

@@ -116,3 +116,17 @@ test('runtime sizes a bounded years control narrower than principal', async ({ p
   expect(await principal.evaluate(el => (el as HTMLElement).style.getPropertyValue('--active-input-ch'))).toBe('9');
   expect((await years.boundingBox())!.width).toBeLessThan((await principal.boundingBox())!.width);
 });
+
+
+test('optional math stack uses only local fonts and stays scoped without requests', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', request => requests.push(request.url()));
+  await page.setContent(renderActive('$x + 1$').html + '<math id="outside-math"><mi>x</mi></math>');
+  const outside = await page.locator('#outside-math').evaluate(el => getComputedStyle(el).fontFamily);
+  await page.addStyleTag({ content: css });
+  const family = await page.locator('.active-doc math').evaluate(el => getComputedStyle(el).fontFamily);
+  expect(family).toBe('"STIX Two Math", "Cambria Math", "Latin Modern Math", math');
+  expect(await page.locator('#outside-math').evaluate(el => getComputedStyle(el).fontFamily)).toBe(outside);
+  await page.evaluate(() => document.fonts.ready);
+  expect(requests).toEqual([]);
+});

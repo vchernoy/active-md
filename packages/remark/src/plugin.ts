@@ -118,7 +118,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     const controls = controlNodes.filter(node => node.data?.hName === 'label').map(node => ({
       name: labelSource(node, file).trim(), ancestors: (ancestors.get(node) ?? []).map(a => whenIndexes.get(a)!),
     }));
-    for (const problem of checkWhenControls(program, checks, controls)) report(problem, at(whenNodes[problem.index]!));
+    for (const problem of checkWhenControls(program, checks, controls, options.limits?.maxSteps)) report(problem, at(whenNodes[problem.index]!));
     for (const { parent, node, error } of conditionErrors) parent.children.splice(parent.children.indexOf(node as never), 0, error as never);
 
     function at(node: { position?: { start: { line: number; column: number } } | undefined }) {

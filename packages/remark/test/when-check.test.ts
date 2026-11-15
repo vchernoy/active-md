@@ -23,3 +23,8 @@ describe('static conditional control analysis', () => {
     expect(renderActive(model + ':input[k]\n\n:::when[k > 100]\n:input[j]\n:::').messages).toEqual([]);
   });
 });
+
+it('bounds static analysis with a positioned diagnostic', () => {
+  const r = renderActive(model + ':::when[k]\n:input[k]\n:::', { limits: { maxSourceLength: 65536, maxDefinitions: 2000, maxSteps: 5, maxDepth: 200 } });
+  expect(r.messages).toContainEqual(expect.objectContaining({ severity: 'error', line: 8, column: 1, message: expect.stringContaining('conditional control analysis took too many steps') }));
+});

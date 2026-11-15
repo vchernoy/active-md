@@ -351,6 +351,7 @@ The reciprocal is :value[1/x].
 - A calc block anywhere inside `when` is excluded and reports: "calc blocks can't be inside :::when; definitions are global, use if()". Declare inputs and definitions outside all conditional containers.
 - Controls are views of global inputs. Hiding a control never resets its value. A hidden extra amount still affects an ungated global formula; use `total = base + if(useExtra, extra, 0)` to opt out.
 - A self-hiding input (directly, through definitions, or through enclosing conditions) produces a positioned error if all its valid controls lie inside the gating block. Add an outside control. Cross-block control cycles produce warnings, not errors; no satisfiability solver is involved.
+- Static control analysis caches definition/expression closures and uses the host `maxSteps` budget. Exhaustion is a positioned error. With no controls or gated controls, dependency expansion is skipped.
 - There is no `:::else`: use an independent `:::when[not (condition)]`. Independent blocks can overlap. `choose`/`otherwise` and quiz feedback slots are deferred. Future missing conditions will count as false without an error; missing inputs are not implemented yet.
 
 ### Inside math

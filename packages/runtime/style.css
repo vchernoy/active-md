@@ -51,7 +51,7 @@
   --active-callout-exercise: #0e7490;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .active-doc {
+  :where(:root:not([data-theme="light"])) .active-doc {
     --active-callout-note: #6ea8ff;
     --active-callout-tip: #4ade80;
     --active-callout-warning: #fbbf24;
@@ -60,7 +60,7 @@
     --active-callout-exercise: #5ed3e6;
   }
 }
-:root[data-theme="dark"] .active-doc {
+:where(:root[data-theme="dark"]) .active-doc {
   --active-callout-note: #6ea8ff;
   --active-callout-tip: #4ade80;
   --active-callout-warning: #fbbf24;

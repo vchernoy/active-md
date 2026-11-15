@@ -167,6 +167,11 @@ for (const theme of ['light', 'dark'] as const) test(`shared callouts are distin
   }
   expect(new Set(colors).size).toBe(6);
   expect(await page.locator('#outside-callout').evaluate(el => getComputedStyle(el).borderLeftWidth)).toBe(outside);
-  await page.locator('.active-doc').evaluate(el => (el as HTMLElement).style.setProperty('--active-callout-note', '#123456'));
+  await page.addStyleTag({ content: '.active-doc { --active-callout-note: #123456; }' });
   await expect(page.locator('.active-doc .callout-note')).toHaveCSS('border-left-color', 'rgb(18, 52, 86)');
+  if (theme === 'dark') {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.evaluate(() => delete document.documentElement.dataset.theme);
+    await expect(page.locator('.active-doc .callout-note')).toHaveCSS('border-left-color', 'rgb(18, 52, 86)');
+  }
 });

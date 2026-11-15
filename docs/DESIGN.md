@@ -504,17 +504,3 @@ Optional runtime styles size ranged number controls at mount from min/max, start
 The optional `@vchernoy/active-runtime/style.css` also sets `.active-doc math` to prefer locally installed "STIX Two Math", "Cambria Math", then "Latin Modern Math", with generic `math` fallback. It includes no font files and makes no font requests. MathML remains renderable with native browser defaults when consumers omit this optional stylesheet.
 
 Optional runtime styles provide scoped callout borders, 8% tinted backgrounds and bold coloured titles. Consumers can override `--active-callout-note`, `--active-callout-tip`, `--active-callout-warning`, `--active-callout-danger`, `--active-callout-important` and `--active-callout-exercise` on `.active-doc`. Defaults follow the system colour scheme; root `data-theme="light"` or `"dark"` takes precedence. The playground consumes these defaults without a separate callout palette. Details remain fold-outs with consumer-defined neutral styling.
-
-## Approved 0.2 conditions (#31, calc step)
-
-Calc adds exact numeric comparisons (`== != < <= > >=`), then `not`, `and`, `or` in decreasing precedence below arithmetic. Comparisons cannot be chained. Truth is nonzero; predicates return 1/0. `and`/`or` short-circuit. Reserved `if(c1, a, c2, b, …, otherwise)` needs an odd number of arguments (at least three), tries conditions in order and evaluates only the selected result. All branches are still parsed and name-checked. `even(x)`/`odd(x)` test `round(x)`, including negative values. Equality is exact: use `abs(a-b) < 1e-9` for tolerance. `%` retains JavaScript remainder semantics (`-3 % 2` is -1). Existing expression-depth and step budgets apply to the new nodes; skipped branches consume no evaluation steps.
-
-## Approved 0.2 conditional rendering (#31, renderer/runtime step)
-
-`:::when[expr]` wraps retained, sanitized HTML in a `hidden` container when its numeric condition is zero or errors. A positioned condition error is rendered outside that container, without a live announcement or focus movement. Descendant conditions, value expressions and math are evaluated only when every enclosing condition is true. Nesting is limited to eight, including hidden blocks. Calc definitions remain global: a calc block inside any when is a positioned structural error and is excluded from the program. Hidden controls retain their global input values; use `if()` to gate their contribution. The runtime resolves enclosing visibility before refreshing newly visible bindings and suppresses pending math writes into hidden subtrees. This is visibility, not secrecy; source text remains in the HTML.
-
-## Approved 0.2 static control analysis (#31)
-
-Every `when` condition is checked against the transitive calc dependency graph, without evaluation. A gate enclosing every valid control of an input on which it depends is a positioned author error (including nested controls and indirect definitions). An outside control removes that error. Cross-block control-dependency cycles produce positioned warnings, since a cycle is not proof of a dead end. The check does not solve conditions or prove their satisfiability. Global inputs without controls remain legal and keep their defaults.
-
-Static conditional control analysis caches shared definition/expression closures and uses the host's `maxSteps` as a shared analysis budget. Exhaustion emits a positioned error instead of completing unbounded graph expansion. Documents with no controls or no gated controls skip dependency expansion.

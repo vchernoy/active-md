@@ -18,3 +18,12 @@ it('names a details container and does not attribute a distant stray to it', () 
   expect(renderActive(':::details\nBody\n:::\n\n:::').messages[0]!.message).toContain('`:::details` at line 1');
   expect(renderActive(':::details\nBody\n:::\n\nOther prose\n\n:::').messages[0]!.message).not.toContain('at line 1');
 });
+
+it('warns at each consecutive stray line in a single paragraph after deeper nesting', () => {
+  const result = renderActive(':::when[1]\n:::when[1]\n:::note\nBody\n:::\n:::\n:::');
+  expect(result.messages).toEqual([6, 7].map(line => expect.objectContaining({ line, column: 1, severity: 'warning', message: expect.stringContaining('`:::when` at line 1') })));
+});
+it('does not mistake escaped multiline colons or code for stray fences', () => {
+  expect(renderActive('\\:::\n:::').messages).toEqual([]);
+  expect(renderActive('```\n:::\n:::\n```').messages).toEqual([]);
+});

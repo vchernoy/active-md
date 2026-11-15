@@ -16,7 +16,7 @@ Base :input[x]. Include an extra amount (0 = no, 1 = yes): :input[useExtra].
 ::::when[x != 0]
 For a nonzero base, the reciprocal is :value[reciprocal]{format=fixed:3}.
 
-$$ {{x}}^0 = \frac{ {{x}} }{ {{x}} } = 1 $$
+$$ \left({{x}}\right)^0 = \frac{ {{x}} }{ {{x}} } = 1 $$
 
 :::tip[Parity]
 Is the rounded base even? :value[even(x)] (1 = yes, 0 = no).

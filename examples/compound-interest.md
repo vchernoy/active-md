@@ -9,6 +9,8 @@ input years = 10 in 1..50
 growth = (1 + rate / 100) ^ years
 final = principal * growth
 earned = final - principal
+doubling = if(rate > 0, log(2) / log(1 + rate/100), 0)
+rule72 = if(rate > 0, 72 / rate, 0)
 ```
 
 Deposit \$:input[principal] at :input[rate]{widget=slider step=0.1} % a year for :input[years] years.
@@ -25,4 +27,15 @@ $$
 
 :::tip[Try it]
 Double the years and watch the interest more than double. That is compounding.
+:::
+
+
+:::when[rate > 0]
+The exact doubling time is **:value[doubling]{format=fixed:2} years**
+(`log(2) / log(1 + rate/100)`), compared with :value[rule72]{format=fixed:2}
+years from the Rule of 72. The Rule of 72 is an approximation.
+:::
+
+:::when[rate == 0]
+At zero interest the deposit does not double.
 :::

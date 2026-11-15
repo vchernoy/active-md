@@ -37,3 +37,11 @@ it.each([0, -4, 4])('powers and roots stays valid at base %s', x => {
   expect(rendered.html).not.toContain('katex-error');
   expect(rendered.html).not.toContain('mathcolor="red"');
 });
+
+it.each([0, 30])('compound interest handles doubling-time rate %s without domain errors', rate => {
+  const source = readFileSync(dir + 'compound-interest.md', 'utf8').replace('input rate = 8', `input rate = ${rate}`);
+  const rendered = renderActive(source, { locale: 'en-US' });
+  expect(rendered.messages).toEqual([]);
+  expect(rendered.html).not.toContain('active-error');
+  expect(rendered.html).not.toContain('katex-error');
+});

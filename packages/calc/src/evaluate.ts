@@ -1,4 +1,4 @@
-import { builtin } from './builtins.js';
+import { builtin, constant } from './builtins.js';
 import { DEFAULT_LIMITS, type Expr, type Limits, type Program, type Result } from './types.js';
 
 class EvalError extends Error { constructor(readonly result: Extract<Result, { kind: 'error' }>) { super(result.message); } }
@@ -22,7 +22,8 @@ function evalExpr(expr: Expr, lookup: Lookup, budget: Budget): number {
   switch (expr.kind) {
     case 'num': return expr.value;
     case 'ref': {
-      const r = lookup(expr.name);
+      const value = constant(expr.name);
+      const r = lookup(expr.name) ?? (value === undefined ? undefined : { kind: 'value' as const, value });
       if (!r) throw new EvalError({ kind: 'error', message: `unknown name "${expr.name}"`, span: expr.span });
       if (r.kind === 'error') throw new EvalError({ kind: 'error', message: `depends on an error in ${expr.name}`, span: expr.span });
       return r.value;

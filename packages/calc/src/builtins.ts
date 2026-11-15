@@ -4,6 +4,22 @@ export type Builtin = { min: number; max: number; fn: (args: number[]) => number
 const check = (x: number): number | string => Number.isFinite(x) ? x : 'result is not a finite number';
 
 const REGISTRY: Record<string, Builtin> = {
+  ln: { min: 1, max: 1, fn: ([x]) => x! <= 0 ? 'ln: argument must be positive' : Math.log(x!) },
+  log: { min: 1, max: 2, fn: ([x, base]) => {
+    if (x! <= 0) return 'log: argument must be positive';
+    if (base !== undefined && (base <= 0 || base === 1)) return 'log: base must be positive and different from 1';
+    return base === undefined ? Math.log10(x!) : check(Math.log(x!) / Math.log(base));
+  } },
+  exp: { min: 1, max: 1, fn: ([x]) => check(Math.exp(x!)) },
+  sin: { min: 1, max: 1, fn: ([x]) => Math.sin(x!) },
+  cos: { min: 1, max: 1, fn: ([x]) => Math.cos(x!) },
+  tan: { min: 1, max: 1, fn: ([x]) => check(Math.tan(x!)) },
+  asin: { min: 1, max: 1, fn: ([x]) => Math.abs(x!) > 1 ? 'asin: argument must be between -1 and 1' : Math.asin(x!) },
+  acos: { min: 1, max: 1, fn: ([x]) => Math.abs(x!) > 1 ? 'acos: argument must be between -1 and 1' : Math.acos(x!) },
+  atan: { min: 1, max: 1, fn: ([x]) => Math.atan(x!) },
+  atan2: { min: 2, max: 2, fn: ([y, x]) => Math.atan2(y!, x!) },
+  deg: { min: 1, max: 1, fn: ([x]) => check(x! * (180 / Math.PI)) },
+  rad: { min: 1, max: 1, fn: ([x]) => x! * (Math.PI / 180) },
   even: { min: 1, max: 1, fn: ([x]) => Number(Math.abs(Math.round(x!)) % 2 === 0) },
   odd: { min: 1, max: 1, fn: ([x]) => Number(Math.abs(Math.round(x!)) % 2 === 1) },
   round: { min: 1, max: 2, fn: ([x, d = 0]) => {
@@ -28,3 +44,8 @@ export function builtin(name: string): Builtin | undefined {
 }
 
 export const RESERVED = new Set(['input', 'in', 'if', 'and', 'or', 'not']);
+
+/** Constants are fallback names; ordinary document definitions take precedence. */
+export function constant(name: string): number | undefined {
+  return name === 'pi' ? Math.PI : name === 'e' ? Math.E : undefined;
+}

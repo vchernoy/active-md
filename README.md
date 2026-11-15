@@ -36,6 +36,10 @@ The reciprocal is :value[1/x].
 
 Declare calc outside these containers. Hidden content stays in the HTML but is not evaluated. Nested blocks require every enclosing condition (maximum depth 8). Hidden controls keep their values: gate their contribution with `if(useExtra, extra, 0)`. Keep a control outside any condition that depends on that input; self-hiding controls are errors and cross-block control cycles are warnings. See [powers and roots](examples/powers-and-roots.md) and [the design](docs/DESIGN.md) for the full rules. No `else` or `choose` in this release.
 
+## Math functions (unreleased; Refs #41)
+
+`ln(x)` is natural log; `log(x)` is base 10 and `log(x, base)` selects a base. Use `exp`, `sin`/`cos`/`tan`, `asin`/`acos`/`atan`/`atan2(y, x)`, and `deg`/`rad` for unit conversion. Trig functions use radians. `pi` and `e` are constants; a document definition shadows either with a positioned warning and ordinary define-before-use rules. Invalid domains and nonfinite results are positioned error values. Engines can differ in the last bit: compare approximate results with `abs(a - b) < 1e-9` rather than exact equality.
+
 ## Packages
 
 | Package | What it is |

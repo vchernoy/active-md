@@ -471,3 +471,5 @@ $$ {{final}} $$
 ````
 
 Optional runtime styles size ranged number controls at mount from min/max, starting value and step precision (3–12 characters, including spare space); unbounded controls keep 8. Width hints are runtime DOM styles, not sanitized renderer output.
+
+The optional `@vchernoy/active-runtime/style.css` also sets `.active-doc math` to prefer locally installed "STIX Two Math", "Cambria Math", then "Latin Modern Math", with generic `math` fallback. It includes no font files and makes no font requests. MathML remains renderable with native browser defaults when consumers omit this optional stylesheet.

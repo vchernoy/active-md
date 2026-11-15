@@ -35,3 +35,8 @@
 .active-doc mtable[columnalign^="left"] > mtr > mtd {
   text-align: left;
 }
+
+/* Optional local math fonts; no font files or remote resources. */
+.active-doc math {
+  font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", math;
+}

@@ -1,6 +1,6 @@
 # active-md: design
 
-Status: **design intent**. §0 describes the original subset; the 0.2 conditions below are implemented in the #31 PR stack and await maintainer merge/release. Later-version sections remain proposals.
+Status: **design intent**. §0 describes the original subset; the 0.2 conditions below are implemented in 0.2. Later-version sections remain proposals.
 Consumers: **TypeBridge** (vchernoy/typebridge) and **course-platform** (vchernoy/course-platform).
 
 ## 0. Version 0 (first release)

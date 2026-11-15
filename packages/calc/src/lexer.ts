@@ -10,7 +10,7 @@ export type Token =
 
 const NAME_START = /[A-Za-z_Ѐ-ӿ]/;
 const NAME_PART = /[A-Za-z0-9_Ѐ-ӿ]/;
-const OPS = ['..', '(', ')', ',', '=', '+', '-', '*', '/', '%', '^', '×', '÷'];
+const OPS = ['==', '!=', '<=', '>=', '<', '>', '..', '(', ')', ',', '=', '+', '-', '*', '/', '%', '^', '×', '÷'];
 
 /** Tokenize one block. Newlines are significant (one definition per line) except inside parentheses. */
 export function tokenize(block: string, text: string): Token[] {

@@ -10,7 +10,8 @@ type Raw =
 
 class ParseError extends Error { constructor(message: string, readonly span: Span) { super(message); } }
 
-const BIN_PREC: Record<string, number> = { '+': 1, '-': 1, '*': 2, '/': 2, '%': 2, '^': 4 };
+const BIN_PREC: Record<string, number> = { or: 1, and: 2, '==': 4, '!=': 4, '<': 4, '<=': 4, '>': 4, '>=': 4, '+': 5, '-': 5, '*': 6, '/': 6, '%': 6, '^': 8 };
+const comparisons = new Set(['==', '!=', '<', '<=', '>', '>=']);
 
 /** Pratt parser over one statement's tokens. */
 class ExprParser {
@@ -36,12 +37,16 @@ class ExprParser {
   expr(minPrec = 0, depth = 0): Expr {
     if (depth > this.maxDepth) throw new ParseError('expression is nested too deeply', this.peek().span);
     let left = this.unary(depth);
+    let compared = false;
     for (;;) {
       const t = this.peek();
-      if (t.t !== 'op' || !(t.value in BIN_PREC)) break;
+      if ((t.t !== 'op' && t.t !== 'name') || !Object.hasOwn(BIN_PREC, t.value)) break;
       const prec = BIN_PREC[t.value]!;
       if (prec < minPrec) break;
+      if (comparisons.has(t.value) && compared)
+        throw new ParseError('comparisons cannot be chained; use and', t.span);
       this.next();
+      if (comparisons.has(t.value)) compared = true;
       // ^ is right-associative; the others are left-associative.
       const right = this.expr(t.value === '^' ? prec : prec + 1, depth + 1);
       left = this.node({ kind: 'bin', op: t.value as '+', left, right, span: join(left.span, right.span) }, left, right);
@@ -50,13 +55,18 @@ class ExprParser {
   }
   private unary(depth: number): Expr {
     const t = this.peek();
+    if (t.t === 'name' && t.value === 'not') {
+      this.next();
+      const arg = this.expr(3, depth + 1);
+      return this.node({ kind: 'not', arg, span: join(t.span, arg.span) }, arg);
+    }
     // Unary minus binds looser than ^: -2^2 is -(2^2).
     if (t.t === 'op' && t.value === '-') {
       this.next();
-      const arg = this.expr(3, depth + 1);
+      const arg = this.expr(7, depth + 1);
       return this.node({ kind: 'neg', arg, span: join(t.span, arg.span) }, arg);
     }
-    if (t.t === 'op' && t.value === '+') { this.next(); return this.expr(3, depth + 1); }
+    if (t.t === 'op' && t.value === '+') { this.next(); return this.expr(7, depth + 1); }
     return this.primary(depth);
   }
   private primary(depth: number): Expr {
@@ -82,8 +92,14 @@ class ExprParser {
           }
         }
         const close = this.expectOp(')');
+        if (t.value === 'if') {
+          if (args.length < 3 || args.length % 2 !== 1) throw new ParseError('if needs an odd number of arguments, at least 3 (including otherwise)', join(t.span, close.span));
+          return this.node({ kind: 'if', args, span: join(t.span, close.span) }, ...args);
+        }
+        if (RESERVED.has(t.value)) throw new ParseError(`"${t.value}" is a reserved word`, t.span);
         return this.node({ kind: 'call', fn: t.value, args, span: join(t.span, close.span) }, ...args);
       }
+      if (RESERVED.has(t.value)) throw new ParseError(`"${t.value}" is a reserved word`, t.span);
       return { kind: 'ref', name: t.value, span: t.span };
     }
     if (t.t === 'nl' || t.t === 'eof') throw new ParseError('the expression is incomplete', t.span);
@@ -183,7 +199,9 @@ export function collectRefs(expr: Expr, refs: Map<string, Span>, problems: Diagn
   switch (expr.kind) {
     case 'num': return;
     case 'ref': if (!refs.has(expr.name)) refs.set(expr.name, expr.span); return;
+    case 'not':
     case 'neg': collectRefs(expr.arg, refs, problems); return;
+    case 'if': for (const arg of expr.args) collectRefs(arg, refs, problems); return;
     case 'bin': collectRefs(expr.left, refs, problems); collectRefs(expr.right, refs, problems); return;
     case 'call': {
       const b = builtin(expr.fn);

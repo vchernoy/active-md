@@ -5,7 +5,9 @@ export type Expr =
   | { kind: 'num'; value: number; span: Span }
   | { kind: 'ref'; name: string; span: Span }
   | { kind: 'neg'; arg: Expr; span: Span }
-  | { kind: 'bin'; op: '+' | '-' | '*' | '/' | '%' | '^'; left: Expr; right: Expr; span: Span }
+  | { kind: 'not'; arg: Expr; span: Span }
+  | { kind: 'if'; args: Expr[]; span: Span }
+  | { kind: 'bin'; op: '+' | '-' | '*' | '/' | '%' | '^' | '==' | '!=' | '<' | '<=' | '>' | '>=' | 'and' | 'or'; left: Expr; right: Expr; span: Span }
   | { kind: 'call'; fn: string; args: Expr[]; span: Span };
 
 export type Range = { min: number; max: number };

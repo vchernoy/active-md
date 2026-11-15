@@ -58,17 +58,15 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   // Views: <output data-active-value="expr" data-active-format="…">
   for (const el of doc.querySelectorAll<HTMLElement>('[data-active-value]')) {
     const compiled = session.compile(el.dataset.activeValue ?? '', 'value');
-    if (compiled.diagnostics.length) continue; // the renderer already showed this error
     const format = parseFormat(el.dataset.activeFormat);
-    if (typeof format === 'string') continue;
-    views.push({ el, deps: compiled.deps, update: () => showResult(el, compiled.evaluate(), format, options.locale) });
+    views.push({ el, deps: compiled.deps, update: () => showResult(el, typeof format === 'string' ? { kind: 'error', message: format } : compiled.evaluate(), typeof format === 'string' ? { kind: 'auto' } : format, options.locale) });
   }
 
   // Formulas: <span|div data-active-tex="…{{expr}}…">, only those that use values.
   for (const el of doc.querySelectorAll<HTMLElement>('[data-active-tex]')) {
     const tex = el.dataset.activeTex ?? '';
     const exprs = placeholders(tex).map(e => session.compile(e, 'math'));
-    if (!exprs.length) continue;
+    if (!exprs.length && !el.closest('[data-active-when]')) continue;
     const deps = new Set(exprs.flatMap(c => [...c.deps]));
     const display = el.dataset.activeDisplay === 'true';
     views.push({
@@ -79,7 +77,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
           const k = await loadKatex();
           // A destroyed mount must not touch the page (a newer mount may own these elements now).
           // Detached roots still update: the host may insert the document later.
-          if (!destroyed) el.innerHTML = k.renderToString(source, katexSettings(display, options.output));
+          if (!destroyed && !el.closest('[data-active-when][hidden]')) el.innerHTML = k.renderToString(source, katexSettings(display, options.output));
         }).catch(() => { /* keep the last rendering if KaTeX can't load */ });
       },
     });
@@ -87,9 +85,30 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
 
   /** Every control of each input: a number box and a slider may edit the same input and stay in sync. */
   const controls = new Map<string, HTMLInputElement[]>();
-  const unsubscribe = session.subscribe(changed => {
-    for (const v of views) if (intersects(v.deps, changed)) v.update();
-  });
+  const conditionErrors = new Map([...doc.querySelectorAll<HTMLElement>('[data-active-when-error]')].map(el => [el.dataset.activeWhenError, el]));
+  const conditions = [...doc.querySelectorAll<HTMLElement>('[data-active-when]')].map(el => ({ el, compiled: session.compile(el.dataset.activeWhen ?? '', 'when') }));
+  const wasVisible = new WeakMap<HTMLElement, boolean>();
+  for (const v of views) wasVisible.set(v.el, !v.el.closest('[data-active-when][hidden]'));
+  const refresh = (changed: ReadonlySet<string>, initial = false): void => {
+    for (const { el, compiled } of conditions) {
+      const parent = el.parentElement?.closest('[data-active-when]');
+      let depth = 1;
+      for (let p = parent; p; p = p.parentElement?.closest('[data-active-when]') ?? null) depth++;
+      const allowed = !el.parentElement?.closest('[data-active-when][hidden]') && depth <= 8 && el.dataset.activeWhenDisabled !== 'true';
+      const r = allowed ? compiled.evaluate() : undefined;
+      const problem = r?.kind === 'error' ? r.message : undefined;
+      el.hidden = !allowed || r?.kind !== 'value' || r.value === 0;
+      const error = conditionErrors.get(el.dataset.activeWhenId);
+      if (error) { error.hidden = !problem; error.textContent = problem ? `⚠ ${problem}` : ''; }
+    }
+    for (const v of views) {
+      const visible = !v.el.closest('[data-active-when][hidden]');
+      if (visible && (!wasVisible.get(v.el) || (!initial && intersects(v.deps, changed)))) v.update();
+      wasVisible.set(v.el, visible);
+    }
+  };
+  refresh(new Set(), true);
+  const unsubscribe = session.subscribe(changed => refresh(changed));
   cleanups.push(unsubscribe);
 
   /**

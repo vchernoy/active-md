@@ -60,6 +60,7 @@ export function rehypeActiveKatex(options: KatexOptions = {}) {
     const visit = (node: Root | Element): void => {
       for (const child of node.children) {
         if (child.type !== 'element') continue;
+        if (child.properties.dataActiveWhen !== undefined && child.properties.hidden) continue;
         const cls = child.properties.className;
         if (Array.isArray(cls) && cls.includes('active-math')) {
           const tex = child.children.map(c => (c.type === 'text' ? c.value : '')).join('');

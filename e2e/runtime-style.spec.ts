@@ -130,3 +130,48 @@ test('optional math stack uses only local fonts and stays scoped without request
   await page.evaluate(() => document.fonts.ready);
   expect(requests).toEqual([]);
 });
+
+for (const theme of ['light', 'dark'] as const) test(`shared callouts are distinct, scoped and readable in ${theme}`, async ({ page }) => {
+  await page.emulateMedia({ colorScheme: theme === 'light' ? 'dark' : 'light' });
+  const kinds = ['note', 'tip', 'warning', 'danger', 'important', 'exercise'];
+  await page.setContent(renderActive(kinds.map(kind => `:::${kind}[Title]\nCallout body\n:::`).join('\n\n')).html + '<aside class="callout" id="outside-callout">Outside</aside>');
+  await page.evaluate(theme => {
+    document.documentElement.dataset.theme = theme;
+    document.body.style.backgroundColor = theme === 'dark' ? '#0d1117' : '#ffffff';
+    document.body.style.color = theme === 'dark' ? '#e6edf3' : '#1f2328';
+  }, theme);
+  const outside = await page.locator('#outside-callout').evaluate(el => getComputedStyle(el).borderLeftWidth);
+  await page.addStyleTag({ content: css });
+  const colors = [];
+  for (const kind of kinds) {
+    const callout = page.locator(`.active-doc .callout-${kind}`);
+    await expect(callout).toHaveCount(1);
+    colors.push(await callout.evaluate(el => getComputedStyle(el).borderLeftColor));
+    const contrasts = await callout.evaluate(el => {
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+      const ctx = canvas.getContext('2d')!;
+      const pixel = (color: string, base: string) => {
+        ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = base; ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = color; ctx.fillRect(0, 0, 1, 1);
+        return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+      };
+      const luminance = (rgb: number[]) => rgb.map(v => { const s = v / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }).reduce((n, v, i) => n + v * [0.2126, 0.7152, 0.0722][i], 0);
+      const base = getComputedStyle(document.body).backgroundColor;
+      const bg = luminance(pixel(getComputedStyle(el).backgroundColor, base));
+      return [el, el.querySelector('.callout-title')!].map(node => {
+        const fg = luminance(pixel(getComputedStyle(node).color, base));
+        return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+      });
+    });
+    for (const contrast of contrasts) expect(contrast).toBeGreaterThanOrEqual(4.5);
+  }
+  expect(new Set(colors).size).toBe(6);
+  expect(await page.locator('#outside-callout').evaluate(el => getComputedStyle(el).borderLeftWidth)).toBe(outside);
+  await page.addStyleTag({ content: '.active-doc { --active-callout-note: #123456; }' });
+  await expect(page.locator('.active-doc .callout-note')).toHaveCSS('border-left-color', 'rgb(18, 52, 86)');
+  if (theme === 'dark') {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.evaluate(() => delete document.documentElement.dataset.theme);
+    await expect(page.locator('.active-doc .callout-note')).toHaveCSS('border-left-color', 'rgb(18, 52, 86)');
+  }
+});

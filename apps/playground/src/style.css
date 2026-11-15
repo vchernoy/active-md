@@ -1,14 +1,12 @@
 :root {
   --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --panel: #f6f8fa;
   --accent: #2563eb; --accent-fg: #ffffff; --error: #c62828; --error-bg: #fdecea;
-  --note: #2563eb; --tip: #15803d; --warning: #b45309; --danger: #c62828; --important: #7c3aed; --exercise: #0e7490;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --panel: #151b23;
     --accent: #4c8dff; --accent-fg: #0d1117; --error: #ff8a80; --error-bg: #3a1d1d;
-    --note: #6ea8ff; --tip: #4ade80; --warning: #fbbf24; --danger: #ff8a80; --important: #c4a5ff; --exercise: #5ed3e6;
     color-scheme: dark;
   }
 }
@@ -68,11 +66,6 @@ main { flex: 1; display: flex; }
 .active-math-display { display: block; margin: 16px 0; overflow-x: auto; overflow-y: hidden; max-width: 100%; }
 .active-math-display .katex-display { margin: 0; }
 .doc .katex { font-size: 1.1em; }
-
-.callout { border-left: 4px solid var(--c, var(--note)); background: color-mix(in srgb, var(--c, var(--note)) 8%, transparent); border-radius: 0 8px 8px 0; padding: 8px 16px; margin: 16px 0; }
-.callout-title { font-weight: 700; color: var(--c); margin: 4px 0; }
-.callout-note { --c: var(--note); } .callout-tip { --c: var(--tip); } .callout-warning { --c: var(--warning); }
-.callout-danger { --c: var(--danger); } .callout-important { --c: var(--important); } .callout-exercise { --c: var(--exercise); }
 
 .active-input-label { color: var(--muted); font-size: 0.9em; }
 .active-input input[type="number"] {

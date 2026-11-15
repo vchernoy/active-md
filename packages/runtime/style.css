@@ -40,3 +40,46 @@
 .active-doc math {
   font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", math;
 }
+
+/* Overridable local callout palette; no effect outside rendered documents. */
+.active-doc {
+  --active-callout-note: #2563eb;
+  --active-callout-tip: #15803d;
+  --active-callout-warning: #b45309;
+  --active-callout-danger: #c62828;
+  --active-callout-important: #7c3aed;
+  --active-callout-exercise: #0e7490;
+}
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme="light"])) .active-doc {
+    --active-callout-note: #6ea8ff;
+    --active-callout-tip: #4ade80;
+    --active-callout-warning: #fbbf24;
+    --active-callout-danger: #ff8a80;
+    --active-callout-important: #c4a5ff;
+    --active-callout-exercise: #5ed3e6;
+  }
+}
+:where(:root[data-theme="dark"]) .active-doc {
+  --active-callout-note: #6ea8ff;
+  --active-callout-tip: #4ade80;
+  --active-callout-warning: #fbbf24;
+  --active-callout-danger: #ff8a80;
+  --active-callout-important: #c4a5ff;
+  --active-callout-exercise: #5ed3e6;
+}
+.active-doc .callout {
+  --active-callout-color: var(--active-callout-note);
+  border-left: 4px solid var(--active-callout-color);
+  background: color-mix(in srgb, var(--active-callout-color) 8%, transparent);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 16px;
+  margin: 16px 0;
+}
+.active-doc .callout-title { font-weight: 700; color: var(--active-callout-color); margin: 4px 0; }
+.active-doc .callout-note { --active-callout-color: var(--active-callout-note); }
+.active-doc .callout-tip { --active-callout-color: var(--active-callout-tip); }
+.active-doc .callout-warning { --active-callout-color: var(--active-callout-warning); }
+.active-doc .callout-danger { --active-callout-color: var(--active-callout-danger); }
+.active-doc .callout-important { --active-callout-color: var(--active-callout-important); }
+.active-doc .callout-exercise { --active-callout-color: var(--active-callout-exercise); }

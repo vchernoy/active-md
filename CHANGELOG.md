@@ -4,6 +4,8 @@ All three packages share one version.
 
 ## 0.1.3 (unreleased)
 
+- Share the playground callout palette, tinted backgrounds and title styles through optional scoped runtime CSS with overridable `--active-callout-*` variables and light/dark defaults.
+
 - Optional stylesheet prefers locally installed STIX Two Math, Cambria Math and Latin Modern Math, with generic math fallback; no bundled fonts or requests.
 
 - Runtime number controls use a bounded character width derived from range, starting value and decimal step; unbounded controls retain the default.

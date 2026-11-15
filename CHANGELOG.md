@@ -2,23 +2,19 @@
 
 All three packages share one version.
 
-## 0.2.0 (unreleased; Refs #31)
+## 0.2.0 (unreleased; Refs #31, typebridge#302)
 
 - Numeric comparisons, short-circuit logic, lazy multi-branch `if`, and rounded negative-safe `even`/`odd`; exact equality and existing deterministic budgets.
 - Sanitized retained `:::when` blocks, nested visibility to depth 8, positioned condition/structural errors, and lazy hidden bindings. Calc blocks inside `when` are rejected; hidden controls retain global values.
 - Positioned static self-hiding-control errors through transitive/enclosing dependencies and cross-block cycle warnings.
 - Powers and roots example, including zero-safe formulas and the hidden-input `if()` gating pattern.
-- No tag or publication. Release 0.2.0 through Actions only after maintainer approval; reconcile with the independent 0.1.3 release before publishing.
-
-## 0.1.3 (unreleased)
-
 - Share the playground callout palette, tinted backgrounds and title styles through optional scoped runtime CSS with overridable `--active-callout-*` variables and light/dark defaults.
 
 - Optional stylesheet prefers locally installed STIX Two Math, Cambria Math and Latin Modern Math, with generic math fallback; no bundled fonts or requests.
 
 - Runtime number controls use a bounded character width derived from range, starting value and decimal step; unbounded controls retain the default.
 - Preserve native centered MathML matrix positions by removing the center-column override (#27).
-- All packages and internal dependencies are prepared at exact 0.1.3. Publication is a separate maintainer action through the Actions release workflow.
+- All packages and internal dependencies are prepared at exact 0.2.0. Publication is a separate maintainer action through the Actions release workflow.
 
 ## 0.1.2
 

@@ -487,3 +487,5 @@ Calc adds exact numeric comparisons (`== != < <= > >=`), then `not`, `and`, `or`
 ## Approved 0.2 static control analysis (#31)
 
 Every `when` condition is checked against the transitive calc dependency graph, without evaluation. A gate enclosing every valid control of an input on which it depends is a positioned author error (including nested controls and indirect definitions). An outside control removes that error. Cross-block control-dependency cycles produce positioned warnings, since a cycle is not proof of a dead end. The check does not solve conditions or prove their satisfiability. Global inputs without controls remain legal and keep their defaults.
+
+Static conditional control analysis caches shared definition/expression closures and uses the host's `maxSteps` as a shared analysis budget. Exhaustion emits a positioned error instead of completing unbounded graph expansion. Documents with no controls or no gated controls skip dependency expansion.

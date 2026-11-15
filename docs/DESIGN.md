@@ -336,6 +336,11 @@ $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX
 
 ### Conditional containers (0.2)
 
+Prefer one condition, such as `:::when[rate > 0 and years > 5]`, over two nested `when` blocks when both conditions gate the same content. A callout or `details` directly inside a `when` needs only one extra colon on the outer `when` (`::::when` around `:::note`); only a `when` inside another `when` adds another conditional level. Increase outer fences for each container level, including callouts/details.
+
+Outer fences may be longer than required. Start with five or six colons (`::::::when[…]` … `::::::`) to leave room for adding inner containers later. See [the generous-fence example](../examples/generous-fences.md). A paragraph consisting only of three or more colons produces a positioned warning naming the nearby container that may have closed early and suggesting a longer outer fence or combining conditions with `and`. Code spans and fenced code remain literal; warnings do not repair fences or remove source content.
+
+
 ```markdown
 ::::when[x != 0]
 The reciprocal is :value[1/x].

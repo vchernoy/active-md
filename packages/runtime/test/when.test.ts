@@ -45,7 +45,7 @@ it('refreshes nested bindings only when their own and enclosing conditions are t
   const source = model + '::::when[x]\n:::when[extra > 0]\n:value[1/extra]\n:::\n::::';
   document.body.innerHTML = renderActive(source).html;
   const m = mount(document.body);
-  const inner = document.querySelector<HTMLElement>('[data-active-when="extra > 0"]')!;
+  const inner = document.querySelector<HTMLElement>('[data-active-when-id="2"]')!;
   expect(inner.hidden).toBe(true);
   m.session.set('extra', 0);
   m.session.set('x', 1);

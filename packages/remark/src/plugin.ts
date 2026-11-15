@@ -42,8 +42,24 @@ export function remarkActive(options: ActiveOptions = {}) {
     /** Per block, the number of source characters (indentation, "> ") Markdown removed before each line. */
     const blockIndent = new Map<string, number[]>();
     const sourceLines = String(file.value).split(/\r?\n/);
+    const ancestors = new WeakMap<object, ContainerDirective[]>();
+    const structural: { message: string; node: RootContent }[] = [];
+    const mark = (parent: Parent, enclosing: ContainerDirective[]): void => {
+      for (const node of parent.children) {
+        ancestors.set(node, enclosing);
+        const isWhen = node.type === 'containerDirective' && node.name === 'when';
+        if (isWhen && enclosing.length >= 8) structural.push({ message: 'when nesting exceeds the depth limit (8)', node });
+        if ('children' in node) mark(node as Parent, isWhen ? [...enclosing, node as ContainerDirective] : enclosing);
+      }
+    };
+    mark(tree, []);
     walk(tree, (node, parent, index) => {
       if (node.type !== 'code' || (node as Code).lang !== 'calc') return;
+      if (ancestors.get(node)?.length) {
+        structural.push({ message: "calc blocks can't be inside :::when; definitions are global, use if()", node });
+        parent.children.splice(index, 1);
+        return index;
+      }
       const id = `calc-${blocks.length + 1}`;
       blocks.push({ id, text: (node as Code).value });
       // The block's text starts on the line after the opening fence.
@@ -67,6 +83,11 @@ export function remarkActive(options: ActiveOptions = {}) {
       m.source = 'active-md';
       m.ruleId = d.severity;
     };
+    for (const d of structural) report({ message: d.message, severity: 'error' }, at(d.node));
+    const visible = new WeakMap<object, boolean>();
+    let whenId = 0;
+    const conditionErrors: { parent: Parent; node: Directive; error: Paragraph }[] = [];
+    const isVisible = (node: object) => (ancestors.get(node) ?? []).every(a => visible.get(a) === true);
     for (const d of program.diagnostics) {
       const start = blockStart.get(d.span.block);
       const indent = blockIndent.get(d.span.block)?.[d.span.line - 1] ?? 0;
@@ -83,17 +104,37 @@ export function remarkActive(options: ActiveOptions = {}) {
       return undefined;
     });
 
+    for (const { parent, node, error } of conditionErrors) parent.children.splice(parent.children.indexOf(node as never), 0, error as never);
+
     function at(node: { position?: { start: { line: number; column: number } } | undefined }) {
       return node.position ? { line: node.position.start.line, column: node.position.start.column } : undefined;
     }
 
     function showError(node: TextDirective, message: string): void {
-      report({ message, severity: 'error' }, at(node));
+      if (isVisible(node)) report({ message, severity: 'error' }, at(node));
       node.data = { hName: 'span', hProperties: { className: ['active-error'], role: 'note' }, hChildren: [{ type: 'text', value: `⚠ ${message}` }] };
     }
 
     function directive(node: Directive, parent: Parent, index: number): number | undefined {
       const attrs = node.attributes ?? {};
+      if (node.type === 'containerDirective' && node.name === 'when') {
+        const label = node.children[0];
+        const expr = label?.type === 'paragraph' && label.data?.directiveLabel ? labelSource(label, file).trim() : '';
+        if (label?.type === 'paragraph' && label.data?.directiveLabel) node.children.shift();
+        const id = String(++whenId);
+        const disabled = (ancestors.get(node)?.length ?? 0) >= 8;
+        const allowed = isVisible(node) && !disabled;
+        const c = allowed ? session.compile(expr, 'when') : undefined;
+        const r = c?.evaluate();
+        const problem = c?.diagnostics[0]?.message ?? (r?.kind === 'error' ? r.message : undefined);
+        if (problem) report({ message: `in :::when[${expr}]: ${problem}`, severity: 'error' }, at(node));
+        const shown = allowed && r?.kind === 'value' && r.value !== 0;
+        visible.set(node, shown);
+        node.data = { hName: 'div', hProperties: { dataActiveWhen: expr, dataActiveWhenId: id, ...(disabled ? { dataActiveWhenDisabled: 'true' } : {}), hidden: !shown } };
+        const error: Paragraph = { type: 'paragraph', data: { hName: 'span', hProperties: { dataActiveWhenError: id, className: ['active-condition-error'], hidden: !problem }, hChildren: [{ type: 'text', value: problem ? `⚠ ${problem}` : '' }] }, children: [] };
+        conditionErrors.push({ parent, node, error });
+        return undefined;
+      }
       if (node.type === 'textDirective' && node.name === 'input') { input(node, attrs); return undefined; }
       if (node.type === 'textDirective' && node.name === 'value') { value(node, attrs); return undefined; }
       if (node.type === 'containerDirective' && (Object.hasOwn(CALLOUTS, node.name) || node.name === 'details')) {
@@ -171,12 +212,12 @@ export function remarkActive(options: ActiveOptions = {}) {
       const format = parseFormat(attrs.format ?? undefined);
       const compiled = session.compile(expr, 'value');
       const problem = typeof format === 'string' ? format : compiled.diagnostics[0]?.message;
-      if (problem) return showError(node, problem);
-      const result = compiled.evaluate();
+      if (problem && isVisible(node)) return showError(node, problem);
+      const result: Result = isVisible(node) ? compiled.evaluate() : { kind: 'value', value: 0 };
       node.data = {
         hName: 'output',
         hProperties: { className: ['active-value', ...(result.kind === 'error' ? ['active-error'] : [])], dataActiveValue: expr, ...(attrs.format ? { dataActiveFormat: attrs.format } : {}), ariaLive: 'polite' },
-        hChildren: [{ type: 'text', value: show(result, format as Format) }],
+        hChildren: [{ type: 'text', value: isVisible(node) ? show(result, format as Format) : '' }],
       };
     }
 
@@ -208,10 +249,10 @@ export function remarkActive(options: ActiveOptions = {}) {
       const results: Result[] = exprs.map(e => {
         const binding = mathBinding(e);
         const c = session.compile(binding.expression, 'math');
-        const r = c.evaluate();
+        const r: Result = isVisible(node) ? c.evaluate() : { kind: 'value', value: 0 };
         // The formula only shows a red "?", so the author needs the reason: a compile or an evaluation error.
         const problem = binding.problem ?? c.diagnostics[0]?.message ?? (r.kind === 'error' ? r.message : undefined);
-        if (problem) report({ message: `in {{${e}}}: ${problem}`, severity: 'error' }, at(node));
+        if (problem && isVisible(node)) report({ message: `in {{${e}}}: ${problem}`, severity: 'error' }, at(node));
         return r;
       });
       node.data = {
@@ -242,7 +283,7 @@ function sliderStep(min: number, max: number): number {
  * The directive label exactly as written. The label is parsed as Markdown, so `:value[2*3*4]` has an
  * emphasis child; flattening it to text would drop the operators. Use the source between the children.
  */
-function labelSource(node: TextDirective, file: VFile): string {
+function labelSource(node: TextDirective | Paragraph, file: VFile): string {
   const first = node.children[0]?.position?.start.offset;
   const last = node.children[node.children.length - 1]?.position?.end.offset;
   if (first === undefined || last === undefined) return toString(node);

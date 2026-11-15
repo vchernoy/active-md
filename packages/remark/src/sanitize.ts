@@ -1,7 +1,7 @@
 import { defaultSchema } from 'rehype-sanitize';
 import type { Options as Schema } from 'rehype-sanitize';
 
-const ACTIVE = ['dataActiveInput', 'dataActiveValue', 'dataActiveFormat', 'dataActiveTex', 'dataActiveDisplay', 'dataActiveCalc', 'dataActiveFor', 'dataActiveWidget', 'dataActiveError'];
+const ACTIVE = ['dataActiveWhen', 'dataActiveWhenId', 'dataActiveWhenDisabled', 'dataActiveWhenError', 'dataActiveInput', 'dataActiveValue', 'dataActiveFormat', 'dataActiveTex', 'dataActiveDisplay', 'dataActiveCalc', 'dataActiveFor', 'dataActiveWidget', 'dataActiveError'];
 
 /**
  * GitHub's sanitize schema plus the elements and attributes active-md emits.
@@ -13,7 +13,7 @@ export const activeSchema: Schema = {
   tagNames: [...(defaultSchema.tagNames ?? []).filter(t => t !== 'picture' && t !== 'source'), 'input', 'output', 'aside', 'label'],
   attributes: {
     ...defaultSchema.attributes,
-    '*': [...(defaultSchema.attributes?.['*'] ?? []), ...ACTIVE, 'className', 'role', 'ariaLive', 'ariaLabel', 'title'],
+    '*': [...(defaultSchema.attributes?.['*'] ?? []), ...ACTIVE, 'hidden', 'className', 'role', 'ariaLive', 'ariaLabel', 'title'],
     // Image links (rehypeActiveImages); GitHub's schema otherwise allows only footnote classes on <a>.
     a: [
       ...(defaultSchema.attributes?.['a'] ?? []).filter(a => !(Array.isArray(a) && a[0] === 'className')),

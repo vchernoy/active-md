@@ -1,14 +1,17 @@
 /** A position in one calc block (or in a binding expression). Offsets are UTF-16 indices. */
 export type Span = { block: string; start: number; end: number; line: number; column: number };
 
-export type Expr =
+type Preparation = { steps?: number; source?: Expr; sourceCost?: number; guards?: readonly string[] };
+
+export type Expr = Preparation & (
   | { kind: 'num'; value: number; span: Span }
   | { kind: 'ref'; name: string; span: Span }
   | { kind: 'neg'; arg: Expr; span: Span }
   | { kind: 'not'; arg: Expr; span: Span }
   | { kind: 'if'; args: Expr[]; span: Span }
   | { kind: 'bin'; op: '+' | '-' | '*' | '/' | '%' | '^' | '==' | '!=' | '<' | '<=' | '>' | '>=' | 'and' | 'or'; left: Expr; right: Expr; span: Span }
-  | { kind: 'call'; fn: string; args: Expr[]; span: Span };
+  | { kind: 'call'; fn: string; args: Expr[]; span: Span }
+);
 
 export type Range = { min: number; max: number };
 
@@ -23,6 +26,8 @@ export type Diagnostic = { severity: Severity; message: string; span: Span; name
 export type NameInfo = { kind: 'input' | 'value'; span: Span; index: number };
 
 export type Program = {
+  /** Original dependency graph, retained for restrictive host evaluation budgets. */
+  source?: Program;
   /** Valid definitions, in document order (which is also a valid evaluation order). */
   definitions: readonly Definition[];
   inputs: readonly Extract<Definition, { kind: 'input' }>[];

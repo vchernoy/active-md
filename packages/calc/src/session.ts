@@ -1,5 +1,5 @@
 import { constant } from './builtins.js';
-import { Budget, checkInputValue, evaluate, evaluateDefinition, evaluateExpr } from './evaluate.js';
+import { Budget, checkInputValue, evaluate, evaluateDefinition, evaluateExpr, evaluationProgram } from './evaluate.js';
 import { parseExpression } from './parser.js';
 import { DEFAULT_LIMITS, type Diagnostic, type Limits, type Program, type Result } from './types.js';
 
@@ -21,6 +21,8 @@ export type Session = {
 
 export type CompiledExpression = {
   readonly deps: ReadonlySet<string>;
+  /** Proven successful value for every supported input, not merely the default. */
+  readonly constant?: number;
   readonly diagnostics: readonly Diagnostic[];
   /** Evaluate against the session's current results. */
   evaluate(): Result;
@@ -31,6 +33,7 @@ const same = (a: Result | undefined, b: Result | undefined): boolean =>
 
 /** A live evaluation of a program: inputs can change, and only affected names are recomputed. */
 export function createSession(program: Program, limits: Limits = DEFAULT_LIMITS): Session {
+  program = evaluationProgram(program, limits);
   const values = new Map<string, number>(program.inputs.map(i => [i.name, i.default]));
   let results = evaluate(program, values, limits);
   const listeners = new Set<(changed: ReadonlySet<string>) => void>();
@@ -75,12 +78,15 @@ export function createSession(program: Program, limits: Limits = DEFAULT_LIMITS)
     subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     compile(text, id) {
       const c = parseExpression(program, text, id, limits);
+      const original = c.expr?.source ?? c.expr;
       return {
         deps: c.deps,
+        ...(c.expr?.kind === 'num' && (c.expr.sourceCost ?? 1) <= limits.maxSteps
+          && !c.expr.guards?.some(name => lookup(name)?.kind === 'error') ? { constant: c.expr.value } : {}),
         diagnostics: c.diagnostics,
         evaluate: () => c.expr
           // A bare name shows that name's own result, including its error message.
-          ? c.expr.kind === 'ref' ? lookup(c.expr.name) ?? { kind: 'error', message: `unknown name "${c.expr.name}"` }
+          ? original?.kind === 'ref' ? lookup(original.name) ?? { kind: 'error', message: `unknown name "${original.name}"` }
           : evaluateExpr(c.expr, n => results.get(n), new Budget(limits.maxSteps))
           : { kind: 'error', message: c.diagnostics[0]?.message ?? 'invalid expression', ...(c.diagnostics[0] ? { span: c.diagnostics[0].span } : {}) },
       };

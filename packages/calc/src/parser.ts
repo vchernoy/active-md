@@ -1,3 +1,4 @@
+import { simplifyExpression, simplifyProgram } from './simplify.js';
 import { builtin, constant, RESERVED } from './builtins.js';
 import { tokenize, type Token } from './lexer.js';
 import { DEFAULT_LIMITS, type Definition, type Diagnostic, type Expr, type Limits, type NameInfo, type Program, type Span } from './types.js';
@@ -283,7 +284,7 @@ export function parse(blocks: readonly { id: string; text: string }[], limits: L
     names.set(r.name, { kind: 'value', span: r.nameSpan, index: definitions.length });
     definitions.push({ kind: 'value', name: r.name, expr: r.expr, span: r.span, deps: new Set(refs.keys()) });
   }
-  return { definitions, inputs: definitions.filter((d): d is Extract<Definition, { kind: 'input' }> => d.kind === 'input'), names, broken, diagnostics };
+  return simplifyProgram({ definitions, inputs: definitions.filter((d): d is Extract<Definition, { kind: 'input' }> => d.kind === 'input'), names, broken, diagnostics });
 }
 
 /** Parse a single expression (for bindings such as :value[expr] or {{expr}}) against a program's names. */
@@ -304,5 +305,7 @@ export function parseExpression(program: Program, text: string, id = 'expression
   collectRefs(expr, refs, diagnostics);
   for (const [ref] of refs) if (!program.names.has(ref) && constant(ref) !== undefined) refs.delete(ref);
   for (const [ref, span] of refs) if (!program.names.has(ref)) diagnostics.push({ severity: 'error', message: `unknown name "${ref}"`, span });
-  return diagnostics.length ? { deps: new Set(refs.keys()), diagnostics } : { expr, deps: new Set(refs.keys()), diagnostics };
+  if (diagnostics.length) return { deps: new Set(refs.keys()), diagnostics };
+  const prepared = simplifyExpression(program, expr);
+  return { expr: prepared.expr, deps: prepared.deps, diagnostics };
 }

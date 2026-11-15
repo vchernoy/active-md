@@ -148,7 +148,7 @@ export function remarkActive(options: ActiveOptions = {}) {
         if (problem) report({ message: `in :::when[${expr}]: ${problem}`, severity: 'error' }, at(node));
         const shown = allowed && r?.kind === 'value' && r.value !== 0;
         visible.set(node, shown);
-        node.data = { hName: 'div', hProperties: { dataActiveWhen: expr, dataActiveWhenId: id, ...(disabled ? { dataActiveWhenDisabled: 'true' } : {}), hidden: !shown } };
+        node.data = { hName: 'div', hProperties: { dataActiveWhen: expr, dataActiveWhenId: id, ...(c?.constant !== undefined ? { dataActiveWhenConstant: String(c.constant) } : {}), ...(disabled ? { dataActiveWhenDisabled: 'true' } : {}), hidden: !shown } };
         const error: Paragraph = { type: 'paragraph', data: { hName: 'span', hProperties: { dataActiveWhenError: id, className: ['active-condition-error'], hidden: !problem }, hChildren: [{ type: 'text', value: problem ? `⚠ ${problem}` : '' }] }, children: [] };
         conditionErrors.push({ parent, node, error });
         return undefined;

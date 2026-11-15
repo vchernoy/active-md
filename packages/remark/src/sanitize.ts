@@ -1,7 +1,7 @@
 import { defaultSchema } from 'rehype-sanitize';
 import type { Options as Schema } from 'rehype-sanitize';
 
-const ACTIVE = ['dataActiveWhen', 'dataActiveWhenId', 'dataActiveWhenDisabled', 'dataActiveWhenError', 'dataActiveInput', 'dataActiveValue', 'dataActiveFormat', 'dataActiveTex', 'dataActiveDisplay', 'dataActiveCalc', 'dataActiveFor', 'dataActiveWidget', 'dataActiveError'];
+const ACTIVE = ['dataActiveWhenConstant', 'dataActiveWhen', 'dataActiveWhenId', 'dataActiveWhenDisabled', 'dataActiveWhenError', 'dataActiveInput', 'dataActiveValue', 'dataActiveFormat', 'dataActiveTex', 'dataActiveDisplay', 'dataActiveCalc', 'dataActiveFor', 'dataActiveWidget', 'dataActiveError'];
 
 /**
  * GitHub's sanitize schema plus the elements and attributes active-md emits.

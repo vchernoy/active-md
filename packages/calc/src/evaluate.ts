@@ -9,7 +9,8 @@ export type Lookup = (name: string) => Result | undefined;
 export class Budget {
   private used = 0;
   constructor(private readonly max: number) {}
-  step(): void { if (++this.used > this.max) throw new EvalError({ kind: 'error', message: `the calculation took too many steps (limit ${this.max})` }); }
+  remaining(): number { return this.max - this.used; }
+  step(count = 1): void { if ((this.used += count) > this.max) throw new EvalError({ kind: 'error', message: `the calculation took too many steps (limit ${this.max})` }); }
 }
 
 function finite(x: number, expr: Expr): number {
@@ -18,7 +19,7 @@ function finite(x: number, expr: Expr): number {
 }
 
 function evalExpr(expr: Expr, lookup: Lookup, budget: Budget): number {
-  budget.step();
+  budget.step(expr.steps ?? 1);
   switch (expr.kind) {
     case 'num': return expr.value;
     case 'ref': {
@@ -83,6 +84,7 @@ function binary(expr: Extract<Expr, { kind: 'bin' }>, a: number, b: number): num
 /** Evaluate one expression. Never throws for calc errors; returns an error result instead. */
 export function evaluateExpr(expr: Expr, lookup: Lookup, budget = new Budget(DEFAULT_LIMITS.maxSteps)): Result {
   try {
+    if (expr.source && (budget.remaining() < (expr.sourceCost ?? Infinity) || expr.guards?.some(name => lookup(name)?.kind === 'error'))) expr = expr.source;
     return { kind: 'value', value: evalExpr(expr, lookup, budget) };
   } catch (e) {
     if (e instanceof EvalError) return e.result;
@@ -99,11 +101,18 @@ export function checkInputValue(program: Program, name: string, value: number): 
   return undefined;
 }
 
+/** Use the original graph when a host budget could affect constant definitions. */
+export function evaluationProgram(program: Program, limits: Limits): Program {
+  const bound = program.definitions.reduce((n, d) => n + (d.kind === 'value' ? d.expr.sourceCost ?? limits.maxSteps + 1 : 0), 0);
+  return program.source && limits.maxSteps < bound ? program.source : program;
+}
+
 /**
  * Evaluate a whole program. `values` overrides input defaults (invalid overrides are ignored).
  * Returns a result for every defined name, including broken ones.
  */
 export function evaluate(program: Program, values: ReadonlyMap<string, number> = new Map(), limits: Limits = DEFAULT_LIMITS): Map<string, Result> {
+  program = evaluationProgram(program, limits);
   const results = new Map<string, Result>();
   for (const [name, d] of program.broken) results.set(name, { kind: 'error', message: d.message, span: d.span });
   const budget = new Budget(limits.maxSteps);

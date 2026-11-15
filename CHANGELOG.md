@@ -2,6 +2,10 @@
 
 All three packages share one version.
 
+## Unreleased
+
+- Prepare calc definitions and document expressions with conservative constant propagation, range comparison proofs and lazy branch elimination (#45). Keep live dependencies, source diagnostics and evaluation-limit behavior; expose proven constant conditions without omitting their HTML yet.
+
 ## 0.3.0
 
 - Logarithmic, exponential and trigonometric calc functions, angle conversions and shadowable `pi`/`e` constants (#41, #43). Invalid domains and nonfinite results use positioned errors; existing evaluation budgets remain in force.

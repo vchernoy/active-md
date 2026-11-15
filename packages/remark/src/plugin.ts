@@ -1,3 +1,4 @@
+import { checkWhenControls } from './when-check.js';
 import { createSession, formatNumber, parse, parseFormat, type Diagnostic, type Format, type Limits, type Program, type Result } from '@vchernoy/calc';
 import type { ElementContent } from 'hast';
 import type { Code, Paragraph, Parent, Root, RootContent } from 'mdast';
@@ -43,11 +44,15 @@ export function remarkActive(options: ActiveOptions = {}) {
     const blockIndent = new Map<string, number[]>();
     const sourceLines = String(file.value).split(/\r?\n/);
     const ancestors = new WeakMap<object, ContainerDirective[]>();
+    const whenNodes: ContainerDirective[] = [];
+    const controlNodes: TextDirective[] = [];
     const structural: { message: string; node: RootContent }[] = [];
     const mark = (parent: Parent, enclosing: ContainerDirective[]): void => {
       for (const node of parent.children) {
         ancestors.set(node, enclosing);
+        if (node.type === 'textDirective' && node.name === 'input') controlNodes.push(node);
         const isWhen = node.type === 'containerDirective' && node.name === 'when';
+        if (isWhen) whenNodes.push(node as ContainerDirective);
         if (isWhen && enclosing.length >= 8) structural.push({ message: 'when nesting exceeds the depth limit (8)', node });
         if ('children' in node) mark(node as Parent, isWhen ? [...enclosing, node as ContainerDirective] : enclosing);
       }
@@ -86,6 +91,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     for (const d of structural) report({ message: d.message, severity: 'error' }, at(d.node));
     const visible = new WeakMap<object, boolean>();
     let whenId = 0;
+    const whenExpressions = new Map<ContainerDirective, string>();
     const conditionErrors: { parent: Parent; node: Directive; error: Paragraph }[] = [];
     const isVisible = (node: object) => (ancestors.get(node) ?? []).every(a => visible.get(a) === true);
     for (const d of program.diagnostics) {
@@ -104,6 +110,15 @@ export function remarkActive(options: ActiveOptions = {}) {
       return undefined;
     });
 
+    const whenIndexes = new Map(whenNodes.map((node, index) => [node, index]));
+    const checks = whenNodes.map(node => {
+      const expression = whenExpressions.get(node) ?? '';
+      return { expression, deps: session.compile(expression, 'when-check').deps };
+    });
+    const controls = controlNodes.filter(node => node.data?.hName === 'label').map(node => ({
+      name: labelSource(node, file).trim(), ancestors: (ancestors.get(node) ?? []).map(a => whenIndexes.get(a)!),
+    }));
+    for (const problem of checkWhenControls(program, checks, controls)) report(problem, at(whenNodes[problem.index]!));
     for (const { parent, node, error } of conditionErrors) parent.children.splice(parent.children.indexOf(node as never), 0, error as never);
 
     function at(node: { position?: { start: { line: number; column: number } } | undefined }) {
@@ -121,6 +136,7 @@ export function remarkActive(options: ActiveOptions = {}) {
         const label = node.children[0];
         const expr = label?.type === 'paragraph' && label.data?.directiveLabel ? labelSource(label, file).trim() : '';
         if (label?.type === 'paragraph' && label.data?.directiveLabel) node.children.shift();
+        whenExpressions.set(node, expr);
         const id = String(++whenId);
         const disabled = (ancestors.get(node)?.length ?? 0) >= 8;
         const allowed = isVisible(node) && !disabled;

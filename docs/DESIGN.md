@@ -483,3 +483,9 @@ Calc adds exact numeric comparisons (`== != < <= > >=`), then `not`, `and`, `or`
 ## Approved 0.2 conditional rendering (#31, renderer/runtime step)
 
 `:::when[expr]` wraps retained, sanitized HTML in a `hidden` container when its numeric condition is zero or errors. A positioned condition error is rendered outside that container, without a live announcement or focus movement. Descendant conditions, value expressions and math are evaluated only when every enclosing condition is true. Nesting is limited to eight, including hidden blocks. Calc definitions remain global: a calc block inside any when is a positioned structural error and is excluded from the program. Hidden controls retain their global input values; use `if()` to gate their contribution. The runtime resolves enclosing visibility before refreshing newly visible bindings and suppresses pending math writes into hidden subtrees. This is visibility, not secrecy; source text remains in the HTML.
+
+## Approved 0.2 static control analysis (#31)
+
+Every `when` condition is checked against the transitive calc dependency graph, without evaluation. A gate enclosing every valid control of an input on which it depends is a positioned author error (including nested controls and indirect definitions). An outside control removes that error. Cross-block control-dependency cycles produce positioned warnings, since a cycle is not proof of a dead end. The check does not solve conditions or prove their satisfiability. Global inputs without controls remain legal and keep their defaults.
+
+Static conditional control analysis caches shared definition/expression closures and uses the host's `maxSteps` as a shared analysis budget. Exhaustion emits a positioned error instead of completing unbounded graph expansion. Documents with no controls or no gated controls skip dependency expansion.

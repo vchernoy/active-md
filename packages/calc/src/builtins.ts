@@ -4,6 +4,8 @@ export type Builtin = { min: number; max: number; fn: (args: number[]) => number
 const check = (x: number): number | string => Number.isFinite(x) ? x : 'result is not a finite number';
 
 const REGISTRY: Record<string, Builtin> = {
+  even: { min: 1, max: 1, fn: ([x]) => Number(Math.abs(Math.round(x!)) % 2 === 0) },
+  odd: { min: 1, max: 1, fn: ([x]) => Number(Math.abs(Math.round(x!)) % 2 === 1) },
   round: { min: 1, max: 2, fn: ([x, d = 0]) => {
     if (!Number.isInteger(d) || d! < 0 || d! > 15) return 'round: digits must be a whole number from 0 to 15';
     const f = 10 ** d!;
@@ -25,4 +27,4 @@ export function builtin(name: string): Builtin | undefined {
   return Object.hasOwn(BUILTINS, name) ? BUILTINS[name] : undefined;
 }
 
-export const RESERVED = new Set(['input', 'in']);
+export const RESERVED = new Set(['input', 'in', 'if', 'and', 'or', 'not']);

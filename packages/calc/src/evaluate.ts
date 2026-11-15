@@ -28,7 +28,19 @@ function evalExpr(expr: Expr, lookup: Lookup, budget: Budget): number {
       return r.value;
     }
     case 'neg': return -evalExpr(expr.arg, lookup, budget);
-    case 'bin': return binary(expr, evalExpr(expr.left, lookup, budget), evalExpr(expr.right, lookup, budget));
+    case 'not': return Number(evalExpr(expr.arg, lookup, budget) === 0);
+    case 'if': {
+      for (let i = 0; i < expr.args.length - 1; i += 2) {
+        if (evalExpr(expr.args[i]!, lookup, budget) !== 0) return evalExpr(expr.args[i + 1]!, lookup, budget);
+      }
+      return evalExpr(expr.args[expr.args.length - 1]!, lookup, budget);
+    }
+    case 'bin': {
+      const left = evalExpr(expr.left, lookup, budget);
+      if (expr.op === 'and') return left === 0 ? 0 : Number(evalExpr(expr.right, lookup, budget) !== 0);
+      if (expr.op === 'or') return left !== 0 ? 1 : Number(evalExpr(expr.right, lookup, budget) !== 0);
+      return binary(expr, left, evalExpr(expr.right, lookup, budget));
+    }
     case 'call': {
       const b = builtin(expr.fn);
       if (!b) throw new EvalError({ kind: 'error', message: `unknown function "${expr.fn}"`, span: expr.span });
@@ -42,6 +54,14 @@ function evalExpr(expr: Expr, lookup: Lookup, budget: Budget): number {
 
 function binary(expr: Extract<Expr, { kind: 'bin' }>, a: number, b: number): number {
   switch (expr.op) {
+    case '==': return Number(a === b);
+    case '!=': return Number(a !== b);
+    case '<': return Number(a < b);
+    case '<=': return Number(a <= b);
+    case '>': return Number(a > b);
+    case '>=': return Number(a >= b);
+    case 'and': return Number(a !== 0 && b !== 0);
+    case 'or': return Number(a !== 0 || b !== 0);
     case '+': return finite(a + b, expr);
     case '-': return finite(a - b, expr);
     case '*': return finite(a * b, expr);

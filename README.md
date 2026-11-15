@@ -36,6 +36,11 @@ The reciprocal is :value[1/x].
 
 Declare calc outside these containers. Hidden content stays in the HTML but is not evaluated. Nested blocks require every enclosing condition (maximum depth 8). Hidden controls keep their values: gate their contribution with `if(useExtra, extra, 0)`. Keep a control outside any condition that depends on that input; self-hiding controls are errors and cross-block control cycles are warnings. See [powers and roots](examples/powers-and-roots.md) and [the design](docs/DESIGN.md) for the full rules. No `else` or `choose` in this release.
 
+
+Prefer one condition, such as `:::when[rate > 0 and years > 5]`, over two nested `when` blocks when both conditions gate the same content. A callout or `details` directly inside a `when` needs only one extra colon on the outer `when` (`::::when` around `:::note`); only a `when` inside another `when` adds another conditional level. Increase outer fences for each container level, including callouts/details.
+
+Outer fences may be longer than required. Start with five or six colons (`::::::when[…]` … `::::::`) to leave room for adding inner containers later. See [the generous-fence example](examples/generous-fences.md). A paragraph consisting only of three or more colons produces a positioned warning naming the nearby container that may have closed early and suggesting a longer outer fence or combining conditions with `and`. Code spans and fenced code remain literal; warnings do not repair fences or remove source content.
+
 ## Math functions (unreleased; Refs #41)
 
 `ln(x)` is natural log; `log(x)` is base 10 and `log(x, base)` selects a base. Use `exp`, `sin`/`cos`/`tan`, `asin`/`acos`/`atan`/`atan2(y, x)`, and `deg`/`rad` for unit conversion. Trig functions use radians. `pi` and `e` are constants; a document definition shadows either with a positioned warning and ordinary define-before-use rules. Invalid domains and nonfinite results are positioned error values. Engines can differ in the last bit: compare approximate results with `abs(a - b) < 1e-9` rather than exact equality.

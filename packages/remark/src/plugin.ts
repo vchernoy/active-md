@@ -1,3 +1,4 @@
+import { warnStrayFences } from './stray-fences.js';
 import { checkWhenControls } from './when-check.js';
 import { createSession, formatNumber, parse, parseFormat, type Diagnostic, type Format, type Limits, type Program, type Result } from '@vchernoy/calc';
 import type { ElementContent } from 'hast';
@@ -38,6 +39,7 @@ type Directive = TextDirective | LeafDirective | ContainerDirective;
  */
 export function remarkActive(options: ActiveOptions = {}) {
   return (tree: Root, file: VFile): void => {
+    warnStrayFences(tree, file);
     const blocks: CalcBlock[] = [];
     const blockStart = new Map<string, number>();
     /** Per block, the number of source characters (indentation, "> ") Markdown removed before each line. */

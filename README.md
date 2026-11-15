@@ -24,7 +24,7 @@ $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{final | fixed:
 
 More: **[examples/](examples/)** has nine complete documents (compound interest, a loan, a recipe that rescales, splitting a bill, running pace, free fall, appliance running cost, Pythagoras, powers and roots). Each is rendered in CI.
 
-## Conditions (0.2 PR stack)
+## Conditions (0.2)
 
 `if(x != 0, 1/x, 0)` evaluates only the selected branch. Multi-branch `if(c1, a, c2, b, otherwise)`, comparisons, `and`/`or`/`not` and `even`/`odd` all use numeric truth (zero false). Equality is exact; use `abs(a-b) < 1e-9` for tolerance. `%` is JavaScript remainder, so `-3 % 2` is -1; parity tests round first and handle negatives.
 
@@ -35,8 +35,6 @@ The reciprocal is :value[1/x].
 ```
 
 Declare calc outside these containers. Hidden content stays in the HTML but is not evaluated. Nested blocks require every enclosing condition (maximum depth 8). Hidden controls keep their values: gate their contribution with `if(useExtra, extra, 0)`. Keep a control outside any condition that depends on that input; self-hiding controls are errors and cross-block control cycles are warnings. See [powers and roots](examples/powers-and-roots.md) and [the design](docs/DESIGN.md) for the full rules. No `else` or `choose` in this release.
-
-The stack is prepared for maintainer review; 0.2.0 publication is a separate Actions release workflow action after approval.
 
 ## Packages
 

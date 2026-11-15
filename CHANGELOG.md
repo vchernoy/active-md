@@ -2,6 +2,14 @@
 
 All three packages share one version.
 
+## 0.2.0 (unreleased; Refs #31)
+
+- Numeric comparisons, short-circuit logic, lazy multi-branch `if`, and rounded negative-safe `even`/`odd`; exact equality and existing deterministic budgets.
+- Sanitized retained `:::when` blocks, nested visibility to depth 8, positioned condition/structural errors, and lazy hidden bindings. Calc blocks inside `when` are rejected; hidden controls retain global values.
+- Positioned static self-hiding-control errors through transitive/enclosing dependencies and cross-block cycle warnings.
+- Powers and roots example, including zero-safe formulas and the hidden-input `if()` gating pattern.
+- No tag or publication. Release 0.2.0 through Actions only after maintainer approval; reconcile with the independent 0.1.3 release before publishing.
+
 ## 0.1.3 (unreleased)
 
 - Share the playground callout palette, tinted backgrounds and title styles through optional scoped runtime CSS with overridable `--active-callout-*` variables and light/dark defaults.

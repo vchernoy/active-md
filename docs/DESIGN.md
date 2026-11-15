@@ -1,6 +1,6 @@
 # active-md: design
 
-Status: **draft for discussion**. Nothing here is implemented yet; §0 is the first release.
+Status: **design intent**. §0 describes the original subset; the 0.2 conditions below are implemented in the #31 PR stack and await maintainer merge/release. Later-version sections remain proposals.
 Consumers: **TypeBridge** (vchernoy/typebridge) and **course-platform** (vchernoy/course-platform).
 
 ## 0. Version 0 (first release)
@@ -31,6 +31,12 @@ Small, safe and usable as soon as possible in both course-platform and TypeBridg
   - quizzes;
   - text, bool and select inputs;
   - automatic typesetting of a formula's definition (`$$ {{name}} $$`), so `{{…}}` in math always inserts a value.
+
+### 0.2 Conditions (Refs #31)
+
+Calc remains numeric: comparisons `== != < <= > >=` and logic return 1/0, with zero false and every nonzero finite number true. Arithmetic binds first, then comparisons, `not`, `and`, `or`. Comparisons cannot be chained without explicit grouping. Equality is exact; write `abs(a-b) < 1e-9` for tolerance. `and`/`or` short-circuit. Reserved `if(c1, a, c2, b, …, otherwise)` takes an odd argument count of at least three, tests conditions in order and evaluates only the selected value. Every branch is still parsed and name-checked. `even(x)` and `odd(x)` test `round(x)` correctly for negative numbers; `%` retains JavaScript semantics (`-3 % 2` is -1). New expression nodes use the existing depth and step budgets; skipped branches consume no evaluation steps.
+
+`:::when[expr]` conditionally shows retained sanitized content. See §6 for nesting, control analysis and diagnostics. Missing inputs remain future work: when they exist, a missing condition will mean false, without an error.
 
 ## 1. Purpose
 
@@ -97,7 +103,9 @@ It's built for authors writing prose, not for programmers writing code.
 3. **Bindings may refer to anything.** The text is rendered after the whole model is evaluated, so "**Total:** :value[total]" may come before `total` is defined.
 4. **An input may have several controls,** for example a number box and a slider. They all edit the same value and stay in sync, so they must use the same range (their steps may differ). Read-only views of an input are allowed anywhere.
 5. **An input without a control** keeps its default, or stays missing.
-6. **No zero-parameter functions.** Write `y = …`, not `y() = …`. Values are already live, so the two would mean the same thing.
+6. **Conditional content does not scope definitions.** Calc blocks inside `when` are errors: the global program always exists. Hidden controls keep their last value; explicitly gate their contribution with `if(useExtra, extra, 0)`.
+7. **Control reachability is checked statically.** Through all transitive definitions and enclosing conditions, an input that can hide every one of its controls is an error. A control outside the gating block makes it valid. Cross-block cycles are warnings; the check does not prove conditions satisfiable.
+8. **No zero-parameter functions.** Write `y = …`, not `y() = …`. Values are already live, so the two would mean the same thing.
 
 ## 4. The calc language
 
@@ -175,13 +183,13 @@ Missing is not an error: a form that hasn't been filled in yet is a normal state
 - `×` and `÷` are accepted as `*` and `/`.
 - Comparisons can't be chained.
 
-### 4.5 Conditionals (v1)
+### 4.5 Numeric conditionals (0.2; later typed conditions remain proposed)
 
 Only the chosen branch is evaluated:
 
 ```calc
 fee = if(total > 10000, 0, 300)
-sign(x) = cond(x < 0 -> -1, x == 0 -> 0, else -> 1)
+sign = if(x < 0, -1, x > 0, 1, 0)
 ```
 
 ### 4.6 Functions with clauses (v2)
@@ -240,6 +248,7 @@ All limits are configurable by the host.
 
 | Limit | Default |
 |---|---|
+| Conditional block nesting | 8 |
 | Calc source size | 64 KB |
 | Definitions | 2,000 |
 | Steps per full evaluation (`maxSteps`) | 1,000,000 |
@@ -324,6 +333,26 @@ $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX
 | `:value[expr]` | A read-only view | `format` (`number` \| `percent` \| `currency` \| `fixed:2`…); `placeholder` (for missing) |
 | `::table{columns="a, b"}` / `:::table{for="x in list"}` | A table generated from lists (v2) | `columns`; `for`, with a template row; `max` |
 | `:answer[expr]` | A quiz answer box (§8) | `tolerance`, `relative`, `points`, `feedback` |
+
+### Conditional containers (0.2)
+
+```markdown
+::::when[x != 0]
+The reciprocal is :value[1/x].
+:::when[x < 0]
+…and x is negative.
+:::
+::::
+```
+
+- Any calc expression is allowed, including built-in calls and comparisons. Nonzero shows the block; zero sets the wrapper's `hidden` attribute. This is visibility, **not secrecy**: content and expression source remain in HTML.
+- A nested block is visible only if all enclosing conditions are true. Conditions, value bindings and math in a hidden subtree are never evaluated, and their errors are not reported to the reader or announced. On becoming visible, bindings refresh to current inputs. A failing visible condition hides its block and reports a positioned error outside that block. Visibility changes do not programmatically move focus or use a live region.
+- Use longer fences around nested containers. More than eight levels is a positioned structural error even in hidden content.
+- A calc block anywhere inside `when` is excluded and reports: "calc blocks can't be inside :::when; definitions are global, use if()". Declare inputs and definitions outside all conditional containers.
+- Controls are views of global inputs. Hiding a control never resets its value. A hidden extra amount still affects an ungated global formula; use `total = base + if(useExtra, extra, 0)` to opt out.
+- A self-hiding input (directly, through definitions, or through enclosing conditions) produces a positioned error if all its valid controls lie inside the gating block. Add an outside control. Cross-block control cycles produce warnings, not errors; no satisfiability solver is involved.
+- Static control analysis caches definition/expression closures and uses the host `maxSteps` budget. Exhaustion is a positioned error. With no controls or gated controls, dependency expansion is skipped.
+- There is no `:::else`: use an independent `:::when[not (condition)]`. Independent blocks can overlap. `choose`/`otherwise` and quiz feedback slots are deferred. Future missing conditions will count as false without an error; missing inputs are not implemented yet.
 
 ### Inside math
 
@@ -475,17 +504,3 @@ Optional runtime styles size ranged number controls at mount from min/max, start
 The optional `@vchernoy/active-runtime/style.css` also sets `.active-doc math` to prefer locally installed "STIX Two Math", "Cambria Math", then "Latin Modern Math", with generic `math` fallback. It includes no font files and makes no font requests. MathML remains renderable with native browser defaults when consumers omit this optional stylesheet.
 
 Optional runtime styles provide scoped callout borders, 8% tinted backgrounds and bold coloured titles. Consumers can override `--active-callout-note`, `--active-callout-tip`, `--active-callout-warning`, `--active-callout-danger`, `--active-callout-important` and `--active-callout-exercise` on `.active-doc`. Defaults follow the system colour scheme; root `data-theme="light"` or `"dark"` takes precedence. The playground consumes these defaults without a separate callout palette. Details remain fold-outs with consumer-defined neutral styling.
-
-## Approved 0.2 conditions (#31, calc step)
-
-Calc adds exact numeric comparisons (`== != < <= > >=`), then `not`, `and`, `or` in decreasing precedence below arithmetic. Comparisons cannot be chained. Truth is nonzero; predicates return 1/0. `and`/`or` short-circuit. Reserved `if(c1, a, c2, b, …, otherwise)` needs an odd number of arguments (at least three), tries conditions in order and evaluates only the selected result. All branches are still parsed and name-checked. `even(x)`/`odd(x)` test `round(x)`, including negative values. Equality is exact: use `abs(a-b) < 1e-9` for tolerance. `%` retains JavaScript remainder semantics (`-3 % 2` is -1). Existing expression-depth and step budgets apply to the new nodes; skipped branches consume no evaluation steps.
-
-## Approved 0.2 conditional rendering (#31, renderer/runtime step)
-
-`:::when[expr]` wraps retained, sanitized HTML in a `hidden` container when its numeric condition is zero or errors. A positioned condition error is rendered outside that container, without a live announcement or focus movement. Descendant conditions, value expressions and math are evaluated only when every enclosing condition is true. Nesting is limited to eight, including hidden blocks. Calc definitions remain global: a calc block inside any when is a positioned structural error and is excluded from the program. Hidden controls retain their global input values; use `if()` to gate their contribution. The runtime resolves enclosing visibility before refreshing newly visible bindings and suppresses pending math writes into hidden subtrees. This is visibility, not secrecy; source text remains in the HTML.
-
-## Approved 0.2 static control analysis (#31)
-
-Every `when` condition is checked against the transitive calc dependency graph, without evaluation. A gate enclosing every valid control of an input on which it depends is a positioned author error (including nested controls and indirect definitions). An outside control removes that error. Cross-block control-dependency cycles produce positioned warnings, since a cycle is not proof of a dead end. The check does not solve conditions or prove their satisfiability. Global inputs without controls remain legal and keep their defaults.
-
-Static conditional control analysis caches shared definition/expression closures and uses the host's `maxSteps` as a shared analysis budget. Exhaustion emits a positioned error instead of completing unbounded graph expansion. Documents with no controls or no gated controls skip dependency expansion.

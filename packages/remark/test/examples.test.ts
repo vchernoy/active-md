@@ -27,3 +27,13 @@ describe('examples/', () => {
     expect(html).toContain('data-active-value=');
   });
 });
+
+it.each([0, -4, 4])('powers and roots stays valid at base %s', x => {
+  const markdown = readFileSync(dir + 'powers-and-roots.md', 'utf8').replace('input x = 2', `input x = ${x}`);
+  const rendered = renderActive(markdown, { locale: 'en-US' });
+  expect(rendered.messages).toEqual([]);
+  if (x < 0) expect(rendered.html).toContain(`\\left({${x}}\\right)^0`);
+  expect(rendered.html).not.toContain('active-error');
+  expect(rendered.html).not.toContain('katex-error');
+  expect(rendered.html).not.toContain('mathcolor="red"');
+});

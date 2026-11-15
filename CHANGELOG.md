@@ -2,6 +2,13 @@
 
 All three packages share one version.
 
+## 0.3.0
+
+- Logarithmic, exponential and trigonometric calc functions, angle conversions and shadowable `pi`/`e` constants (#41, #43). Invalid domains and nonfinite results use positioned errors; existing evaluation budgets remain in force.
+- Positioned stray-container-fence warnings, including consecutive leftover lines, with guidance on longer outer fences and combined conditions (#40, #42).
+- Documented radians, domains, constant shadowing, cross-engine approximation differences, and exact doubling-time versus Rule of 72 examples.
+- All three packages, internal dependencies and playground pins are prepared at exact 0.3.0. Publishing uses the Actions release workflow.
+
 ## 0.2.0
 
 Conditions (#31):

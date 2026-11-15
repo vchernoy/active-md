@@ -37,14 +37,16 @@ class ExprParser {
   expr(minPrec = 0, depth = 0): Expr {
     if (depth > this.maxDepth) throw new ParseError('expression is nested too deeply', this.peek().span);
     let left = this.unary(depth);
+    let compared = false;
     for (;;) {
       const t = this.peek();
       if ((t.t !== 'op' && t.t !== 'name') || !Object.hasOwn(BIN_PREC, t.value)) break;
       const prec = BIN_PREC[t.value]!;
       if (prec < minPrec) break;
-      if (comparisons.has(t.value) && left.kind === 'bin' && comparisons.has(left.op))
+      if (comparisons.has(t.value) && compared)
         throw new ParseError('comparisons cannot be chained; use and', t.span);
       this.next();
+      if (comparisons.has(t.value)) compared = true;
       // ^ is right-associative; the others are left-associative.
       const right = this.expr(t.value === '^' ? prec : prec + 1, depth + 1);
       left = this.node({ kind: 'bin', op: t.value as '+', left, right, span: join(left.span, right.span) }, left, right);

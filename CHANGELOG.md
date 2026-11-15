@@ -2,11 +2,17 @@
 
 All three packages share one version.
 
-## 0.1.2 (unreleased)
+## 0.1.3 (unreleased)
+
+- Runtime number controls use a bounded character width derived from range, starting value and decimal step; unbounded controls retain the default.
+- Preserve native centered MathML matrix positions by removing the center-column override (#27).
+- All packages and internal dependencies are prepared at exact 0.1.3. Publication is a separate maintainer action through the Actions release workflow.
+
+## 0.1.2
 
 - Optional `@vchernoy/active-runtime/style.css`: scoped compact inputs, invalid-input outline and native MathML column alignment; consumed by the playground.
 - `{{expr | spec}}` math placeholders share `:value` formats and locale-aware, TeX-safe substitution for server defaults and runtime updates. Existing `{{expr}}` output is unchanged; invalid formats report positioned diagnostics.
-- All three packages and internal dependencies are pinned to0.1.2. Maintainer release: merge the reviewed steps, then push `v0.1.2` to run `publish.yml`; publication has not occurred.
+- All three packages and internal dependencies are pinned to 0.1.2; published through the Actions release workflow.
 
 ## 0.1.1 (2026-11-14)
 

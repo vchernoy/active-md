@@ -35,6 +35,3 @@
 .active-doc mtable[columnalign^="left"] > mtr > mtd {
   text-align: left;
 }
-.active-doc mtable[columnalign^="center"] > mtr > mtd {
-  text-align: center;
-}

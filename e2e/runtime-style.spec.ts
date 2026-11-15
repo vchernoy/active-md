@@ -74,3 +74,45 @@ $$`).html);
     }
   });
 });
+
+test('pmatrix entries keep native positions with optional styles (#27)', async ({ page }) => {
+  await page.setContent(renderActive(String.raw`$$\begin{pmatrix}1&222\\3333&4\end{pmatrix}$$`).html);
+  const entries = page.locator('mtable > mtr > mtd mn');
+  await expect(entries).toHaveCount(4);
+  const positions = () => entries.evaluateAll(elements => elements.map(element => ({ x: element.getBoundingClientRect().x, y: element.getBoundingClientRect().y })));
+  const before = await positions();
+  await page.addStyleTag({ content: css });
+  const after = await positions();
+  after.forEach((position, i) => {
+    expect(Math.abs(position.x - before[i].x)).toBeLessThan(0.5);
+    expect(Math.abs(position.y - before[i].y)).toBeLessThan(0.5);
+  });
+});
+
+test('runtime sizes a bounded years control narrower than principal', async ({ page }) => {
+  const { build } = await import('vite');
+  const bundle = await build({
+    configFile: false,
+    build: {
+      write: false,
+      lib: { entry: new URL('../packages/runtime/src/index.ts', import.meta.url).pathname, name: 'ActiveRuntime', formats: ['iife'] },
+      rollupOptions: { output: { inlineDynamicImports: true } },
+    },
+  });
+  const outputs = Array.isArray(bundle) ? bundle : [bundle];
+  const code = outputs.flatMap(output => 'output' in output ? output.output : []).find(output => output.type === 'chunk');
+  if (!code || code.type !== 'chunk') throw new Error('No runtime browser bundle');
+  const html = renderActive('```calc\ninput years = 10 in 1..50\ninput principal = 10000 in 0..10000000\n```\n\nYears :input[years] Principal :input[principal]').html;
+  expect(html).not.toContain('--active-input-ch');
+  await page.setContent(html);
+  await page.addScriptTag({ content: code.code });
+  await page.evaluate(() => {
+    (window as unknown as { ActiveRuntime: { mount(root: HTMLElement): unknown } }).ActiveRuntime.mount(document.body);
+  });
+  await page.addStyleTag({ content: css });
+  const years = page.locator('input[data-active-input="years"]');
+  const principal = page.locator('input[data-active-input="principal"]');
+  expect(await years.evaluate(el => (el as HTMLElement).style.getPropertyValue('--active-input-ch'))).toBe('3');
+  expect(await principal.evaluate(el => (el as HTMLElement).style.getPropertyValue('--active-input-ch'))).toBe('9');
+  expect((await years.boundingBox())!.width).toBeLessThan((await principal.boundingBox())!.width);
+});

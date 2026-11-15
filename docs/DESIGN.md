@@ -225,7 +225,7 @@ Lambdas `(a, b) => expr` exist only as arguments to built-in functions. They can
 
 ### 4.9 Built-in functions
 
-Implemented, unreleased follow-up (Refs #41): `ln(x)` is natural log; `log(x)` is base-10 log and `log(x, base)` selects a base. Arguments must be positive; a log base must be positive and not 1. `exp(x)` computes e^x. `sin`, `cos`, `tan`, `asin`, `acos`, `atan` and `atan2(y, x)` use radians; `asin`/`acos` require inputs in [-1, 1]. `deg(radians)` and `rad(degrees)` convert units. Nonfinite results (including overflow) are positioned error values, never NaN or Infinity. Each call consumes the existing one call-node step plus its evaluated argument nodes; no budget changes.
+Implemented in 0.3 (Refs #41): `ln(x)` is natural log; `log(x)` is base-10 log and `log(x, base)` selects a base. Arguments must be positive; a log base must be positive and not 1. `exp(x)` computes e^x. `sin`, `cos`, `tan`, `asin`, `acos`, `atan` and `atan2(y, x)` use radians; `asin`/`acos` require inputs in [-1, 1]. `deg(radians)` and `rad(degrees)` convert units. Nonfinite results (including overflow) are positioned error values, never NaN or Infinity. Each call consumes the existing one call-node step plus its evaluated argument nodes; no budget changes.
 
 `pi` and `e` are built-in constant names. A document's own value or input definition shadows the corresponding constant with a positioned warning at the definition name. Shadowed names keep ordinary define-before-use/self-reference rules and dependency updates; constants without a document definition are available in model expressions and reader bindings.
 

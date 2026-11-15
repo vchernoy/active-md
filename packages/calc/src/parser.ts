@@ -1,4 +1,4 @@
-import { builtin, RESERVED } from './builtins.js';
+import { builtin, constant, RESERVED } from './builtins.js';
 import { tokenize, type Token } from './lexer.js';
 import { DEFAULT_LIMITS, type Definition, type Diagnostic, type Expr, type Limits, type NameInfo, type Program, type Span } from './types.js';
 
@@ -246,6 +246,7 @@ export function parse(blocks: readonly { id: string; text: string }[], limits: L
       if (r.kind === 'broken') diagnostics.push({ ...r.error, name: r.name });
       continue;
     }
+    if (constant(r.name) !== undefined) diagnostics.push({ severity: 'warning', name: r.name, message: `"${r.name}" shadows the built-in constant`, span: r.nameSpan });
     if (r.kind === 'broken') {
       diagnostics.push({ ...r.error, name: r.name });
       names.set(r.name, { kind: 'value', span: r.nameSpan, index: -1 });
@@ -264,6 +265,7 @@ export function parse(blocks: readonly { id: string; text: string }[], limits: L
     collectRefs(r.expr, refs, problems);
     for (const [ref, span] of refs) {
       if (names.has(ref)) continue;
+      if (!firstAt.has(ref) && constant(ref) !== undefined) { refs.delete(ref); continue; }
       const later = firstAt.get(ref);
       problems.push({
         severity: 'error', name: r.name, span,
@@ -300,6 +302,7 @@ export function parseExpression(program: Program, text: string, id = 'expression
   }
   const refs = new Map<string, Span>();
   collectRefs(expr, refs, diagnostics);
+  for (const [ref] of refs) if (!program.names.has(ref) && constant(ref) !== undefined) refs.delete(ref);
   for (const [ref, span] of refs) if (!program.names.has(ref)) diagnostics.push({ severity: 'error', message: `unknown name "${ref}"`, span });
   return diagnostics.length ? { deps: new Set(refs.keys()), diagnostics } : { expr, deps: new Set(refs.keys()), diagnostics };
 }

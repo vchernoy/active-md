@@ -225,9 +225,15 @@ Lambdas `(a, b) => expr` exist only as arguments to built-in functions. They can
 
 ### 4.9 Built-in functions
 
+Implemented, unreleased follow-up (Refs #41): `ln(x)` is natural log; `log(x)` is base-10 log and `log(x, base)` selects a base. Arguments must be positive; a log base must be positive and not 1. `exp(x)` computes e^x. `sin`, `cos`, `tan`, `asin`, `acos`, `atan` and `atan2(y, x)` use radians; `asin`/`acos` require inputs in [-1, 1]. `deg(radians)` and `rad(degrees)` convert units. Nonfinite results (including overflow) are positioned error values, never NaN or Infinity. Each call consumes the existing one call-node step plus its evaluated argument nodes; no budget changes.
+
+`pi` and `e` are built-in constant names. A document's own value or input definition shadows the corresponding constant with a positioned warning at the definition name. Shadowed names keep ordinary define-before-use/self-reference rules and dependency updates; constants without a document definition are available in model expressions and reader bindings.
+
+The following v1–v3 entries are proposals unless already described above:
+
 - **v1:**
   - `round(x, digits=0)`, `floor`, `ceil`, `abs`;
-  - `min(...)`, `max(...)`, `sqrt`, `exp`, `ln`, `log10`, `pow`;
+  - `min(...)`, `max(...)`, `sqrt`, `pow`;
   - `if`, `cond`;
   - `default(x, d)`, `isMissing(x)`;
   - `clamp(x, lo, hi)`;
@@ -260,7 +266,8 @@ Going over a limit is an **error** in the affected name. It never freezes the pa
 
 ### 4.11 Determinism
 
-- No clock and no `Math.random`: the same program and inputs always give the same values.
+- No clock and no `Math.random`: the same program and inputs give the same values within a JavaScript engine.
+- Transcendental functions use JavaScript Math approximations. Node/V8, Firefox and Safari may differ in the last bit. Displayed formatted values normally agree, but values near rounding boundaries can differ; exact `==` is not a portable tolerance comparison. Prefer `abs(a - b) < 1e-9` when comparing approximate results. This does not weaken the language's exact equality semantics.
 - Randomness comes only from `random(seed, …)`, with the seed supplied as an input. For example, course-platform sets `seed` from student and attempt.
 
 ## 5. The `@vchernoy/calc` API

@@ -1,10 +1,11 @@
+import { constant } from './builtins.js';
 import { Budget, checkInputValue, evaluate, evaluateDefinition, evaluateExpr } from './evaluate.js';
 import { parseExpression } from './parser.js';
 import { DEFAULT_LIMITS, type Diagnostic, type Limits, type Program, type Result } from './types.js';
 
 export type Session = {
   readonly program: Program;
-  /** Current result of a name, or undefined if the name isn't defined. */
+  /** Current result of a document name or built-in constant, or undefined if unknown. */
   get(name: string): Result | undefined;
   /** Current value of every input. */
   inputValues(): ReadonlyMap<string, number>;
@@ -50,9 +51,13 @@ export function createSession(program: Program, limits: Limits = DEFAULT_LIMITS)
     if (changed.size) for (const l of [...listeners]) l(changed);
   };
 
+  const lookup = (name: string): Result | undefined => {
+    const value = !program.names.has(name) ? constant(name) : undefined;
+    return results.get(name) ?? (value === undefined ? undefined : { kind: 'value', value });
+  };
   return {
     program,
-    get: name => results.get(name),
+    get: lookup,
     inputValues: () => new Map(values),
     set(name, value) {
       const problem = checkInputValue(program, name, value);
@@ -75,7 +80,7 @@ export function createSession(program: Program, limits: Limits = DEFAULT_LIMITS)
         diagnostics: c.diagnostics,
         evaluate: () => c.expr
           // A bare name shows that name's own result, including its error message.
-          ? c.expr.kind === 'ref' ? results.get(c.expr.name) ?? { kind: 'error', message: `unknown name "${c.expr.name}"` }
+          ? c.expr.kind === 'ref' ? lookup(c.expr.name) ?? { kind: 'error', message: `unknown name "${c.expr.name}"` }
           : evaluateExpr(c.expr, n => results.get(n), new Budget(limits.maxSteps))
           : { kind: 'error', message: c.diagnostics[0]?.message ?? 'invalid expression', ...(c.diagnostics[0] ? { span: c.diagnostics[0].span } : {}) },
       };

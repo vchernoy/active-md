@@ -1,3 +1,4 @@
+import { inputWidth } from './input-width.js';
 import { createSession, formatNumber, parse, parseFormat, type Format, type Limits, type Program, type Result, type Session } from '@vchernoy/calc';
 import { katexSettings, placeholders, substitute, type MathOutput } from '@vchernoy/remark-active/tex';
 import type katex from 'katex';
@@ -111,6 +112,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   for (const input of doc.querySelectorAll<HTMLInputElement>('input[data-active-input]')) {
     const name = input.dataset.activeInput ?? '';
     if (!program.inputs.some(i => i.name === name)) continue;
+    if (input.type === 'number') input.style.setProperty('--active-input-ch', String(inputWidth(input.min, input.max, input.defaultValue, input.step)));
     controls.set(name, [...(controls.get(name) ?? []), input]);
     const apply = () => {
       const value = input.valueAsNumber;

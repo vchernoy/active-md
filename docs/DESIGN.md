@@ -469,3 +469,5 @@ interest = final - principal
 
 $$ {{final}} $$
 ````
+
+Optional runtime styles size ranged number controls at mount from min/max, starting value and step precision (3–12 characters, including spare space); unbounded controls keep 8. Width hints are runtime DOM styles, not sanitized renderer output.

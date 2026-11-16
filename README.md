@@ -74,6 +74,8 @@ mount(container);                                   // make it live
 
 All packages share one version. Set it in each `packages/*/package.json` (and the internal dependencies), update `CHANGELOG.md`, run `npm run build && npm run release:check` and merge. Then start the `release` workflow: **Actions → release → Run workflow** on `main` with the version (for example `0.1.2`), or push a tag yourself (`git tag v0.1.2 && git push origin v0.1.2`). The workflow tests, checks and publishes to npm with provenance; a run started from Actions then tags the published commit.
 
+Before publishing any package, the workflow checks all existing versions on npm. It skips a version only when its `gitHead` matches the exact release commit. To resume a partial release, re-run the original failed workflow on its original commit; starting a new run from a later `main` commit is refused even if the package versions are unchanged. Missing source metadata or registry lookup failures also stop the release before publishing or tagging; investigate these manually rather than bypassing the check.
+
 Publishing uses **npm trusted publishing** (OIDC). No npm token or secret is stored. Each package on npmjs.com lists `vchernoy/active-md` and the workflow `publish.yml` as its trusted publisher (Settings → Trusted publishing → GitHub Actions). If the workflow file is renamed, update the trusted publisher on all three packages, otherwise the next publish is refused. A **new** package (one that doesn't exist on npm yet) needs its first version published another way before a trusted publisher can be added.
 
 ## Integrations

@@ -33,3 +33,19 @@ it('explains rejected edits, preserves descriptions, and clears on correction, p
   expect(root.querySelector('.active-input-problem')!.textContent).toContain('enter a number');
   expect(root.querySelectorAll('.active-input-problem')).toHaveLength(2); again.destroy();
 });
+
+it('an empty first control does not suppress a valid restored peer', () => {
+  const root = document.createElement('div');
+  root.innerHTML = renderActive('```calc\ninput x = 2 in 1..10\n```\n\n:input[x] :input[x] :value[x]').html;
+  const inputs = root.querySelectorAll('input');
+  const first = mount(root);
+  inputs[0]!.value = '4'; inputs[0]!.dispatchEvent(new Event('input'));
+  inputs[0]!.value = ''; inputs[0]!.dispatchEvent(new Event('input'));
+  first.destroy();
+  const second = mount(root);
+  expect(second.session.inputValues().get('x')).toBe(4);
+  expect([...inputs].map(input => input.value)).toEqual(['4', '4']);
+  expect(root.querySelector('output')!.textContent).toBe('4');
+  expect([...root.querySelectorAll('.active-input-problem')].every(el => !el.textContent)).toBe(true);
+  second.destroy();
+});

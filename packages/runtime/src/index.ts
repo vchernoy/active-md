@@ -165,7 +165,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     }
   };
 
-  const restorable: { name: string; input: HTMLInputElement; apply: () => void }[] = [];
+  const restorable: { name: string; input: HTMLInputElement; apply: () => boolean }[] = [];
   // Controls: <input data-active-input="name">
   for (const [name, inputs] of controls) for (const input of inputs) {
     const message = input.ownerDocument.createElement('span');
@@ -199,10 +199,11 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
         input.setAttribute('aria-invalid', 'true');
         input.title = problem;
         message.textContent = `${problem}. Results use the last accepted value.`;
-        return;
+        return false;
       }
       clearProblem(input);
       syncPeers(name, input);
+      return true;
     };
     input.addEventListener('input', apply);
     cleanups.push(() => input.removeEventListener('input', apply));
@@ -212,12 +213,17 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   // The browser may have restored a value (back/forward cache, autofill): adopt it. A control counts as restored
   // if its value differs from what was rendered, decided before anything is applied, so values written by syncing
   // (a slider rounded to its step, say) are never mistaken for restored ones. One restored control per input wins.
-  const restored = restorable.filter(({ name, input }) => !initialAccepted.has(name) && input.value !== input.defaultValue);
+  const restored = restorable.filter(({ name, input }) => !initialAccepted.has(name) && !Number.isNaN(input.valueAsNumber) && input.value !== input.defaultValue);
   const adopted = new Set<string>();
   for (const { name, apply } of restored) {
     if (adopted.has(name)) continue;
-    adopted.add(name);
-    apply();
+    if (apply()) adopted.add(name);
+  }
+
+  // Empty edits cannot adopt a model value or suppress a valid restored peer.
+  // If no peer was accepted, retain the edit and explain the unchanged model.
+  for (const { name, input, apply } of restorable) {
+    if (!initialAccepted.has(name) && !adopted.has(name) && Number.isNaN(input.valueAsNumber)) apply();
   }
 
   return {

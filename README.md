@@ -76,12 +76,10 @@ All packages share one version. Set it in each `packages/*/package.json` (and th
 
 Publishing uses **npm trusted publishing** (OIDC). No npm token or secret is stored. Each package on npmjs.com lists `vchernoy/active-md` and the workflow `publish.yml` as its trusted publisher (Settings → Trusted publishing → GitHub Actions). If the workflow file is renamed, update the trusted publisher on all three packages, otherwise the next publish is refused. A **new** package (one that doesn't exist on npm yet) needs its first version published another way before a trusted publisher can be added.
 
-## Planned integrations
+## Integrations
 
-Neither integration exists yet; both are tracked in #1.
-
-- [TypeBridge](https://github.com/vchernoy/typebridge): the Markdown document format and shareable pages
-- [course-platform](https://github.com/vchernoy/course-platform): websites, blogs, lessons and tests
+- [TypeBridge](https://github.com/vchernoy/typebridge): uses ActiveMD 0.4.0 for rendered Markdown documents and shareable pages with live calculations and controls.
+- [course-platform](https://github.com/vchernoy/course-platform): integration for websites, blogs, lessons and tests remains planned; tracked in [#1](https://github.com/vchernoy/active-md/issues/1).
 
 ## License
 

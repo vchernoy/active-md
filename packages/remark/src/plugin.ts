@@ -94,6 +94,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     const visible = new WeakMap<object, boolean>();
     let whenId = 0;
     const whenExpressions = new Map<ContainerDirective, string>();
+    const omitted: { parent: Parent; node: ContainerDirective }[] = [];
     const conditionErrors: { parent: Parent; node: Directive; error: Paragraph }[] = [];
     const isVisible = (node: object) => (ancestors.get(node) ?? []).every(a => visible.get(a) === true);
     for (const d of program.diagnostics) {
@@ -123,6 +124,14 @@ export function remarkActive(options: ActiveOptions = {}) {
     for (const problem of checkWhenControls(program, checks, controls, options.limits?.maxSteps)) report(problem, at(whenNodes[problem.index]!));
     for (const { parent, node, error } of conditionErrors) parent.children.splice(parent.children.indexOf(node as never), 0, error as never);
 
+    // Validate the original tree first, including structural errors in dead
+    // branches. Remove proven-false subtrees before rehype/KaTeX/serialization;
+    // no descendant controls, bindings or condition-error placeholders survive.
+    for (const { parent, node } of omitted) {
+      const index = parent.children.indexOf(node);
+      if (index >= 0) parent.children.splice(index, 1);
+    }
+
     function at(node: { position?: { start: { line: number; column: number } } | undefined }) {
       return node.position ? { line: node.position.start.line, column: node.position.start.column } : undefined;
     }
@@ -142,15 +151,16 @@ export function remarkActive(options: ActiveOptions = {}) {
         const id = String(++whenId);
         const disabled = (ancestors.get(node)?.length ?? 0) >= 8;
         const allowed = isVisible(node) && !disabled;
-        const c = allowed ? session.compile(expr, 'when') : undefined;
-        const r = c?.evaluate();
-        const problem = c?.diagnostics[0]?.message ?? (r?.kind === 'error' ? r.message : undefined);
+        const c = !disabled ? session.compile(expr, 'when') : undefined;
+        const r = allowed ? c?.evaluate() : undefined;
+        const problem = allowed ? c?.diagnostics[0]?.message ?? (r?.kind === 'error' ? r.message : undefined) : undefined;
         if (problem) report({ message: `in :::when[${expr}]: ${problem}`, severity: 'error' }, at(node));
         const shown = allowed && r?.kind === 'value' && r.value !== 0;
         visible.set(node, shown);
         node.data = { hName: 'div', hProperties: { dataActiveWhen: expr, dataActiveWhenId: id, ...(c?.constant !== undefined ? { dataActiveWhenConstant: String(c.constant) } : {}), ...(disabled ? { dataActiveWhenDisabled: 'true' } : {}), hidden: !shown } };
         const error: Paragraph = { type: 'paragraph', data: { hName: 'span', hProperties: { dataActiveWhenError: id, className: ['active-condition-error'], hidden: !problem }, hChildren: [{ type: 'text', value: problem ? `⚠ ${problem}` : '' }] }, children: [] };
-        conditionErrors.push({ parent, node, error });
+        if (c?.constant === 0 && !c.diagnostics.length) omitted.push({ parent, node });
+        else conditionErrors.push({ parent, node, error });
         return undefined;
       }
       if (node.type === 'textDirective' && node.name === 'input') { input(node, attrs); return undefined; }

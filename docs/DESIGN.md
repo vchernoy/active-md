@@ -423,7 +423,8 @@ get visible `\left(…\right)` parentheses when immediately followed by `^` or i
 after a binary `\cdot`, `\times`, `\div`, `+`, `-`, `*` or `/`. Plain positive numbers
 are unchanged; an equality, unary sign or TeX argument alone does not request parentheses.
 Authored parentheses remain untouched. Every substituted value still forms one TeX group
-for commands/exponents. Text-mode commands such as `\text`/`\operatorname` and verbatim
+for commands/exponents. Text-mode commands such as `\text`/`\operatorname`, boxed labels (`\fbox`,
+`\colorbox`, `\fcolorbox`, including preceding color arguments), and verbatim
 labels keep numeric text without injected math delimiters. This is conservative display
 context handling, not symbolic algebra or a general TeX parser (#30, unreleased).
 

@@ -55,8 +55,15 @@ export function substitute(tex: string, results: readonly Result[], locale?: str
   // Track text-mode arguments in one forward pass; inserting \left into \text
   // would turn an otherwise valid numeric label into a KaTeX error.
   const textCommands = new Set(['text', 'textrm', 'textsf', 'texttt', 'textnormal', 'textbf', 'textit', 'textup', 'textmd', 'textsc', 'mbox', 'hbox', 'operatorname']);
-  const modes = [false];
-  let cursor = 0, textArgument = false, literalUntil = 0;
+  // Box commands have typed arguments before their text body. Preserve their
+  // remaining arguments across closing braces, including nested label groups.
+  const argumentCounts = new Map([...textCommands].map(name => [name, 1]));
+  for (const name of ['fbox', 'reflectbox', 'angl']) argumentCounts.set(name, 1);
+  for (const name of ['colorbox', 'raisebox']) argumentCounts.set(name, 2);
+  argumentCounts.set('fcolorbox', 3);
+  const modes: { text: boolean; remaining: boolean[] }[] = [{ text: false, remaining: [] }];
+  let pendingArguments: boolean[] = [];
+  let cursor = 0, literalUntil = 0;
   const inText = (offset: number): boolean => {
     while (cursor < offset) {
       const char = tex[cursor++]!;
@@ -70,22 +77,24 @@ export function substitute(tex: string, results: readonly Result[], locale?: str
           literalUntil = end < 0 ? tex.length : end + 1;
           cursor = literalUntil;
         }
-        textArgument = textCommands.has(command);
+        pendingArguments = Array<boolean>(argumentCounts.get(command) ?? 0).fill(true);
       } else if (char === '%') {
         const end = tex.indexOf('\n', cursor);
         literalUntil = end < 0 ? tex.length : end;
         cursor = literalUntil;
       } else if (char === '{') {
-        modes.push(modes[modes.length - 1]! || textArgument); textArgument = false;
+        const [textArgument, ...remaining] = pendingArguments;
+        modes.push({ text: modes[modes.length - 1]!.text || textArgument === true, remaining });
+        pendingArguments = [];
       } else if (char === '}') {
-        if (modes.length > 1) modes.pop(); textArgument = false;
-      } else if (!/\s/.test(char)) textArgument = false;
+        pendingArguments = modes.length > 1 ? modes.pop()!.remaining : [];
+      } else if (!/\s/.test(char)) pendingArguments.shift();
     }
-    return offset < literalUntil || modes[modes.length - 1]! || textArgument;
+    return offset < literalUntil || modes[modes.length - 1]!.text || pendingArguments[0] === true;
   };
   return tex.replace(PLACEHOLDER, (match, source: string, offset: number) => {
     const textMode = inText(offset);
-    cursor = Math.max(cursor, offset + match.length); textArgument = false;
+    cursor = Math.max(cursor, offset + match.length); pendingArguments.shift();
     const r = results[i++];
     const binding = mathBinding(source);
     if (binding.problem || r?.kind !== 'value') return '{\\color{red}?}';

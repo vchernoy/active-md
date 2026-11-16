@@ -46,3 +46,20 @@ it('renders products and powers with correct visible grouping through the saniti
   expect(result.html).toContain('\\left(-3\\right)');
   expect(result.html).not.toContain('katex-error');
 });
+
+it.each(['\\fbox', '\\colorbox{red}', '\\fcolorbox{red}{blue}', '\\raisebox{1pt}', '\\reflectbox', '\\angl'])('preserves boxed text arguments of %s and resumes math afterward', command => {
+  const tex = `${command}{Cost - {{x}} and {nested + {{x}}}} + {{x}}^2`;
+  const result = substitute(tex, values(-3, -3, -3));
+  expect(result).toBe(`${command}{Cost - {-3} and {nested + {-3}}} + {\\left(-3\\right)}^2`);
+  expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
+  const rendered = renderActive('```calc\nx = -3\n```\n\n$' + tex + '$');
+  expect(rendered.messages).toEqual([]);
+  expect(rendered.html).not.toContain('katex-error');
+});
+
+it('keeps nested boxed labels in text mode without suppressing later math grouping', () => {
+  const tex = '\\colorbox{red}{Outer \\fcolorbox{blue}{white}{Inner - {{x}}}} + \\boxed{2 - {{x}}}';
+  const result = substitute(tex, values(-3, -3));
+  expect(result).toBe('\\colorbox{red}{Outer \\fcolorbox{blue}{white}{Inner - {-3}}} + \\boxed{2 - {\\left(-3\\right)}}');
+  expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
+});

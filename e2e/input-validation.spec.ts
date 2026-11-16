@@ -11,7 +11,7 @@ test('invalid years has a visible associated explanation that clears on correcti
   const outputs = Array.isArray(bundle) ? bundle : [bundle];
   const code = outputs.flatMap(output => 'output' in output ? output.output : []).find(output => output.type === 'chunk');
   if (!code || code.type !== 'chunk') throw new Error('No runtime browser bundle');
-  const rendered = renderActive(SAMPLE.replace(':input[years]{', ':input[years]{label="Years" '), { locale: 'en-US' });
+  const rendered = renderActive(SAMPLE, { locale: 'en-US' });
   expect(rendered.messages).toEqual([]);
   await page.setContent(rendered.html); await page.addScriptTag({ content: code.code });
   await page.evaluate(() => (window as unknown as { ActiveRuntime: { mount(root: HTMLElement, options: { locale: string }): unknown } }).ActiveRuntime.mount(document.body, { locale: 'en-US' }));
@@ -20,7 +20,7 @@ test('invalid years has a visible associated explanation that clears on correcti
   await years.fill('0');
   await expect(years).toHaveAttribute('aria-invalid', 'true');
   await expect(message).toBeVisible();
-  await expect(years).toHaveAccessibleName('Years');
+  await expect(years).toHaveAccessibleName('Term (years)');
   await expect(message).toHaveText('enter a number from 1 to 50. Results use the last accepted value.');
   await expect(message).toHaveAttribute('aria-live', 'polite');
   await years.fill('11');

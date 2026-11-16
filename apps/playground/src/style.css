@@ -89,3 +89,15 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
 
 .math-scroll-hint { margin: 8px auto 0; padding: 0 16px; max-width: 760px; font-size: 14px; color: var(--muted); }
 .active-math-display:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Explicit labels and units stay attached to their controls on narrow screens. */
+.doc p > .active-input:has(> .active-input-label) { margin-right: 0.75em; }
+@media (max-width: 560px) {
+  .doc p > .active-input:has(> .active-input-label) {
+    display: grid;
+    grid-template-columns: 8em minmax(0, 1fr) auto;
+    width: 100%;
+    margin: 0.5em 0;
+  }
+  .doc p > .active-input:has(> .active-input-label) input[type="range"] { width: 100%; }
+}

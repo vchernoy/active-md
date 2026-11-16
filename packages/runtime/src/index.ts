@@ -3,6 +3,8 @@ import { createSession, formatNumber, parse, parseFormat, type Format, type Limi
 import { katexSettings, placeholders, substitute, type MathOutput } from '@vchernoy/remark-active/tex';
 import type katex from 'katex';
 
+let nextProblemId = 0;
+
 type Katex = Pick<typeof katex, 'renderToString'>;
 
 export type MountOptions = {
@@ -53,6 +55,15 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   const program = parse(readBlocks(doc), options.limits);
   const session = createSession(program, options.limits);
   const controls = new Map<string, HTMLInputElement[]>();
+  const problems = new Map<HTMLInputElement, HTMLElement>();
+  const clearProblem = (input: HTMLInputElement): void => {
+    input.setCustomValidity('');
+    input.removeAttribute('aria-invalid');
+    input.removeAttribute('title');
+    const message = problems.get(input);
+    if (message) message.textContent = '';
+  };
+
   const inputNames = new Set(program.inputs.map(input => input.name));
   for (const input of doc.querySelectorAll<HTMLInputElement>('input[data-active-input]')) {
     const name = input.dataset.activeInput ?? '';
@@ -154,9 +165,27 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     }
   };
 
-  const restorable: { name: string; input: HTMLInputElement; apply: () => void }[] = [];
+  const restorable: { name: string; input: HTMLInputElement; apply: () => boolean }[] = [];
   // Controls: <input data-active-input="name">
   for (const [name, inputs] of controls) for (const input of inputs) {
+    const message = input.ownerDocument.createElement('span');
+    do { message.id = `active-input-problem-${++nextProblemId}`; }
+    while (input.ownerDocument.getElementById(message.id));
+    message.className = 'active-input-problem';
+    message.setAttribute('aria-live', 'polite');
+    message.setAttribute('aria-atomic', 'true');
+    (input.closest('label') ?? input).insertAdjacentElement('afterend', message);
+    const describedBy = input.getAttribute('aria-describedby');
+    input.setAttribute('aria-describedby', [describedBy, message.id].filter(Boolean).join(' '));
+    problems.set(input, message);
+    cleanups.push(() => {
+      clearProblem(input);
+      const ids = (input.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(id => id && id !== message.id);
+      if (ids.length) input.setAttribute('aria-describedby', ids.join(' '));
+      else input.removeAttribute('aria-describedby');
+      message.remove();
+      problems.delete(input);
+    });
     if (input.type === 'number') input.style.setProperty('--active-input-ch', String(inputWidth(input.min, input.max, input.defaultValue, input.step)));
     if (initialAccepted.has(name)) input.value = String(initialValues.get(name));
     const apply = () => {
@@ -169,10 +198,12 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
         input.setCustomValidity(problem);
         input.setAttribute('aria-invalid', 'true');
         input.title = problem;
-        return;
+        message.textContent = `${problem}. Results use the last accepted value.`;
+        return false;
       }
       clearProblem(input);
       syncPeers(name, input);
+      return true;
     };
     input.addEventListener('input', apply);
     cleanups.push(() => input.removeEventListener('input', apply));
@@ -186,8 +217,13 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   const adopted = new Set<string>();
   for (const { name, apply } of restored) {
     if (adopted.has(name)) continue;
-    adopted.add(name);
-    apply();
+    if (apply()) adopted.add(name);
+  }
+
+  // Empty edits cannot adopt a model value or suppress a valid restored peer.
+  // If no peer was accepted, retain the edit and explain the unchanged model.
+  for (const { name, input, apply } of restorable) {
+    if (!initialAccepted.has(name) && !adopted.has(name) && Number.isNaN(input.valueAsNumber)) apply();
   }
 
   return {
@@ -206,12 +242,6 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
       for (const c of cleanups.splice(0)) c();
     },
   };
-}
-
-function clearProblem(input: HTMLInputElement): void {
-  input.setCustomValidity('');
-  input.removeAttribute('aria-invalid');
-  input.removeAttribute('title');
 }
 
 /** A control may narrow the input's range (min/max attributes); the session only knows the model's range. */

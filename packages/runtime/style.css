@@ -83,3 +83,8 @@
 .active-doc .callout-danger { --active-callout-color: var(--active-callout-danger); }
 .active-doc .callout-important { --active-callout-color: var(--active-callout-important); }
 .active-doc .callout-exercise { --active-callout-color: var(--active-callout-exercise); }
+
+.active-doc .active-input-problem:not(:empty) {
+  display: block;
+  font-size: 0.875em;
+}

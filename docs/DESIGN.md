@@ -483,6 +483,23 @@ implemented; any future initializer contract must preserve accepted restored inp
   - errors are announced as text, not only by color.
 - **Locale:** for display and reader input, set by the host per document or per reader (open question §13).
 
+### Numeric answer checking (implemented helper, unreleased #48 prerequisite)
+
+`checkAnswer(expected, given, { tolerance = 0, relative = false })` is a pure exported
+calc API, not a calc-language function or quiz UI. Hosts separately evaluate expected
+expressions and parse responses. It returns `{ kind: 'checked', correct: boolean }`,
+or `{ kind: 'invalid', field, message }` for a nonfinite expected/response, invalid
+tolerance or nonboolean relative option. Invalid data never silently grades incorrect.
+Unanswered responses and answer parsing remain the host/future quiz layer's concern.
+
+Zero tolerance uses exact numeric equality (including +0/-0). Positive absolute tolerance
+accepts `abs(given - expected) <= tolerance`. Relative tolerance accepts an error ratio
+against `abs(expected)` within tolerance, with inclusive boundaries; expected zero
+accepts only zero. It uses floating-point arithmetic with overflow-safe normalization,
+without an implicit epsilon or absolute fallback. Tolerance must be finite/nonnegative.
+This helper does not draw randomness, assign points, persist answers, initialize seeds,
+freeze attempts or provide authoritative grading. The quiz syntax below remains proposed.
+
 ## 8. Quizzes and tests (course-platform)
 
 ````markdown

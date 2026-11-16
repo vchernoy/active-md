@@ -255,17 +255,19 @@ export function remarkActive(options: ActiveOptions = {}) {
 
     function container(node: ContainerDirective): void {
       const first = node.children[0];
-      let title: string | undefined;
+      let title: Paragraph['children'] | undefined;
       if (first?.type === 'paragraph' && first.data && (first.data as { directiveLabel?: boolean }).directiveLabel) {
-        title = toString(first);
+        // Keep original phrasing nodes/positions so math and live bindings use the
+        // ordinary traversal and retain their enclosing when visibility checks.
+        title = first.children;
         node.children.shift();
       }
       if (node.name === 'details') {
-        node.children.unshift({ type: 'paragraph', data: { hName: 'summary' }, children: [{ type: 'text', value: title ?? 'Details' }] });
+        node.children.unshift({ type: 'paragraph', data: { hName: 'summary' }, children: title ?? [{ type: 'text', value: 'Details' }] });
         node.data = { hName: 'details' };
         return;
       }
-      node.children.unshift({ type: 'paragraph', data: { hProperties: { className: ['callout-title'] } }, children: [{ type: 'text', value: title ?? CALLOUTS[node.name]! }] });
+      node.children.unshift({ type: 'paragraph', data: { hProperties: { className: ['callout-title'] } }, children: title ?? [{ type: 'text', value: CALLOUTS[node.name]! }] });
       node.data = { hName: 'aside', hProperties: { className: ['callout', `callout-${node.name}`], role: 'note' } };
     }
 

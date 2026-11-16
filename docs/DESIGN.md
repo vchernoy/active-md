@@ -587,3 +587,8 @@ Optional runtime styles size ranged number controls at mount from min/max, start
 The optional `@vchernoy/active-runtime/style.css` also sets `.active-doc math` to prefer locally installed "STIX Two Math", "Cambria Math", then "Latin Modern Math", with generic `math` fallback. It includes no font files and makes no font requests. MathML remains renderable with native browser defaults when consumers omit this optional stylesheet.
 
 Optional runtime styles provide scoped callout borders, 8% tinted backgrounds and bold coloured titles. Consumers can override `--active-callout-note`, `--active-callout-tip`, `--active-callout-warning`, `--active-callout-danger`, `--active-callout-important` and `--active-callout-exercise` on `.active-doc`. Defaults follow the system colour scheme; root `data-theme="light"` or `"dark"` takes precedence. The playground consumes these defaults without a separate callout palette. Details remain fold-outs with consumer-defined neutral styling.
+
+Runtime control validation shows a polite live message associated through
+`aria-describedby`. Invalid text leaves the accepted model unchanged; the message
+explicitly says results use the last accepted value. Correction, accepted peer updates
+and reset clear the message. Destroy removes runtime-owned messages and descriptions.

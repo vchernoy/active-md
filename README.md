@@ -16,7 +16,7 @@ input years = 10 in 1..50
 final = principal * (1 + rate / 100) ^ years
 ```
 
-Investing :input[principal] at :input[rate]{widget=slider step=0.5} % for :input[years] years
+Investing :input[principal] at :input[rate]{widget=slider step=0.5} % for :input[years]{step=1} years
 gives **:value[final]{format=fixed:0}**.
 
 $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{final | fixed:2}} $$

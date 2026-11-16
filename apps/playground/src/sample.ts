@@ -12,7 +12,7 @@ earned = final - principal
 ` + '```' + String.raw`
 
 Deposit :input[principal] at :input[rate]{widget=slider step=0.5} % a year
-for :input[years] years.
+for :input[years]{step=1} years.
 
 After :value[years] years you have **:value[final]{format=fixed:2}**,
 of which :value[earned]{format=fixed:2} is interest (:value[growth - 1]{format=percent:1} growth).
@@ -38,8 +38,8 @@ share = round(total / people)
 
 | Trip | |
 |---|---|
-| People | :input[people]{widget=slider} |
-| Nights | :input[nights] |
+| People | :input[people]{widget=slider step=1} |
+| Nights | :input[nights]{step=1} |
 | Room price | :input[price] |
 | Rooms (2 per room) | :value[rooms] |
 | **Each pays** | **:value[share]** |

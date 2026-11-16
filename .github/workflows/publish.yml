@@ -61,19 +61,10 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: node scripts/check-release.mjs "$TAG"
-      # In dependency order, so each package's internal dependencies are already on npm.
-      # A version that is already on npm is skipped, so a release that failed half-way can be re-run.
+      # Preflight all existing versions against GITHUB_SHA before publishing anything.
+      # Same-commit partial releases can be resumed; other or missing gitHead values fail closed.
       - name: Publish
-        run: |
-          for dir in packages/calc packages/remark packages/runtime; do
-            name=$(node -p "require('./$dir/package.json').name")
-            version=$(node -p "require('./$dir/package.json').version")
-            if npm view "$name@$version" version >/dev/null 2>&1; then
-              echo "$name@$version is already on npm; skipping."
-            else
-              npm publish --workspace "$dir" --provenance --access public
-            fi
-          done
+        run: node scripts/publish-release.mjs "$GITHUB_SHA"
       - name: Tag the published commit
         if: github.event_name == 'workflow_dispatch'
         run: |

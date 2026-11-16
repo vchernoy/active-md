@@ -31,7 +31,8 @@
       <button type="button" id="mode-view" aria-pressed="false">View</button>
     </div>
     <div class="actions">
-      <button type="button" id="share" title="Copy a link that contains this document">Share link</button>
+      <button type="button" id="reset-values" hidden>Reset values</button>
+      <button type="button" id="share" aria-describedby="reader-state-help" title="Share the document with authored defaults, not current reader values">Share link</button>
       <button type="button" id="sample" title="Replace the text with the example document">Example</button>
     </div>
   </header>
@@ -49,6 +50,7 @@
       <article id="doc" class="doc"></article>
     </section>
   </main>
+  <p id="reader-state-help" class="foot">Reader values stay while switching modes. Editing source, loading Example or reloading resets them. Share links include authored defaults, not current reader values.</p>
   <footer class="foot">
     Everything stays in your browser. <a href="https://github.com/vchernoy/active-md">Source and docs</a> · <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>E</kbd> switches Edit and View.
   </footer>

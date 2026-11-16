@@ -24,6 +24,7 @@ const editButton = $<HTMLButtonElement>('mode-edit');
 const viewButton = $<HTMLButtonElement>('mode-view');
 
 let live: Mounted | undefined;
+let readerInputs: ReadonlyMap<string, number> | undefined;
 let mode: 'edit' | 'view' = 'edit';
 
 function say(text: string): void {
@@ -66,11 +67,18 @@ function check(): void {
   showProblems(renderActive(source.value, { locale, output }).messages);
 }
 
-function showView(): void {
+function stopView(preserve = true): void {
+  if (live && preserve) readerInputs = live.session.inputValues();
   live?.destroy();
+  live = undefined;
+  if (!preserve) readerInputs = undefined;
+}
+
+function showView(): void {
+  stopView();
   const { html } = renderActive(source.value, { locale, output });
   doc.innerHTML = html; // sanitized by the renderer: raw HTML dropped, rehype-sanitize, KaTeX with trust: false
-  live = mount(doc, { locale, output, loadKatex: async () => katex });
+  live = mount(doc, { locale, output, ...(readerInputs ? { initialInputs: readerInputs } : {}), loadKatex: async () => katex });
 }
 
 function setMode(next: 'edit' | 'view', focus = true): void {
@@ -80,11 +88,11 @@ function setMode(next: 'edit' | 'view', focus = true): void {
   editPane.hidden = next !== 'edit';
   viewPane.hidden = next !== 'view';
   document.body.dataset.mode = next;
+  $('reset-values').hidden = next !== 'view';
   if (next === 'view') {
     showView();
   } else {
-    live?.destroy();
-    live = undefined;
+    stopView();
     check();
     if (focus) source.focus();
   }
@@ -100,6 +108,7 @@ function dropShareHash(): void {
 }
 
 source.addEventListener('input', () => {
+  stopView(false);
   dropShareHash();
   save();
   clearTimeout(pendingCheck);
@@ -117,11 +126,18 @@ document.addEventListener('keydown', e => {
 
 $('sample').addEventListener('click', () => {
   if (source.value !== SAMPLE && source.value.trim() && !confirm('Replace your text with the example?')) return;
+  stopView(false);
   source.value = SAMPLE;
   dropShareHash();
   save();
   setMode(mode, false);
   say('Example loaded.');
+});
+
+$('reset-values').addEventListener('click', () => {
+  live?.resetInputs();
+  readerInputs = undefined;
+  say('Reader values reset to authored defaults.');
 });
 
 $('share').addEventListener('click', async () => {
@@ -135,9 +151,9 @@ $('share').addEventListener('click', async () => {
     const url = location.href;
     try {
       await navigator.clipboard.writeText(url);
-      say(`Link copied (${url.length.toLocaleString(locale)} characters). Anyone with it sees this document.`);
+      say(`Link copied (${url.length.toLocaleString(locale)} characters). The link includes authored defaults, not current reader values.`);
     } catch {
-      say('Link is in the address bar; copy it from there.');
+      say('Link is in the address bar; copy it from there. It includes authored defaults, not current reader values.');
     }
   } catch (e) {
     say(e instanceof DocumentTooLarge
@@ -158,7 +174,7 @@ async function start(): Promise<void> {
   }
   // If the reader typed or loaded the example meanwhile, their text wins (their edit already dropped the hash).
   if (revision !== before) return;
-  if (fromLink !== undefined) source.value = fromLink;
+  if (fromLink !== undefined) { stopView(false); source.value = fromLink; }
   // A shared link opens as a page; your own document opens for editing.
   setMode(fromLink !== undefined ? 'view' : 'edit', false);
   if (fromLink !== undefined) say('Opened a shared document. Editing it replaces the document saved in this browser.');

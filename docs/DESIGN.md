@@ -592,3 +592,11 @@ Runtime control validation shows a polite live message associated through
 `aria-describedby`. Invalid text leaves the accepted model unchanged; the message
 explicitly says results use the last accepted value. Correction, accepted peer updates
 and reset clear the message. Destroy removes runtime-owned messages and descriptions.
+
+### Playground reader state (#8)
+
+Accepted numeric inputs (including model-only inputs) stay in memory across Edit/View
+remounts while source is unchanged. Reset values restores authored defaults and clears
+validation. Editing source or loading Example discards reader state; reload starts from
+authored defaults. Reader values never rewrite source, enter localStorage or travel in
+share links. The share UI explicitly describes authored-default semantics.

@@ -605,3 +605,8 @@ The playground shows a horizontal-scroll hint when display math exceeds its view
 Overflowing formulas get keyboard focus and an associated description; narrow formulas
 do not add tab stops. Resize, live rendering and font loading refresh the cue, and
 mode changes disconnect its observers. This is a host affordance, not serialized output.
+
+The playground sample gives compound-interest controls explicit labels with units.
+Labeled controls in prose remain inline on desktop and use compact aligned rows at
+560px and narrower; number widths remain bounded and slider readouts stay in the row.
+This host CSS does not change the renderer or saved reader state.

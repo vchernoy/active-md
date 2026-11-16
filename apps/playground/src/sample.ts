@@ -11,8 +11,8 @@ final = principal * growth
 earned = final - principal
 ` + '```' + String.raw`
 
-Deposit :input[principal] at :input[rate]{widget=slider step=0.5} % a year
-for :input[years]{step=1} years.
+:input[principal]{label="Deposit"} :input[rate]{label="Rate (%/year)" widget=slider step=0.5}
+:input[years]{label="Term (years)" step=1}
 
 After :value[years] years you have **:value[final]{format=fixed:2}**,
 of which :value[earned]{format=fixed:2} is interest (:value[growth - 1]{format=percent:1} growth).

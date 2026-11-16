@@ -1,3 +1,4 @@
+import { validateQuizGroups } from './quiz-groups.js';
 import { warnStrayFences } from './stray-fences.js';
 import { checkWhenControls } from './when-check.js';
 import { createSession, formatNumber, parse, parseFormat, type Diagnostic, type Format, type Limits, type Program, type Result } from '@vchernoy/calc';
@@ -48,7 +49,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     const ancestors = new WeakMap<object, ContainerDirective[]>();
     const whenNodes: ContainerDirective[] = [];
     const controlNodes: TextDirective[] = [];
-    const structural: { message: string; node: RootContent }[] = [];
+    const structural: { message: string; node: { position?: Root['position'] } }[] = validateQuizGroups(tree);
     const mark = (parent: Parent, enclosing: ContainerDirective[]): void => {
       for (const node of parent.children) {
         ancestors.set(node, enclosing);

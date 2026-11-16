@@ -500,22 +500,53 @@ without an implicit epsilon or absolute fallback. Tolerance must be finite/nonne
 This helper does not draw randomness, assign points, persist answers, initialize seeds,
 freeze attempts or provide authoritative grading. The quiz syntax below remains proposed.
 
+### Quiz grouping validation (#48 prerequisite, unreleased)
+
+Before evaluating or pruning `when`, the plugin validates question/submit source order.
+Each `::quiz-submit` closes all preceding `:::question` containers since the previous
+submit. Empty groups and trailing unsubmitted questions have positioned diagnostics.
+Questions and submits must have exactly the same enclosing `when` nodes; each answer
+or choice must share its question's conditional context. Complete hidden groups stay
+independent, and conditional explanatory content is allowed. Questions cannot nest;
+submits belong outside questions; `:answer` and `::choice` belong inside questions.
+This pass is iterative and linear in tree size and does not evaluate quiz expressions.
+
+This is authoring validation only: question schemas, required-control counts, points,
+seed bindings, rendering, grading and attempt state are still unimplemented. Valid quiz
+directives continue to render as literal source until that integration ships; no quiz
+manifest or snapshot API is exported by this prerequisite.
+
 ## 8. Quizzes and tests (course-platform)
+
+The runtime below is design intent tracked in #48, not implemented UI or APIs.
+The source-order/conditional validation prerequisite above is implemented.
 
 ````markdown
 ```calc
-input seed: int = 0              // set by the host per student and attempt
-a = randomInt(seed, 2, 9)
-b = randomInt(seed + 1, 2, 9)
+input quizSeed = 1
+a = randInt(quizSeed, 2, 9)
+b = randInt(quizSeed, 2, 9, 1)
 ```
 
-Сколько будет {{a}} × {{b}}? :answer[a * b]{points=1 feedback="Умножьте {{a}} на {{b}}."}
+:::question{type=number}
+Сколько будет {{a}} × {{b}}?
+
+:answer[a * b]{tolerance=0}
+:::
+
+::quiz-submit[Check]{seed=quizSeed}
 ````
 
-- **`:answer[expr]`** renders an input box. The reader's entry is checked against `expr` with `checkAnswer` (exact match, or within `tolerance`).
-- **The library reports** answer state and score through the runtime API: `onAnswer`, `results()`.
-- **The host saves and restores** what students entered, and records scores. Reader values never go into the document.
-- **v3** adds multiple choice (`:choice`), several answers per question, and units.
+- Each submit groups preceding questions. Planned answer modes are numeric checks
+  (optional tolerance), single choice (any accepted choice) and multiple choice
+  (exact accepted set), with points defaulting to one.
+- Draft answers reveal no correctness. Check freezes answers, the variant and score;
+  Retry starts a fresh attempt only for that group. Optional seed bindings initialize
+  a runtime-owned declared calc input on first attempt and Retry, never on Check.
+- The future runtime exposes attempt/results state for hosts. No such snapshot/event
+  API is implemented yet. Hosts own persistence, progress and authoritative grading.
+- Numeric `checkAnswer` and seeded calc draws are implemented prerequisites; grouping
+  validation does not yet validate answer counts/types, points, expressions or seeds.
 
 ## 9. Trust levels and security
 

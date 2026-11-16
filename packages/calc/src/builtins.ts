@@ -1,9 +1,19 @@
+import { seededDraw, seededInteger } from './seeded.js';
+
 /** Built-in functions of v0. All are pure and total over finite numbers, or report an error. */
 export type Builtin = { min: number; max: number; fn: (args: number[]) => number | string };
 
 const check = (x: number): number | string => Number.isFinite(x) ? x : 'result is not a finite number';
 
 const REGISTRY: Record<string, Builtin> = {
+  rand: { min: 1, max: 2, fn: ([seed, draw = 0]) => {
+    const value = seededDraw(seed!, draw);
+    return typeof value === 'string' ? `rand: ${value}` : value;
+  } },
+  randInt: { min: 3, max: 4, fn: ([seed, min, max, draw = 0]) => {
+    const value = seededInteger(seed!, min!, max!, draw);
+    return typeof value === 'string' ? `randInt: ${value}` : value;
+  } },
   ln: { min: 1, max: 1, fn: ([x]) => x! <= 0 ? 'ln: argument must be positive' : Math.log(x!) },
   log: { min: 1, max: 2, fn: ([x, base]) => {
     if (x! <= 0) return 'log: argument must be positive';

@@ -309,7 +309,9 @@ before omission; skipped subtree evaluation errors stay lazy and unreported.
 
 - No clock and no `Math.random`: the same program and inputs give the same values within a JavaScript engine.
 - Transcendental functions use JavaScript Math approximations. Node/V8, Firefox and Safari may differ in the last bit. Displayed formatted values normally agree, but values near rounding boundaries can differ; exact `==` is not a portable tolerance comparison. Prefer `abs(a - b) < 1e-9` when comparing approximate results. This does not weaken the language's exact equality semantics.
-- Randomness comes only from `random(seed, …)`, with the seed supplied as an input. For example, course-platform sets `seed` from student and attempt.
+- Implemented seeded calc draws (unreleased, #48 prerequisite): `rand(seed[, draw])` returns a value in `[0, 1)`; `randInt(seed, min, max[, draw])` returns an integer in inclusive bounds. `seed` and optional `draw` are integers in `0..4294967295`; `draw` defaults to zero. Bounds are safe integers, min <= max, spanning at most 2^32 integers. Invalid arguments report positioned errors. Distinct draw counters give reproducible draws without mutable state (not a guarantee of different outputs).
+- Seeded algorithm v1 applies MurmurHash3 fmix32 to `(seed + imul(draw, 0x9e3779b9)) mod 2^32` and divides the unsigned word by 2^32. Integer draws map with `min + floor(rand * (max-min+1))`. This is a discrete, deterministic educational generator, not cryptography or authoritative grading. Future snapshot compatibility must include algorithm identity if the algorithm changes.
+- Inputs used as seeds remain live dependencies through ordinary session setters and simplification; literal seeds may fold. Calc draws no entropy. Runtime-owned quiz seeds, attempt initialization/retry and question/answer UI are still unimplemented #48 work.
 
 ## 5. The `@vchernoy/calc` API
 

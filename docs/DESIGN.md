@@ -418,6 +418,20 @@ The reciprocal is :value[1/x].
 - **`{{name}}` on its own inside `$$…$$`** typesets that name's definition as LaTeX, with its value: `name = …formula… = value`. For inputs and plain values it shows just the value.
 - **`{{expr}}` inside other LaTeX** inserts the formatted value, for example `\frac{ {{stay}} }{ {{people}} }`.
 
+Negative or compound numeric math substitutions (scientific notation or formatted grouping)
+get visible `\left(…\right)` parentheses when immediately followed by `^` or immediately
+after a binary `\cdot`, `\times`, `\div`, `+`, `-`, `*` or `/`. Plain positive numbers
+are unchanged; an equality, unary sign or TeX argument alone does not request parentheses.
+Authored parentheses remain untouched. Every substituted value still forms one TeX group
+for commands/exponents. Text-mode commands such as `\text`/`\emph`/`\operatorname`, boxed labels (`\fbox`,
+`\colorbox`, `\fcolorbox`, including preceding color arguments), and verbatim
+labels keep numeric text without injected math delimiters. This is conservative display
+context handling, not symbolic algebra or a general TeX parser (#30, unreleased).
+For other macros that enter text mode only during expansion, generated grouping uses
+KaTeX’s built-in `\TextOrMath` to select unchanged numeric text versus mathematical
+parentheses at parse time. JavaScript does not expand document macros; KaTeX’s existing
+expansion limit still applies.
+
 ### Calc blocks
 
 ` ```calc ` blocks are not shown to readers. The author's view can show them, with diagnostics.

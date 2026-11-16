@@ -52,11 +52,69 @@ export function texNumber(value: number): string {
  */
 export function substitute(tex: string, results: readonly Result[], locale?: string): string {
   let i = 0;
-  return tex.replace(PLACEHOLDER, (_match, source: string) => {
+  // Track text-mode arguments in one forward pass; inserting \left into \text
+  // would turn an otherwise valid numeric label into a KaTeX error.
+  const textCommands = new Set(['text', 'textrm', 'textsf', 'texttt', 'textnormal', 'textbf', 'textit', 'textup', 'emph', 'textmd', 'textsc', 'mbox', 'hbox', 'operatorname']);
+  // Box commands have typed arguments before their text body. Preserve their
+  // remaining arguments across closing braces, including nested label groups.
+  const argumentCounts = new Map([...textCommands].map(name => [name, 1]));
+  for (const name of ['fbox', 'reflectbox', 'angl']) argumentCounts.set(name, 1);
+  for (const name of ['colorbox', 'raisebox']) argumentCounts.set(name, 2);
+  argumentCounts.set('fcolorbox', 3);
+  const modes: { text: boolean; remaining: boolean[] }[] = [{ text: false, remaining: [] }];
+  let pendingArguments: boolean[] = [];
+  let cursor = 0, literalUntil = 0;
+  const inText = (offset: number): boolean => {
+    while (cursor < offset) {
+      const char = tex[cursor++]!;
+      if (char === '\\') {
+        const command = /^[A-Za-z]+|^[\s\S]/.exec(tex.slice(cursor))?.[0] ?? '';
+        cursor += command.length;
+        if (command === 'verb') {
+          if (tex[cursor] === '*') cursor++;
+          const delimiter = tex[cursor++] ?? '';
+          const end = delimiter ? tex.indexOf(delimiter, cursor) : -1;
+          literalUntil = end < 0 ? tex.length : end + 1;
+          cursor = literalUntil;
+        }
+        pendingArguments = Array<boolean>(argumentCounts.get(command) ?? 0).fill(true);
+      } else if (char === '%') {
+        const end = tex.indexOf('\n', cursor);
+        literalUntil = end < 0 ? tex.length : end;
+        cursor = literalUntil;
+      } else if (char === '{') {
+        const [textArgument, ...remaining] = pendingArguments;
+        modes.push({ text: modes[modes.length - 1]!.text || textArgument === true, remaining });
+        pendingArguments = [];
+      } else if (char === '}') {
+        pendingArguments = modes.length > 1 ? modes.pop()!.remaining : [];
+      } else if (!/\s/.test(char)) pendingArguments.shift();
+    }
+    return offset < literalUntil || modes[modes.length - 1]!.text || pendingArguments[0] === true;
+  };
+  return tex.replace(PLACEHOLDER, (match, source: string, offset: number) => {
+    const textMode = inText(offset);
+    cursor = Math.max(cursor, offset + match.length); pendingArguments.shift();
     const r = results[i++];
     const binding = mathBinding(source);
     if (binding.problem || r?.kind !== 'value') return '{\\color{red}?}';
-    return `{${binding.format ? formattedTexNumber(r.value, binding.format, locale) : texNumber(r.value)}}`;
+    const number = binding.format ? formattedTexNumber(r.value, binding.format, locale) : texNumber(r.value);
+    const compound = r.value < 0 || !/^\d+(?:\.\d+)?$/.test(number);
+    const power = /^\s*\^/.test(tex.slice(offset + match.length));
+    let end = offset;
+    while (end > 0 && /\s/.test(tex[end - 1]!)) end--;
+    // Only bounded suffixes are needed; avoid rescanning a long template per placeholder.
+    const operator = /(\\(?:cdot|times|div)|[+\-*/])$/.exec(tex.slice(Math.max(0, end - 6), end));
+    let leftEnd = operator ? end - operator[0].length : 0;
+    while (leftEnd > 0 && /\s/.test(tex[leftEnd - 1]!)) leftEnd--;
+    const left = tex.slice(Math.max(0, leftEnd - 6), leftEnd);
+    // A sign after another operator/opening delimiter is unary, not binary.
+    const binary = !!operator && !!left && !/[=+\-*/^_([{,:]$/.test(left) && !/\\(?:cdot|times|div)\s*$/.test(left);
+    // Unknown built-in/user macros may enter text mode only during expansion.
+    // Let KaTeX choose at parse time: math gets visible parentheses, text gets
+    // the unchanged number. Known text/verbatim contexts keep their old bytes.
+    return `{${!textMode && compound && (power || binary)
+      ? `\\TextOrMath{${number}}{\\left(${number}\\right)}` : number}}`;
   });
 }
 

@@ -264,6 +264,40 @@ All limits are configurable by the host.
 
 Going over a limit is an **error** in the affected name. It never freezes the page.
 
+### Expression preparation (#45)
+
+After full source validation and dependency analysis, calc prepares definitions in document
+order and prepares compiled document expressions (conditions, value bindings and math
+placeholders) using the same pass. Immutable successful constants propagate transitively;
+input defaults never become constants. Closed successful arithmetic, comparisons, logic
+and deterministic built-ins fold using the existing evaluator. Constant subexpressions
+also fold inside live expressions; no reassociation or identities such as `x * 0` are used.
+
+A declared input range is enforced by both session setters and whole-program overrides.
+Preparation can prove direct comparisons of that range (or an immutable alias) with a
+constant, including inclusive endpoints. A narrower UI control range is not a model proof.
+Unbounded inputs and inconclusive comparisons stay live; interval arithmetic for derived
+arithmetic expressions is deliberately not attempted.
+
+Only leading proven lazy decisions discard operands: false `and`, true `or`, and leading
+constant `if` conditions. Boolean results remain numeric 0/1. Live dependencies describe
+the remaining expression; original expressions and their source spans remain available
+for diagnostics. Validation still rejects invalid names/calls in unreachable source.
+Domain errors are not folded into values, and evaluation order is unchanged.
+
+Preparation has a bounded shared work budget and falls back to source if exhausted.
+Folded nodes retain their original evaluation step charges. Evaluation falls back to the
+original expression when a restrictive remaining budget or failed referenced name could
+make the optimized path observably different; sessions use the original dependency graph
+when a host budget could affect definition results. This keeps step-limit and dependency
+errors intact, including their source positions.
+
+`CompiledExpression.constant`, when present, identifies a successful value proven for
+all supported input values, rather than the authored default. Rendered conditions expose
+this as `data-active-when-constant`; browser sessions independently prepare the same source
+with their own limits and do not trust serialized ASTs or proof attributes. The HTML still
+retains false conditional content in this step; physical omission is the separate #46.
+
 ### 4.11 Determinism
 
 - No clock and no `Math.random`: the same program and inputs give the same values within a JavaScript engine.

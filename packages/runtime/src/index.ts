@@ -11,6 +11,8 @@ export type MountOptions = {
   /** Math output; should match the one used to render. */
   output?: MathOutput;
   limits?: Limits;
+  /** Validated reader values applied before the first refresh; accepted entries override browser autofill. */
+  initialInputs?: ReadonlyMap<string, number>;
   /** How to load KaTeX, which is needed only when a formula's values change. Default: `import('katex')`. */
   loadKatex?: () => Promise<Katex>;
 };
@@ -20,6 +22,8 @@ export type Mounted = {
   program: Program;
   /** Resolves after formulas re-rendered for the latest change (useful in tests). */
   settled(): Promise<void>;
+  /** Restore authored defaults, synchronize all controls and clear stale validation errors. */
+  resetInputs(): void;
   /** Remove listeners; the page keeps its current state. */
   destroy(): void;
 };
@@ -48,6 +52,25 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   if (!doc) throw new Error('active-md: no .active-doc element to mount');
   const program = parse(readBlocks(doc), options.limits);
   const session = createSession(program, options.limits);
+  const controls = new Map<string, HTMLInputElement[]>();
+  const inputNames = new Set(program.inputs.map(input => input.name));
+  for (const input of doc.querySelectorAll<HTMLInputElement>('input[data-active-input]')) {
+    const name = input.dataset.activeInput ?? '';
+    if (inputNames.has(name)) controls.set(name, [...(controls.get(name) ?? []), input]);
+  }
+  // Initialize before exposing the session or refreshing views. Iterate declared inputs,
+  // not an unbounded host snapshot; include inputs that have no rendered controls.
+  const initialAccepted = new Set<string>();
+  const initialChanges = new Set<string>();
+  const stopInitialCollection = session.subscribe(changed => { for (const name of changed) initialChanges.add(name); });
+  for (const { name } of program.inputs) {
+    const value = options.initialInputs?.get(name);
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+    if ((controls.get(name) ?? []).some(input => outsideControl(input, value))) continue;
+    if (!session.set(name, value)) initialAccepted.add(name);
+  }
+  stopInitialCollection();
+  const initialValues = session.inputValues();
   const views: View[] = [];
   const cleanups: (() => void)[] = [];
   let pending: Promise<void> = Promise.resolve();
@@ -84,7 +107,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   }
 
   /** Every control of each input: a number box and a slider may edit the same input and stay in sync. */
-  const controls = new Map<string, HTMLInputElement[]>();
+  let editing: HTMLInputElement | undefined;
   const conditionErrors = new Map([...doc.querySelectorAll<HTMLElement>('[data-active-when-error]')].map(el => [el.dataset.activeWhenError, el]));
   const conditions = [...doc.querySelectorAll<HTMLElement>('[data-active-when]')].map(el => ({ el, compiled: session.compile(el.dataset.activeWhen ?? '', 'when') }));
   const wasVisible = new WeakMap<HTMLElement, boolean>();
@@ -107,8 +130,13 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
       wasVisible.set(v.el, visible);
     }
   };
-  refresh(new Set(), true);
-  const unsubscribe = session.subscribe(changed => refresh(changed));
+  refresh(initialChanges, initialChanges.size === 0);
+  const unsubscribe = session.subscribe(changed => {
+    refresh(changed);
+    // Public session setters/reset must update controls too. Preserve the active edit's
+    // text/caret; peers and programmatic changes show the accepted model value.
+    for (const name of changed) syncPeers(name, editing);
+  });
   cleanups.push(unsubscribe);
 
   /**
@@ -116,7 +144,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
    * clear their stale errors. The control the reader is editing is never rewritten under the cursor. A slider
    * whose step can't represent the value shows the nearest position; the model and the readout keep the value.
    */
-  const syncPeers = (name: string, editing: HTMLInputElement): void => {
+  const syncPeers = (name: string, editing?: HTMLInputElement): void => {
     const r = session.get(name);
     if (r?.kind !== 'value') return;
     for (const other of controls.get(name) ?? []) {
@@ -128,14 +156,15 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
 
   const restorable: { name: string; input: HTMLInputElement; apply: () => void }[] = [];
   // Controls: <input data-active-input="name">
-  for (const input of doc.querySelectorAll<HTMLInputElement>('input[data-active-input]')) {
-    const name = input.dataset.activeInput ?? '';
-    if (!program.inputs.some(i => i.name === name)) continue;
+  for (const [name, inputs] of controls) for (const input of inputs) {
     if (input.type === 'number') input.style.setProperty('--active-input-ch', String(inputWidth(input.min, input.max, input.defaultValue, input.step)));
-    controls.set(name, [...(controls.get(name) ?? []), input]);
+    if (initialAccepted.has(name)) input.value = String(initialValues.get(name));
     const apply = () => {
       const value = input.valueAsNumber;
-      const problem = Number.isNaN(value) ? 'enter a number' : outsideControl(input, value) ?? session.set(name, value);
+      let problem: string | undefined;
+      editing = input;
+      try { problem = Number.isNaN(value) ? 'enter a number' : outsideControl(input, value) ?? session.set(name, value); }
+      finally { editing = undefined; }
       if (problem) {
         input.setCustomValidity(problem);
         input.setAttribute('aria-invalid', 'true');
@@ -153,7 +182,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   // The browser may have restored a value (back/forward cache, autofill): adopt it. A control counts as restored
   // if its value differs from what was rendered, decided before anything is applied, so values written by syncing
   // (a slider rounded to its step, say) are never mistaken for restored ones. One restored control per input wins.
-  const restored = restorable.filter(({ input }) => !Number.isNaN(input.valueAsNumber) && input.value !== input.defaultValue);
+  const restored = restorable.filter(({ name, input }) => !initialAccepted.has(name) && !Number.isNaN(input.valueAsNumber) && input.value !== input.defaultValue);
   const adopted = new Set<string>();
   for (const { name, apply } of restored) {
     if (adopted.has(name)) continue;
@@ -165,6 +194,13 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     session,
     program,
     settled: () => pending,
+    resetInputs: () => {
+      if (destroyed) return;
+      session.reset();
+      // Even if the model already equals defaults, invalid unfinished control text
+      // and its browser validity state must be reset explicitly.
+      for (const name of controls.keys()) syncPeers(name);
+    },
     destroy: () => {
       destroyed = true;
       for (const c of cleanups.splice(0)) c();

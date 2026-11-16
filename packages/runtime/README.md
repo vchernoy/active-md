@@ -18,3 +18,32 @@ const live = mount(container, { locale });   // later: live.destroy()
 - Use the same `locale` (and math `output`) as the renderer so updated text matches the first render.
 
 The optional stylesheet is scoped to `.active-doc`, sizes number/range controls, marks invalid inputs with the current text color, and honors KaTeX MathML column alignment. Override `--active-input-ch` (default `8`) to choose a number input width. Load this stylesheet with the renderer in lazy integrations; importing the runtime JavaScript does not load CSS automatically. It adds no fonts, requests or theme palette.
+
+
+## Restoring reader inputs (unreleased)
+
+Pass `initialInputs: new Map([['x', 5]])` to `mount`. The runtime iterates declared
+inputs (including model-only inputs), accepts finite numeric values through the model
+validator, and also checks every authored control's min/max bounds. Unknown names,
+definitions, invalid values and out-of-range entries are skipped individually. Accepted
+values are installed before the first runtime refresh, with no host subscription events
+for the initial batch. Source and authored defaults are unchanged.
+
+Accepted entries win over browser-restored/autofilled controls, even when equal to the
+authored default. Skipped entries retain normal browser restoration behavior. Slider
+steps keep their existing nearest-position behavior; the model/readout retains the
+accepted number. Public session setters now synchronize peer controls as well as views;
+the control actively being edited is not rewritten under the cursor. Model setters still
+validate model ranges; hosts restoring state should use `initialInputs` to additionally
+validate all authored control bounds.
+
+For asynchronous restore, keep the rendered container hidden/staged, load saved values,
+call `mount(container, { initialInputs })`, then `await live.settled()` before revealing
+it so math and conditional visibility agree. Subscribe for persistence only after mount
+and restoration settle. The runtime stores no inputs and schedules no startup events;
+this API does not introduce quizzes, event initializers, or a persistence layer.
+
+`live.resetInputs()` returns every input to its authored default as one model reset,
+synchronizes controls and clears unfinished invalid control text even when the model
+already equals defaults. Await `live.settled()` for math updates. Reset does nothing after
+`destroy()`. Hosts own storage deletion/reset policy and lifecycle cancellation.

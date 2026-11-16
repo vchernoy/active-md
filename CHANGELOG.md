@@ -4,6 +4,8 @@ All three packages share one version.
 
 ## Unreleased
 
+- Add validated runtime `initialInputs` restoration for rendered/model-only inputs before refresh, synchronize programmatic model changes with peer controls, and expose `resetInputs()` for authored defaults and stale-error cleanup (#54).
+
 - Preserve Markdown phrasing and typeset inline math in callout titles and details summaries, including live calc placeholders and conditional laziness (#32).
 
 ## 0.4.0

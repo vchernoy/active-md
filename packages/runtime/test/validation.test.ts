@@ -5,7 +5,7 @@ import { mount } from '../src/index.js';
 
 it('explains rejected edits, preserves descriptions, and clears on correction, peer update, reset and remount', () => {
   const root = document.createElement('div');
-  root.innerHTML = renderActive('```calc\ninput x = 2 in 1..10\n```\n\n:input[x] :input[x] :value[x]').html;
+  root.innerHTML = renderActive('```calc\ninput x = 2 in 1..10\n```\n\n:input[x]{label="Count"} :input[x] :value[x]').html;
   const inputs = root.querySelectorAll('input');
   const input = inputs[0]!; const peer = inputs[1]!;
   input.setAttribute('aria-describedby', 'host-help');
@@ -13,6 +13,7 @@ it('explains rejected edits, preserves descriptions, and clears on correction, p
   const id = input.getAttribute('aria-describedby')!.split(' ')[1];
   const message = root.querySelector(`#${id}`)!;
   expect(message.getAttribute('aria-live')).toBe('polite');
+  expect(input.closest('label')!.contains(message)).toBe(false);
   const edit = (value: string, control = input) => { control.value = value; control.dispatchEvent(new Event('input')); };
   edit('0');
   expect(input.getAttribute('aria-invalid')).toBe('true');
@@ -23,9 +24,12 @@ it('explains rejected edits, preserves descriptions, and clears on correction, p
   edit(''); expect(message.textContent).toContain('enter a number');
   edit('4', peer); expect(message.textContent).toBe(''); expect(input.value).toBe('4');
   edit('0'); live.resetInputs(); expect(message.textContent).toBe('');
-  edit('0'); live.destroy();
+  edit(''); live.destroy();
   expect(input.getAttribute('aria-describedby')).toBe('host-help');
   expect(input.hasAttribute('aria-invalid')).toBe(false);
   expect(root.querySelectorAll('.active-input-problem')).toHaveLength(0);
-  const again = mount(root); expect(root.querySelectorAll('.active-input-problem')).toHaveLength(2); again.destroy();
+  const again = mount(root);
+  expect(input.getAttribute('aria-invalid')).toBe('true');
+  expect(root.querySelector('.active-input-problem')!.textContent).toContain('enter a number');
+  expect(root.querySelectorAll('.active-input-problem')).toHaveLength(2); again.destroy();
 });

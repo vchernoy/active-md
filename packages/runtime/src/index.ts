@@ -174,7 +174,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     message.className = 'active-input-problem';
     message.setAttribute('aria-live', 'polite');
     message.setAttribute('aria-atomic', 'true');
-    input.insertAdjacentElement('afterend', message);
+    (input.closest('label') ?? input).insertAdjacentElement('afterend', message);
     const describedBy = input.getAttribute('aria-describedby');
     input.setAttribute('aria-describedby', [describedBy, message.id].filter(Boolean).join(' '));
     problems.set(input, message);
@@ -212,7 +212,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   // The browser may have restored a value (back/forward cache, autofill): adopt it. A control counts as restored
   // if its value differs from what was rendered, decided before anything is applied, so values written by syncing
   // (a slider rounded to its step, say) are never mistaken for restored ones. One restored control per input wins.
-  const restored = restorable.filter(({ name, input }) => !initialAccepted.has(name) && !Number.isNaN(input.valueAsNumber) && input.value !== input.defaultValue);
+  const restored = restorable.filter(({ name, input }) => !initialAccepted.has(name) && input.value !== input.defaultValue);
   const adopted = new Set<string>();
   for (const { name, apply } of restored) {
     if (adopted.has(name)) continue;

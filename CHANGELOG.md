@@ -2,6 +2,10 @@
 
 All three packages share one version.
 
+## Unreleased
+
+- Preserve Markdown phrasing and typeset inline math in callout titles and details summaries, including live calc placeholders and conditional laziness (#32).
+
 ## 0.4.0
 
 - Omit proven-false `when` subtrees and their runtime binding data before serialization (#46), preserving live initially hidden conditions, nested updates, source validation and lazy errors.

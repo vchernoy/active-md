@@ -382,6 +382,12 @@ $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX
 | `::table{columns="a, b"}` / `:::table{for="x in list"}` | A table generated from lists (v2) | `columns`; `for`, with a template row; `max` |
 | `:answer[expr]` | A quiz answer box (§8) | `tolerance`, `relative`, `points`, `feedback` |
 
+Callout labels and `details` summaries preserve Markdown phrasing: emphasis, code and
+inline `$…$` math use the same sanitized rendering path as paragraph content. Calc
+`{{…}}` placeholders inside title math update through the ordinary runtime bindings;
+titles inside hidden `when` blocks retain the same lazy evaluation rules. Unlabelled
+containers keep their existing default titles.
+
 ### Conditional containers (0.2)
 
 Prefer one condition, such as `:::when[rate > 0 and years > 5]`, over two nested `when` blocks when both conditions gate the same content. A callout or `details` directly inside a `when` needs only one extra colon on the outer `when` (`::::when` around `:::note`); only a `when` inside another `when` adds another conditional level. Increase outer fences for each container level, including callouts/details.

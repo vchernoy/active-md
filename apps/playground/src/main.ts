@@ -2,6 +2,7 @@ import { mount, type Mounted } from '@vchernoy/active-runtime';
 import { renderActive, type RenderMessage } from '@vchernoy/remark-active';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { watchMathScroll } from './math-scroll';
 import { SAMPLE } from './sample';
 import { decodeDocument, DocumentTooLarge, MAX_DOCUMENT_BYTES, shareLink } from './share';
 import '@vchernoy/active-runtime/style.css';
@@ -24,6 +25,7 @@ const editButton = $<HTMLButtonElement>('mode-edit');
 const viewButton = $<HTMLButtonElement>('mode-view');
 
 let live: Mounted | undefined;
+let stopMathScroll: (() => void) | undefined;
 let readerInputs: ReadonlyMap<string, number> | undefined;
 let mode: 'edit' | 'view' = 'edit';
 
@@ -68,6 +70,8 @@ function check(): void {
 }
 
 function stopView(preserve = true): void {
+  stopMathScroll?.();
+  stopMathScroll = undefined;
   if (live && preserve) readerInputs = live.session.inputValues();
   live?.destroy();
   live = undefined;
@@ -79,6 +83,7 @@ function showView(): void {
   const { html } = renderActive(source.value, { locale, output });
   doc.innerHTML = html; // sanitized by the renderer: raw HTML dropped, rehype-sanitize, KaTeX with trust: false
   live = mount(doc, { locale, output, ...(readerInputs ? { initialInputs: readerInputs } : {}), loadKatex: async () => katex });
+  stopMathScroll = watchMathScroll(doc, $('math-scroll-hint'));
 }
 
 function setMode(next: 'edit' | 'view', focus = true): void {

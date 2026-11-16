@@ -20,7 +20,7 @@ it('server and runtime agree as power bases switch positive, negative, then posi
 });
 
 it('keeps boxed text labels valid and in server/runtime agreement after live negative updates', async () => {
-  const source = '```calc\ninput x = 3\n```\n\n:input[x]\n\n$\\fbox{Cost - {{x}}} + \\colorbox{red}{Cost - {{x}}} + \\fcolorbox{red}{blue}{Cost - {{x}}} + {{x}}^2$';
+  const source = '```calc\ninput x = 3\n```\n\n:input[x]\n\n$\\fbox{Cost - {{x}}} + \\colorbox{red}{Cost - {{x}}} + \\fcolorbox{red}{blue}{Cost - {{x}}} + \\emph{Cost - {{x}}} + {{x}}^2$';
   const root = document.createElement('div'); root.innerHTML = renderActive(source).html;
   const live = mount(root, { loadKatex: async () => katex });
   const input = root.querySelector('input')!;

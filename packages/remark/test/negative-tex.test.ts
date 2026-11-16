@@ -63,3 +63,10 @@ it('keeps nested boxed labels in text mode without suppressing later math groupi
   expect(result).toBe('\\colorbox{red}{Outer \\fcolorbox{blue}{white}{Inner - {-3}}} + \\boxed{2 - {\\left(-3\\right)}}');
   expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
 });
+
+// All text argument commands registered by the pinned KaTeX functions/text.ts.
+it.each(['text', 'textrm', 'textsf', 'texttt', 'textnormal', 'textbf', 'textmd', 'textit', 'textup', 'emph'])('keeps the argument of \\%s in text mode, then resumes math', command => {
+  const result = substitute(`\\${command}{Cost - {{x}}} + {{x}}^2`, values(-3, -3));
+  expect(result).toBe(`\\${command}{Cost - {-3}} + {\\left(-3\\right)}^2`);
+  expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
+});

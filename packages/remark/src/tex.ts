@@ -54,7 +54,7 @@ export function substitute(tex: string, results: readonly Result[], locale?: str
   let i = 0;
   // Track text-mode arguments in one forward pass; inserting \left into \text
   // would turn an otherwise valid numeric label into a KaTeX error.
-  const textCommands = new Set(['text', 'textrm', 'textsf', 'texttt', 'textnormal', 'textbf', 'textit', 'textup', 'textmd', 'textsc', 'mbox', 'hbox', 'operatorname']);
+  const textCommands = new Set(['text', 'textrm', 'textsf', 'texttt', 'textnormal', 'textbf', 'textit', 'textup', 'emph', 'textmd', 'textsc', 'mbox', 'hbox', 'operatorname']);
   // Box commands have typed arguments before their text body. Preserve their
   // remaining arguments across closing braces, including nested label groups.
   const argumentCounts = new Map([...textCommands].map(name => [name, 1]));

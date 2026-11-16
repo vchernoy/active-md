@@ -4,6 +4,8 @@ All three packages share one version.
 
 ## Unreleased
 
+- Parenthesize negative/compound numeric math placeholders before powers and after binary operators, preserving plain positive values, authored grouping and text-mode labels (#30).
+
 - Add validated runtime `initialInputs` restoration for rendered/model-only inputs before refresh, synchronize programmatic model changes with peer controls, and expose `resetInputs()` for authored defaults and stale-error cleanup (#54).
 
 - Preserve Markdown phrasing and typeset inline math in callout titles and details summaries, including live calc placeholders and conditional laziness (#32).

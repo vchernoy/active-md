@@ -52,11 +52,56 @@ export function texNumber(value: number): string {
  */
 export function substitute(tex: string, results: readonly Result[], locale?: string): string {
   let i = 0;
-  return tex.replace(PLACEHOLDER, (_match, source: string) => {
+  // Track text-mode arguments in one forward pass; inserting \left into \text
+  // would turn an otherwise valid numeric label into a KaTeX error.
+  const textCommands = new Set(['text', 'textrm', 'textsf', 'texttt', 'textnormal', 'textbf', 'textit', 'textup', 'textmd', 'textsc', 'mbox', 'hbox', 'operatorname']);
+  const modes = [false];
+  let cursor = 0, textArgument = false, literalUntil = 0;
+  const inText = (offset: number): boolean => {
+    while (cursor < offset) {
+      const char = tex[cursor++]!;
+      if (char === '\\') {
+        const command = /^[A-Za-z]+|^[\s\S]/.exec(tex.slice(cursor))?.[0] ?? '';
+        cursor += command.length;
+        if (command === 'verb') {
+          if (tex[cursor] === '*') cursor++;
+          const delimiter = tex[cursor++] ?? '';
+          const end = delimiter ? tex.indexOf(delimiter, cursor) : -1;
+          literalUntil = end < 0 ? tex.length : end + 1;
+          cursor = literalUntil;
+        }
+        textArgument = textCommands.has(command);
+      } else if (char === '%') {
+        const end = tex.indexOf('\n', cursor);
+        literalUntil = end < 0 ? tex.length : end;
+        cursor = literalUntil;
+      } else if (char === '{') {
+        modes.push(modes[modes.length - 1]! || textArgument); textArgument = false;
+      } else if (char === '}') {
+        if (modes.length > 1) modes.pop(); textArgument = false;
+      } else if (!/\s/.test(char)) textArgument = false;
+    }
+    return offset < literalUntil || modes[modes.length - 1]! || textArgument;
+  };
+  return tex.replace(PLACEHOLDER, (match, source: string, offset: number) => {
+    const textMode = inText(offset);
+    cursor = Math.max(cursor, offset + match.length); textArgument = false;
     const r = results[i++];
     const binding = mathBinding(source);
     if (binding.problem || r?.kind !== 'value') return '{\\color{red}?}';
-    return `{${binding.format ? formattedTexNumber(r.value, binding.format, locale) : texNumber(r.value)}}`;
+    const number = binding.format ? formattedTexNumber(r.value, binding.format, locale) : texNumber(r.value);
+    const compound = r.value < 0 || !/^\d+(?:\.\d+)?$/.test(number);
+    const power = /^\s*\^/.test(tex.slice(offset + match.length));
+    let end = offset;
+    while (end > 0 && /\s/.test(tex[end - 1]!)) end--;
+    // Only bounded suffixes are needed; avoid rescanning a long template per placeholder.
+    const operator = /(\\(?:cdot|times|div)|[+\-*/])$/.exec(tex.slice(Math.max(0, end - 6), end));
+    let leftEnd = operator ? end - operator[0].length : 0;
+    while (leftEnd > 0 && /\s/.test(tex[leftEnd - 1]!)) leftEnd--;
+    const left = tex.slice(Math.max(0, leftEnd - 6), leftEnd);
+    // A sign after another operator/opening delimiter is unary, not binary.
+    const binary = !!operator && !!left && !/[=+\-*/^_([{,:]$/.test(left) && !/\\(?:cdot|times|div)\s*$/.test(left);
+    return `{${!textMode && compound && (power || binary) ? `\\left(${number}\\right)` : number}}`;
   });
 }
 

@@ -2,7 +2,7 @@
 
 All three packages share one version.
 
-## Unreleased
+## 0.4.0
 
 - Omit proven-false `when` subtrees and their runtime binding data before serialization (#46), preserving live initially hidden conditions, nested updates, source validation and lazy errors.
 

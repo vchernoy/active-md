@@ -9,7 +9,7 @@ it('prepares definitions, conditions, values and math consistently before and af
   expect(r.messages).toEqual([]);
   document.body.innerHTML = r.html;
   const gates = [...document.querySelectorAll<HTMLElement>('[data-active-when]')];
-  expect(gates.map(g => g.dataset.activeWhenConstant)).toEqual(['0', undefined, '1']);
+  expect(gates.map(g => g.dataset.activeWhenConstant)).toEqual([undefined, '1']);
   const initial = [...document.querySelectorAll('output')].map(o => o.textContent);
   const m = mount(document.body);
   expect([...document.querySelectorAll('output')].map(o => o.textContent)).toEqual(initial);
@@ -17,7 +17,7 @@ it('prepares definitions, conditions, values and math consistently before and af
   expect([...m.session.compile('n + y*2').deps]).toEqual(['n']);
   m.session.set('n', 10);
   await m.settled();
-  expect(gates.map(g => g.hidden)).toEqual([true, false, false]);
+  expect(gates.map(g => g.hidden)).toEqual([false, false]);
   expect(document.querySelector('output')!.textContent).toBe('40');
   expect(document.querySelector('math')!.textContent).toContain('40');
   const server = document.createElement('div');

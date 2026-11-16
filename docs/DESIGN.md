@@ -36,7 +36,7 @@ Small, safe and usable as soon as possible in both course-platform and TypeBridg
 
 Calc remains numeric: comparisons `== != < <= > >=` and logic return 1/0, with zero false and every nonzero finite number true. Arithmetic binds first, then comparisons, `not`, `and`, `or`. Comparisons cannot be chained without explicit grouping. Equality is exact; write `abs(a-b) < 1e-9` for tolerance. `and`/`or` short-circuit. Reserved `if(c1, a, c2, b, …, otherwise)` takes an odd argument count of at least three, tests conditions in order and evaluates only the selected value. Every branch is still parsed and name-checked. `even(x)` and `odd(x)` test `round(x)` correctly for negative numbers; `%` retains JavaScript semantics (`-3 % 2` is -1). New expression nodes use the existing depth and step budgets; skipped branches consume no evaluation steps.
 
-`:::when[expr]` conditionally shows retained sanitized content. See §6 for nesting, control analysis and diagnostics. Missing inputs remain future work: when they exist, a missing condition will mean false, without an error.
+`:::when[expr]` conditionally shows sanitized content; only proven-false blocks are omitted. See §6 for nesting, control analysis and diagnostics. Missing inputs remain future work: when they exist, a missing condition will mean false, without an error.
 
 ## 1. Purpose
 
@@ -295,8 +295,15 @@ errors intact, including their source positions.
 `CompiledExpression.constant`, when present, identifies a successful value proven for
 all supported input values, rather than the authored default. Rendered conditions expose
 this as `data-active-when-constant`; browser sessions independently prepare the same source
-with their own limits and do not trust serialized ASTs or proof attributes. The HTML still
-retains false conditional content in this step; physical omission is the separate #46.
+with their own limits and do not trust serialized ASTs or proof attributes. A condition
+proven false is omitted with its entire subtree before HTML serialization
+(#46), including subtree-only controls, value/math bindings, nested conditions and error
+placeholders. This is a semantic simplification, not an authorization boundary: source
+and the global calc program remain available. True blocks retain their content and live
+nested expressions. Initially false conditions that can change with supported inputs
+stay in the HTML with `hidden` and become visible on input changes. Errors, unknowns and
+step-budget failures are not false proofs. Original structural/source validation runs
+before omission; skipped subtree evaluation errors stay lazy and unreported.
 
 ### 4.11 Determinism
 
@@ -391,7 +398,7 @@ The reciprocal is :value[1/x].
 ::::
 ```
 
-- Any calc expression is allowed, including built-in calls and comparisons. Nonzero shows the block; zero sets the wrapper's `hidden` attribute. This is visibility, **not secrecy**: content and expression source remain in HTML.
+- Any calc expression is allowed, including built-in calls and comparisons. Nonzero shows the block. A condition proven always zero is omitted before serialization; an initially zero live condition retains its wrapper and content with `hidden`. This is visibility, **not secrecy**: source and the global calc program remain available, and live hidden content remains in HTML.
 - A nested block is visible only if all enclosing conditions are true. Conditions, value bindings and math in a hidden subtree are never evaluated, and their errors are not reported to the reader or announced. On becoming visible, bindings refresh to current inputs. A failing visible condition hides its block and reports a positioned error outside that block. Visibility changes do not programmatically move focus or use a live region.
 - Use longer fences around nested containers. More than eight levels is a positioned structural error even in hidden content.
 - A calc block anywhere inside `when` is excluded and reports: "calc blocks can't be inside :::when; definitions are global, use if()". Declare inputs and definitions outside all conditional containers.

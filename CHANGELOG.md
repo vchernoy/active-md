@@ -4,7 +4,9 @@ All three packages share one version.
 
 ## Unreleased
 
-- Prepare calc definitions and document expressions with conservative constant propagation, range comparison proofs and lazy branch elimination (#45). Keep live dependencies, source diagnostics and evaluation-limit behavior; expose proven constant conditions without omitting their HTML yet.
+- Omit proven-false `when` subtrees and their runtime binding data before serialization (#46), preserving live initially hidden conditions, nested updates, source validation and lazy errors.
+
+- Prepare calc definitions and document expressions with conservative constant propagation, range comparison proofs and lazy branch elimination (#45). Keep live dependencies, source diagnostics and evaluation-limit behavior; expose proven constant conditions to rendering.
 
 ## 0.3.0
 

@@ -5,3 +5,4 @@ export { formatNumber, parseFormat, parseUserNumber, type Format } from './forma
 export { BUILTINS } from './builtins.js';
 export { DEFAULT_LIMITS } from './types.js';
 export type { Definition, Diagnostic, Expr, Limits, NameInfo, Program, Range, Result, Severity, Span } from './types.js';
+export { checkAnswer, type NumericAnswerOptions, type NumericAnswerCheck } from './answer.js';

@@ -88,3 +88,25 @@
   display: block;
   font-size: 0.875em;
 }
+
+/* Named prose colors; document text can select names, never CSS values. */
+.active-doc {
+  --active-mark-red: #b91c1c; --active-mark-green: #166534; --active-mark-blue: #1d4ed8;
+  --active-mark-orange: #9a3412; --active-mark-purple: #6b21a8; --active-mark-gray: #4b5563;
+}
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme="light"])) .active-doc {
+    --active-mark-red: #fca5a5; --active-mark-green: #86efac; --active-mark-blue: #93c5fd;
+    --active-mark-orange: #fdba74; --active-mark-purple: #d8b4fe; --active-mark-gray: #d1d5db;
+  }
+}
+:where(:root[data-theme="dark"]) .active-doc {
+  --active-mark-red: #fca5a5; --active-mark-green: #86efac; --active-mark-blue: #93c5fd;
+  --active-mark-orange: #fdba74; --active-mark-purple: #d8b4fe; --active-mark-gray: #d1d5db;
+}
+.active-doc .active-mark-red { color: var(--active-mark-red); }
+.active-doc .active-mark-green { color: var(--active-mark-green); }
+.active-doc .active-mark-blue { color: var(--active-mark-blue); }
+.active-doc .active-mark-orange { color: var(--active-mark-orange); }
+.active-doc .active-mark-purple { color: var(--active-mark-purple); }
+.active-doc .active-mark-gray { color: var(--active-mark-gray); }

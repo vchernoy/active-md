@@ -165,6 +165,13 @@ export function remarkActive(options: ActiveOptions = {}) {
       }
       if (node.type === 'textDirective' && node.name === 'input') { input(node, attrs); return undefined; }
       if (node.type === 'textDirective' && node.name === 'value') { value(node, attrs); return undefined; }
+      if (node.type === 'textDirective' && node.name === 'mark') {
+        const colors = ['red', 'green', 'blue', 'orange', 'purple', 'gray'];
+        if (Object.keys(attrs).some(key => key !== 'color')) showError(node, 'mark accepts only the color attribute');
+        else if (!attrs.color || !colors.includes(attrs.color)) showError(node, 'mark color must be red, green, blue, orange, purple or gray');
+        else node.data = { hName: 'span', hProperties: { className: ['active-mark', `active-mark-${attrs.color}`] } };
+        return undefined;
+      }
       if (node.type === 'containerDirective' && (Object.hasOwn(CALLOUTS, node.name) || node.name === 'details')) {
         container(node);
         return undefined;

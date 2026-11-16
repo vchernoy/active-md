@@ -629,3 +629,15 @@ The playground sample gives compound-interest controls explicit labels with unit
 Labeled controls in prose remain inline on desktop and use compact aligned rows at
 560px and narrower; number widths remain bounded and slider readouts stay in the row.
 This host CSS does not change the renderer or saved reader state.
+
+### Named prose colors (#9, unreleased)
+
+`:mark[important text]{color=red}` wraps inline Markdown in a sanitized span.
+The required color is exactly red, green, blue, orange, purple or gray; other
+attributes and CSS color values are rejected with positioned diagnostics.
+Emphasis, code, safe links and inline math retain their normal rendering.
+The optional runtime stylesheet maps these names to light/dark theme tokens
+`--active-mark-<name>` on `.active-doc`, following system preference unless root
+`data-theme` explicitly selects light/dark. Hosts may override tokens in their CSS;
+documents cannot provide CSS. Without the stylesheet, the text remains readable
+with the host's ordinary text color. Extension registries remain deferred.

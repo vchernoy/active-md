@@ -2,7 +2,14 @@
 
 All three packages share one version.
 
-## Unreleased
+## 0.5.0
+
+- Add deterministic seeded numeric draws and pure numeric answer checking; validate quiz groups before conditional pruning. These are foundations, not a complete quiz runtime/attempt API (#64, #65, #67).
+- Add a named theme-aware prose color palette shared by sanitized rendering and optional runtime styling (#66).
+- Show accessible inline input validation; preserve playground reader values across mode switches and improve phone control grouping and keyboard scrolling for wide formulas (#59–#63).
+- Correct whole-count steps in sample people/night/year controls (#58).
+- Fail closed when a release retry encounters package versions from a different or unknown source commit (#53).
+- Synchronize all three package versions, internal dependencies and playground pins at exact 0.5.0.
 
 - Parenthesize negative/compound numeric math placeholders before powers and after binary operators, preserving plain positive values, authored grouping and text-mode labels (#30).
 

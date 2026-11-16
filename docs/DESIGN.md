@@ -600,3 +600,8 @@ remounts while source is unchanged. Reset values restores authored defaults and 
 validation. Editing source or loading Example discards reader state; reload starts from
 authored defaults. Reader values never rewrite source, enter localStorage or travel in
 share links. The share UI explicitly describes authored-default semantics.
+
+The playground shows a horizontal-scroll hint when display math exceeds its viewport.
+Overflowing formulas get keyboard focus and an associated description; narrow formulas
+do not add tab stops. Resize, live rendering and font loading refresh the cue, and
+mode changes disconnect its observers. This is a host affordance, not serialized output.

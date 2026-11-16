@@ -86,3 +86,6 @@ kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-
   .actions { margin-left: auto; }
   .brand .tag { display: none; }
 }
+
+.math-scroll-hint { margin: 8px auto 0; padding: 0 16px; max-width: 760px; font-size: 14px; color: var(--muted); }
+.active-math-display:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

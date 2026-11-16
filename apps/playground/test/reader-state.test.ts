@@ -5,6 +5,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 
 beforeEach(() => {
   vi.resetModules();
+  vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
   localStorage.clear();
   history.replaceState(null, '', '/');
   document.documentElement.innerHTML = readFileSync(new NodeURL('../index.html', import.meta.url), 'utf8');

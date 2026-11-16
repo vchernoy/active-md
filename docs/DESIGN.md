@@ -444,6 +444,16 @@ The reciprocal is :value[1/x].
    - an `<ActiveDocument>` wrapper, and a mapping from directives to MDX components;
    - it coexists with `remarkCalloutDirectives`.
 
+Runtime initial input restoration (#54, unreleased): `mount` accepts a host-supplied
+`initialInputs` numeric map. It validates declared model inputs plus all authored control
+bounds before the first refresh; accepted entries override browser-restored controls.
+Unknown/nonfinite/incompatible entries are skipped. Model-only inputs participate, and
+there are no host subscription callbacks during this initial batch. The host stages the
+container and awaits `settled()` before revealing asynchronous math or starting persistent
+subscriptions. `resetInputs()` uses the original authored defaults in one model reset and
+clears stale control validation. No startup initializer/event API or input storage is
+implemented; any future initializer contract must preserve accepted restored inputs.
+
 **Rendering details:**
 
 - **KaTeX:**

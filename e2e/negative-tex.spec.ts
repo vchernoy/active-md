@@ -40,7 +40,7 @@ test('boxed labels remain valid during negative live updates', async ({ page }) 
   const outputs = Array.isArray(bundle) ? bundle : [bundle];
   const code = outputs.flatMap(output => 'output' in output ? output.output : []).find(output => output.type === 'chunk');
   if (!code || code.type !== 'chunk') throw new Error('No runtime browser bundle');
-  const source = '```calc\ninput x = 3\n```\n\n:input[x]\n\n$\\fbox{Cost - {{x}}} + \\colorbox{red}{Cost - {{x}}} + \\fcolorbox{red}{blue}{Cost - {{x}}} + \\emph{Cost - {{x}}} + {{x}}^2$';
+  const source = '```calc\ninput x = 3\n```\n\n:input[x]\n\n$\\fbox{Cost - {{x}}} + \\colorbox{red}{Cost - {{x}}} + \\fcolorbox{red}{blue}{Cost - {{x}}} + \\emph{Cost - {{x}}} + \\underbar{Cost - {{x}}} + \\llap{Cost - {{x}}} + \\rlap{Cost - {{x}}} + \\clap{Cost - {{x}}} + {{x}}^2$';
   await page.setContent(renderActive(source).html); await page.addScriptTag({ content: code.code });
   await page.evaluate(() => (window as unknown as { ActiveRuntime: { mount(root: HTMLElement): unknown } }).ActiveRuntime.mount(document.body));
   await page.locator('input').fill('-3');

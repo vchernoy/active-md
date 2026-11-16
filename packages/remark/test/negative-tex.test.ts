@@ -2,16 +2,18 @@ import { expect, it } from 'vitest';
 import katex from 'katex';
 import { renderActive, substitute } from '../src/index.js';
 
+const grouped = (number: string) => `{\\TextOrMath{${number}}{\\left(${number}\\right)}}`;
+
 const values = (...numbers: number[]) => numbers.map(value => ({ kind: 'value' as const, value }));
 
 it('uses visible parentheses for negative power bases but leaves positive bases unchanged', () => {
-  expect(substitute('{{x}}^2', values(-3))).toBe('{\\left(-3\\right)}^2');
+  expect(substitute('{{x}}^2', values(-3))).toBe(`${grouped('-3')}^2`);
   expect(substitute('{{x}} ^ {2}', values(3))).toBe('{3} ^ {2}');
   expect(substitute('x^{{n}}', values(-3))).toBe('x^{-3}');
 });
 
 it.each(['\\cdot', '\\times', '\\div', '+', '-', '*', '/'])('groups negative operands after binary %s', operator => {
-  expect(substitute(`a ${operator} {{x}}`, values(-2))).toBe(`a ${operator} {\\left(-2\\right)}`);
+  expect(substitute(`a ${operator} {{x}}`, values(-2))).toBe(`a ${operator} ${grouped('-2')}`);
   expect(substitute(`a ${operator} {{x}}`, values(2))).toBe(`a ${operator} {2}`);
 });
 
@@ -24,19 +26,19 @@ it('leaves equality, unary signs, TeX arguments and authored parentheses alone',
 });
 
 it('groups scientific/locale-formatted compound numbers only where context requires it', () => {
-  expect(substitute('{{x}}^2', values(1e24))).toBe('{\\left(1\\times 10^{24}\\right)}^2');
+  expect(substitute('{{x}}^2', values(1e24))).toBe(`${grouped('1\\times 10^{24}')}^2`);
   expect(substitute('= {{x}}', values(1e24))).toBe('= {1\\times 10^{24}}');
-  expect(substitute('{{x | fixed:2}}^2', values(-3), 'en-US')).toBe('{\\left(-3.00\\right)}^2');
-  expect(substitute('2 * {{x | fixed:2}}', values(1234), 'ru-RU')).toBe('2 * {\\left(1\\,234{,}00\\right)}');
+  expect(substitute('{{x | fixed:2}}^2', values(-3), 'en-US')).toBe(`${grouped('-3.00')}^2`);
+  expect(substitute('2 * {{x | fixed:2}}', values(1234), 'ru-RU')).toBe(`2 * ${grouped('1\\,234{,}00')}`);
 });
 
 it('keeps text and verbatim placeholders valid, then resumes math context after the label', () => {
   const tex = '\\text{Cost - {{x}} and {nested + {{x}}}} + {{x}}';
   const result = substitute(tex, values(-3, -3, -3));
-  expect(result).toBe('\\text{Cost - {-3} and {nested + {-3}}} + {\\left(-3\\right)}');
+  expect(result).toBe(`\\text{Cost - {-3} and {nested + {-3}}} + ${grouped('-3')}`);
   expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
   expect(substitute('\\verb|label - {{x}}| + {{x}}', values(-3, -3)))
-    .toBe('\\verb|label - {-3}| + {\\left(-3\\right)}');
+    .toBe(`\\verb|label - {-3}| + ${grouped('-3')}`);
 });
 
 it('renders products and powers with correct visible grouping through the sanitized pipeline', () => {
@@ -50,7 +52,7 @@ it('renders products and powers with correct visible grouping through the saniti
 it.each(['\\fbox', '\\colorbox{red}', '\\fcolorbox{red}{blue}', '\\raisebox{1pt}', '\\reflectbox', '\\angl'])('preserves boxed text arguments of %s and resumes math afterward', command => {
   const tex = `${command}{Cost - {{x}} and {nested + {{x}}}} + {{x}}^2`;
   const result = substitute(tex, values(-3, -3, -3));
-  expect(result).toBe(`${command}{Cost - {-3} and {nested + {-3}}} + {\\left(-3\\right)}^2`);
+  expect(result).toBe(`${command}{Cost - {-3} and {nested + {-3}}} + ${grouped('-3')}^2`);
   expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
   const rendered = renderActive('```calc\nx = -3\n```\n\n$' + tex + '$');
   expect(rendered.messages).toEqual([]);
@@ -60,13 +62,30 @@ it.each(['\\fbox', '\\colorbox{red}', '\\fcolorbox{red}{blue}', '\\raisebox{1pt}
 it('keeps nested boxed labels in text mode without suppressing later math grouping', () => {
   const tex = '\\colorbox{red}{Outer \\fcolorbox{blue}{white}{Inner - {{x}}}} + \\boxed{2 - {{x}}}';
   const result = substitute(tex, values(-3, -3));
-  expect(result).toBe('\\colorbox{red}{Outer \\fcolorbox{blue}{white}{Inner - {-3}}} + \\boxed{2 - {\\left(-3\\right)}}');
+  expect(result).toBe(`\\colorbox{red}{Outer \\fcolorbox{blue}{white}{Inner - {-3}}} + \\boxed{2 - ${grouped('-3')}}`);
   expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
 });
 
 // All text argument commands registered by the pinned KaTeX functions/text.ts.
 it.each(['text', 'textrm', 'textsf', 'texttt', 'textnormal', 'textbf', 'textmd', 'textit', 'textup', 'emph'])('keeps the argument of \\%s in text mode, then resumes math', command => {
   const result = substitute(`\\${command}{Cost - {{x}}} + {{x}}^2`, values(-3, -3));
-  expect(result).toBe(`\\${command}{Cost - {-3}} + {\\left(-3\\right)}^2`);
+  expect(result).toBe(`\\${command}{Cost - {-3}} + ${grouped('-3')}^2`);
+  expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
+});
+
+it.each(['underbar', 'llap', 'rlap', 'clap'])('defers built-in \\%s text context to KaTeX macro expansion', command => {
+  const tex = `\\${command}{Cost - {{x}}} + {{x}}^2`;
+  const actual = substitute(tex, values(-3, -3));
+  const expected = `\\${command}{Cost - {-3}} + {\\left(-3\\right)}^2`;
+  // Parse both branches rather than asserting source bytes: macro expansion owns the mode.
+  const mathml = (source: string) => katex.renderToString(source, { throwOnError: true, output: 'mathml' })
+    .replace(/<annotation[\s\S]*?<\/annotation>/g, '');
+  expect(mathml(actual)).toBe(mathml(expected));
+  const rendered = renderActive('```calc\nx = -3\n```\n\n$' + tex + '$');
+  expect(rendered.messages).toEqual([]); expect(rendered.html).not.toContain('katex-error');
+});
+
+it('also respects a user-defined wrapper that enters text mode during expansion', () => {
+  const result = substitute('\\def\\label#1{\\text{#1}}\\label{Cost - {{x}}} + {{x}}^2', values(-3, -3));
   expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
 });

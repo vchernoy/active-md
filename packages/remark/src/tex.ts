@@ -110,7 +110,11 @@ export function substitute(tex: string, results: readonly Result[], locale?: str
     const left = tex.slice(Math.max(0, leftEnd - 6), leftEnd);
     // A sign after another operator/opening delimiter is unary, not binary.
     const binary = !!operator && !!left && !/[=+\-*/^_([{,:]$/.test(left) && !/\\(?:cdot|times|div)\s*$/.test(left);
-    return `{${!textMode && compound && (power || binary) ? `\\left(${number}\\right)` : number}}`;
+    // Unknown built-in/user macros may enter text mode only during expansion.
+    // Let KaTeX choose at parse time: math gets visible parentheses, text gets
+    // the unchanged number. Known text/verbatim contexts keep their old bytes.
+    return `{${!textMode && compound && (power || binary)
+      ? `\\TextOrMath{${number}}{\\left(${number}\\right)}` : number}}`;
   });
 }
 

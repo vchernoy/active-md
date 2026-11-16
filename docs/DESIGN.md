@@ -427,6 +427,10 @@ for commands/exponents. Text-mode commands such as `\text`/`\emph`/`\operatornam
 `\colorbox`, `\fcolorbox`, including preceding color arguments), and verbatim
 labels keep numeric text without injected math delimiters. This is conservative display
 context handling, not symbolic algebra or a general TeX parser (#30, unreleased).
+For other macros that enter text mode only during expansion, generated grouping uses
+KaTeX’s built-in `\TextOrMath` to select unchanged numeric text versus mathematical
+parentheses at parse time. JavaScript does not expand document macros; KaTeX’s existing
+expansion limit still applies.
 
 ### Calc blocks
 

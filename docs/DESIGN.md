@@ -523,8 +523,13 @@ visibility pruning, using their exact source labels (including multiplication sy
 Compile diagnostics retain the answer directive's position, including blockquotes.
 This does not evaluate or grade input-dependent expected answers.
 
+Optional `quiz-submit` seed bindings must name a declared calc input. Independent
+groups must use distinct seed inputs, and a bound seed cannot have a reader-editable
+`:input` control, including controls in hidden branches. Errors retain submit/control
+source positions. This validation does not initialize or change seeds.
+
 This is authoring validation only: points, accepted-choice flags,
-seed bindings, rendering, grading and attempt state are still unimplemented. Valid quiz
+rendering, grading and attempt state are still unimplemented. Valid quiz
 directives continue to render as literal source until that integration ships; no quiz
 manifest or snapshot API is exported by this prerequisite.
 
@@ -558,7 +563,7 @@ b = randInt(quizSeed, 2, 9, 1)
 - The future runtime exposes attempt/results state for hosts. No such snapshot/event
   API is implemented yet. Hosts own persistence, progress and authoritative grading.
 - Numeric `checkAnswer` and seeded calc draws are implemented prerequisites; grouping
-  validation checks question types/control counts, and compiles answer expressions, but not points, accepted-choice flags or seeds.
+  validation checks question types/control counts, and compiles answer expressions, and validates seed bindings, but not points or accepted-choice flags.
 
 ## 9. Trust levels and security
 

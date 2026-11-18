@@ -56,3 +56,17 @@ test('hidden quiz answer expression errors navigate to the answer and clear afte
   await page.locator('#source').fill(invalid.replace('missing', '10'));
   await expect(page.locator('#problems-title')).toHaveText('No problems');
 });
+
+test('hidden quiz seed binding diagnostics navigate to the submit and clear after a declared binding', async ({ page }) => {
+  await page.goto(url);
+  await expect(page.locator('#source')).not.toHaveValue('');
+  const invalid = ':::::when[0]\n:::question{type=number}\n:answer[10]\n:::\n\n::quiz-submit[Check]{seed=missing}\n:::::';
+  await page.locator('#source').fill(invalid);
+  const problem = page.locator('#problems button').filter({ hasText: 'quiz seed must name' });
+  await expect(problem).toHaveText('Line 6:1 — quiz seed must name a declared calc input');
+  await problem.click();
+  await expect(page.locator('#source')).toBeFocused();
+  expect(await page.locator('#source').evaluate(el => (el as HTMLTextAreaElement).selectionStart)).toBe(invalid.indexOf('::quiz-submit'));
+  await page.locator('#source').fill('```calc\ninput seed = 1\n```\n\n' + invalid.replace('missing', 'seed'));
+  await expect(page.locator('#problems-title')).toHaveText('No problems');
+});

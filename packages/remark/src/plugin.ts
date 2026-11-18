@@ -1,7 +1,8 @@
+import { captureQuizManifest, type QuizManifest } from './quiz-manifest.js';
 import { validateQuizGroups } from './quiz-groups.js';
 import { warnStrayFences } from './stray-fences.js';
 import { checkWhenControls } from './when-check.js';
-import { createSession, formatNumber, parse, parseFormat, type Diagnostic, type Format, type Limits, type Program, type Result } from '@vchernoy/calc';
+import { createSession, scoreQuizGroup, formatNumber, parse, parseFormat, type Diagnostic, type Format, type Limits, type Program, type Result } from '@vchernoy/calc';
 import type { ElementContent } from 'hast';
 import type { Code, Paragraph, Parent, Root, RootContent } from 'mdast';
 import type { ContainerDirective, LeafDirective, TextDirective } from 'mdast-util-directive';
@@ -11,6 +12,8 @@ import type { VFile } from 'vfile';
 import { mathBinding, PLACEHOLDER, substitute } from './tex.js';
 
 export type ActiveOptions = {
+  /** Prepare validated quiz metadata without changing HTML or enabling runtime controls. */
+  quizManifest?: boolean;
   /** Locale for formatting values (default: the runtime's). */
   locale?: string;
   /** Keep calc blocks in the output as code (an author's view). Default false: readers don't see them. */
@@ -21,7 +24,7 @@ export type ActiveOptions = {
 export type CalcBlock = { id: string; text: string };
 
 /** What the plugin leaves on `file.data.active`. */
-export type ActiveData = { blocks: CalcBlock[]; program: Program };
+export type ActiveData = { blocks: CalcBlock[]; program: Program; quiz?: QuizManifest };
 
 declare module 'vfile' {
   interface DataMap { active: ActiveData }
@@ -40,6 +43,7 @@ type Directive = TextDirective | LeafDirective | ContainerDirective;
  */
 export function remarkActive(options: ActiveOptions = {}) {
   return (tree: Root, file: VFile): void => {
+    const quiz = options.quizManifest ? captureQuizManifest(tree, node => labelSource(node as TextDirective, file)) : undefined;
     warnStrayFences(tree, file);
     const blocks: CalcBlock[] = [];
     const blockStart = new Map<string, number>();
@@ -160,6 +164,27 @@ export function remarkActive(options: ActiveOptions = {}) {
     }));
     for (const problem of checkWhenControls(program, checks, controls, options.limits?.maxSteps)) report(problem, at(whenNodes[problem.index]!));
     for (const { parent, node, error } of conditionErrors) parent.children.splice(parent.children.indexOf(node as never), 0, error as never);
+
+    if (quiz && !file.messages.some(message => message.ruleId !== 'warning')) {
+      if ('problem' in quiz) report({ message: quiz.problem, severity: 'error' }, quiz.source);
+      else {
+        const conditions = new Map<string, { line: number; column: number }>();
+        for (const group of quiz.manifest.groups) for (const condition of group.conditions) {
+          if (!conditions.has(condition.expression)) conditions.set(condition.expression, condition.source);
+        }
+        for (const [expression, source] of conditions) {
+          for (const diagnostic of session.compile(expression, 'quiz-condition').diagnostics) {
+            report({ message: `quiz condition: ${diagnostic.message}`, severity: diagnostic.severity }, source);
+          }
+        }
+        for (const group of quiz.manifest.groups) {
+          if (scoreQuizGroup(group.questions.map(question => ({ correct: false, points: question.points }))).kind === 'invalid') {
+            report({ message: 'quiz group point totals must remain finite', severity: 'error' }, group.source);
+          }
+        }
+        if (!file.messages.some(message => message.ruleId !== 'warning')) file.data.active.quiz = quiz.manifest;
+      }
+    }
 
     // Validate the original tree first, including structural errors in dead
     // branches. Remove proven-false subtrees before rehype/KaTeX/serialization;

@@ -32,3 +32,13 @@ The document is wrapped in `<div class="active-doc" data-active-calc="[…calc s
 ## Using the plugin in your own pipeline
 
 `remarkActive(options)` goes after `remark-directive` and `remark-math`; add `rehypeActiveWrap` after `remark-rehype`, then your sanitizer (extend `activeSchema`), then `rehypeActiveKatex`. See `createProcessor` in `src/index.ts`.
+
+## Quiz metadata preparation (unreleased)
+
+`renderActive(source, { quizManifest: true }).quiz` exposes a bounded version1 manifest
+only for an error-free render. It preserves source-order/hidden groups, generated
+identities, original locations, conditions, seed names, normalized weights and numeric
+answer options or stable choice IDs/correct flags. Choice `labelSource` is untrusted
+Markdown, not HTML. The manifest is not embedded in HTML and does not enable runtime
+quiz controls or initialize seeds. Default callers have no quiz property; invalid or
+oversized metadata is omitted atomically. See the [normalized quiz metadata contract](../../docs/DESIGN.md) for limits and identity/visibility scope.

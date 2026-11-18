@@ -528,8 +528,15 @@ groups must use distinct seed inputs, and a bound seed cannot have a reader-edit
 `:input` control, including controls in hidden branches. Errors retain submit/control
 source positions. This validation does not initialize or change seeds.
 
-This is authoring validation only: points, accepted-choice flags,
-rendering, grading and attempt state are still unimplemented. Valid quiz
+Single-choice questions must mark at least one choice accepted. `::choice[...]{correct}`
+or `{correct=true}` marks an accepted choice; `{correct=false}` does not. Other
+correct-flag values are diagnosed at the choice position before visibility pruning.
+Single selection may have several accepted choices (any one earns credit in the
+planned runtime); multiple selection will require the exact accepted set, which may be empty. This pass
+validates authoring only and does not grade responses.
+
+This is authoring validation only: points, rendering, grading and attempt state
+are still unimplemented. Valid quiz
 directives continue to render as literal source until that integration ships; no quiz
 manifest or snapshot API is exported by this prerequisite.
 
@@ -563,7 +570,7 @@ b = randInt(quizSeed, 2, 9, 1)
 - The future runtime exposes attempt/results state for hosts. No such snapshot/event
   API is implemented yet. Hosts own persistence, progress and authoritative grading.
 - Numeric `checkAnswer` and seeded calc draws are implemented prerequisites; grouping
-  validation checks question types/control counts, and compiles answer expressions, and validates seed bindings, but not points or accepted-choice flags.
+  validation checks question types/control counts, and compiles answer expressions, and validates seed bindings, and validates accepted-choice flags, but not points.
 
 ## 9. Trust levels and security
 

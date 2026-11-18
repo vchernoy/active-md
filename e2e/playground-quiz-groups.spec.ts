@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { createServer, type ViteDevServer } from 'vite';
+import type { ViteDevServer } from 'vite';
+import { createPlaygroundServer } from './playground-server';
 let server: ViteDevServer;
 let url: string;
 test.beforeAll(async () => {
-  server = await createServer({ root: new URL('../apps/playground', import.meta.url).pathname, server: { host: '127.0.0.1', port: 0 } });
+  server = await createPlaygroundServer();
   await server.listen();
   url = server.resolvedUrls!.local[0]!;
 });

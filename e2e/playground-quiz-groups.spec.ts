@@ -99,3 +99,17 @@ test('hidden quiz tolerance diagnostics navigate to the answer and clear after c
   await page.locator('#source').fill(invalid.replace('tolerance=-1', 'tolerance=0.01 relative'));
   await expect(page.locator('#problems-title')).toHaveText('No problems');
 });
+
+test('hidden question points diagnostics navigate to the declaration and clear after correction', async ({ page }) => {
+  await page.goto(url);
+  await expect(page.locator('#source')).not.toHaveValue('');
+  const invalid = ':::::when[0]\n:::question{type=number points=-1}\n:answer[10]\n:::\n\n::quiz-submit[Check]\n:::::';
+  await page.locator('#source').fill(invalid);
+  const problem = page.locator('#problems button').filter({ hasText: 'quiz question points must be a finite' });
+  await expect(problem).toHaveText('Line 2:1 — quiz question points must be a finite nonnegative number');
+  await problem.click();
+  await expect(page.locator('#source')).toBeFocused();
+  expect(await page.locator('#source').evaluate(el => (el as HTMLTextAreaElement).selectionStart)).toBe(':::::when[0]\n'.length);
+  await page.locator('#source').fill(invalid.replace('points=-1', 'points=0.5'));
+  await expect(page.locator('#problems-title')).toHaveText('No problems');
+});

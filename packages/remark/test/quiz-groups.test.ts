@@ -63,3 +63,31 @@ it('preserves positions through a Markdown blockquote', () => {
   const text = 'Intro\n\n> :::question{type=number}\n> Question\n>\n> :answer[10]\n> :::';
   expect(renderActive(text).messages).toContainEqual({ message: 'quiz question has no following quiz-submit', severity: 'error', line: 3, column: 3 });
 });
+
+it.each(['', '{type=text}', '{type=""}', '{type=Number}'])('requires an explicit supported question type: %s', attrs => {
+  expect(renderActive(`:::question${attrs}\n:answer[10]\n:::\n\n${submit}`).messages).toContainEqual({ message: 'quiz question type must be number, single or multiple', severity: 'error', line: 1, column: 1 });
+});
+it.each(['No answer here.', ':answer[10]\n\n:answer[11]', '` :answer[10] `', '::answer[10]'])('numeric questions require exactly one correctly formed answer: %s', body => {
+  expect(renderActive(question(body) + '\n\n' + submit).messages).toContainEqual(expect.objectContaining({ message: 'numeric quiz question must contain exactly one :answer control', line: 1, column: 1 }));
+});
+it('rejects choices in numeric questions even alongside a valid answer', () => {
+  expect(renderActive(question(':answer[10]\n\n::choice[Ten]') + '\n\n' + submit).messages).toContainEqual(expect.objectContaining({ message: 'numeric quiz question cannot contain ::choice controls', line: 1 }));
+});
+it.each(['single', 'multiple'])('requires choices and excludes numeric answers for %s', type => {
+  const text = question(':answer[10]').replace('type=number', `type=${type}`) + '\n\n' + submit;
+  expect(renderActive(text).messages.map(message => message.message)).toEqual(expect.arrayContaining(['choice quiz question must contain at least one ::choice control', 'choice quiz question cannot contain :answer controls']));
+});
+it('validates hidden schemas before pruning and preserves blockquote coordinates', () => {
+  const hidden = ':::::when[0]\n:::question{type=number}\nMissing answer\n:::\n\n' + submit + '\n:::::';
+  expect(renderActive(hidden).messages).toContainEqual({ message: 'numeric quiz question must contain exactly one :answer control', severity: 'error', line: 2, column: 1 });
+  const quoted = '> :::question{type=single}\n> No choices\n> :::\n>\n> ' + submit;
+  expect(renderActive(quoted).messages).toContainEqual({ message: 'choice quiz question must contain at least one ::choice control', severity: 'error', line: 1, column: 3 });
+});
+it('does not count a nested question answer toward the outer question', () => {
+  const text = `::::::question{type=number}\n${question()}\n::::::\n\n${submit}`;
+  expect(renderActive(text).messages).toContainEqual({ message: 'numeric quiz question must contain exactly one :answer control', severity: 'error', line: 1, column: 1 });
+});
+it('permits multiple accepted choices for single selection and leaves grading deferred', () => {
+  const text = question('::choice[Ten]{correct}\n\n::choice[10]{correct}').replace('type=number', 'type=single') + '\n\n' + submit;
+  expect(renderActive(text).messages).toEqual([]);
+});

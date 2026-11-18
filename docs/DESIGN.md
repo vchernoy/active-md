@@ -500,7 +500,7 @@ without an implicit epsilon or absolute fallback. Tolerance must be finite/nonne
 This helper does not draw randomness, assign points, persist answers, initialize seeds,
 freeze attempts or provide authoritative grading. The quiz syntax below remains proposed.
 
-### Quiz grouping validation (#48 prerequisite, unreleased)
+### Quiz authoring validation (#48 prerequisites)
 
 Before evaluating or pruning `when`, the plugin validates question/submit source order.
 Each `::quiz-submit` closes all preceding `:::question` containers since the previous
@@ -511,7 +511,14 @@ independent, and conditional explanatory content is allowed. Questions cannot ne
 submits belong outside questions; `:answer` and `::choice` belong inside questions.
 This pass is iterative and linear in tree size and does not evaluate quiz expressions.
 
-This is authoring validation only: question schemas, required-control counts, points,
+The additional type/control-count validation is unreleased.
+Question containers require explicit `type=number`, `type=single` or `type=multiple`.
+Numeric questions require exactly one correctly formed `:answer` and no `::choice`;
+single/multiple questions require at least one `::choice` and no `:answer`. These
+checks also run before visibility pruning, report at the question source position,
+and do not count controls inside nested invalid questions toward their parent.
+
+This is authoring validation only: points, answer expressions, accepted-choice flags,
 seed bindings, rendering, grading and attempt state are still unimplemented. Valid quiz
 directives continue to render as literal source until that integration ships; no quiz
 manifest or snapshot API is exported by this prerequisite.
@@ -546,7 +553,7 @@ b = randInt(quizSeed, 2, 9, 1)
 - The future runtime exposes attempt/results state for hosts. No such snapshot/event
   API is implemented yet. Hosts own persistence, progress and authoritative grading.
 - Numeric `checkAnswer` and seeded calc draws are implemented prerequisites; grouping
-  validation does not yet validate answer counts/types, points, expressions or seeds.
+  validation checks question types/control counts, but not points, expressions, accepted-choice flags or seeds.
 
 ## 9. Trust levels and security
 

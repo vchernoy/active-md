@@ -25,3 +25,20 @@ test('quiz grouping diagnostics precede hidden pruning and navigate to the origi
   await page.locator('#mode-view').click();
   await expect(page.locator('#doc input')).toHaveCount(0);
 });
+
+test('hidden question control diagnostics keep source positions and disappear after correction', async ({ page }) => {
+  await page.goto(url);
+  await expect(page.locator('#source')).not.toHaveValue('');
+  const prefix = ':::::when[0]\n';
+  const invalid = prefix + ':::question{type=number}\nMissing answer\n:::\n\n::quiz-submit[Check]\n:::::';
+  await page.locator('#source').fill(invalid);
+  const problem = page.locator('#problems button').filter({ hasText: 'exactly one :answer' });
+  await expect(problem).toHaveText('Line 2:1 — numeric quiz question must contain exactly one :answer control');
+  await problem.click();
+  await expect(page.locator('#source')).toBeFocused();
+  expect(await page.locator('#source').evaluate(el => (el as HTMLTextAreaElement).selectionStart)).toBe(prefix.length);
+  await page.locator('#source').fill(invalid.replace('Missing answer', 'Answer: :answer[10]'));
+  await expect(page.locator('#problems-title')).toHaveText('No problems');
+  await page.locator('#mode-view').click();
+  await expect(page.locator('#doc input')).toHaveCount(0);
+});

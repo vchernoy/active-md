@@ -50,12 +50,14 @@ export function remarkActive(options: ActiveOptions = {}) {
     const whenNodes: ContainerDirective[] = [];
     const controlNodes: TextDirective[] = [];
     const answerNodes: TextDirective[] = [];
+    const submitNodes: LeafDirective[] = [];
     const structural: { message: string; node: { position?: Root['position'] } }[] = validateQuizGroups(tree);
     const mark = (parent: Parent, enclosing: ContainerDirective[]): void => {
       for (const node of parent.children) {
         ancestors.set(node, enclosing);
         if (node.type === 'textDirective' && node.name === 'input') controlNodes.push(node);
         if (node.type === 'textDirective' && node.name === 'answer') answerNodes.push(node);
+        if (node.type === 'leafDirective' && node.name === 'quiz-submit') submitNodes.push(node);
         const isWhen = node.type === 'containerDirective' && node.name === 'when';
         if (isWhen) whenNodes.push(node as ContainerDirective);
         if (isWhen && enclosing.length >= 8) structural.push({ message: 'when nesting exceeds the depth limit (8)', node });
@@ -94,6 +96,22 @@ export function remarkActive(options: ActiveOptions = {}) {
       m.ruleId = d.severity;
     };
     for (const d of structural) report({ message: d.message, severity: 'error' }, at(d.node));
+    const inputNames = new Set(program.inputs.map(input => input.name));
+    const boundSeeds = new Set<string>();
+    for (const node of submitNodes) {
+      const seed = node.attributes?.seed;
+      if (seed === undefined) continue;
+      if (typeof seed !== 'string' || !inputNames.has(seed)) {
+        report({ message: 'quiz seed must name a declared calc input', severity: 'error' }, at(node));
+      } else if (boundSeeds.has(seed)) {
+        report({ message: 'each quiz group must use its own seed input', severity: 'error' }, at(node));
+      } else boundSeeds.add(seed);
+    }
+    for (const node of controlNodes) {
+      if (boundSeeds.has(labelSource(node, file).trim())) {
+        report({ message: 'quiz seed inputs cannot have reader-editable controls', severity: 'error' }, at(node));
+      }
+    }
     // Validate every authored answer before hidden branches are removed; do not grade it.
     for (const node of answerNodes) {
       const expression = labelSource(node, file).trim();

@@ -42,3 +42,17 @@ test('hidden question control diagnostics keep source positions and disappear af
   await page.locator('#mode-view').click();
   await expect(page.locator('#doc input')).toHaveCount(0);
 });
+
+test('hidden quiz answer expression errors navigate to the answer and clear after correction', async ({ page }) => {
+  await page.goto(url);
+  await expect(page.locator('#source')).not.toHaveValue('');
+  const invalid = ':::::when[0]\n:::question{type=number}\nAnswer: :answer[missing]\n:::\n\n::quiz-submit[Check]\n:::::';
+  await page.locator('#source').fill(invalid);
+  const problem = page.locator('#problems button').filter({ hasText: 'quiz answer: unknown name' });
+  await expect(problem).toHaveText('Line 3:9 — quiz answer: unknown name "missing"');
+  await problem.click();
+  await expect(page.locator('#source')).toBeFocused();
+  expect(await page.locator('#source').evaluate(el => (el as HTMLTextAreaElement).selectionStart)).toBe(invalid.indexOf(':answer'));
+  await page.locator('#source').fill(invalid.replace('missing', '10'));
+  await expect(page.locator('#problems-title')).toHaveText('No problems');
+});

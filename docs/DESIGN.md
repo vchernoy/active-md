@@ -521,7 +521,11 @@ and do not count controls inside nested invalid questions toward their parent.
 Expected `:answer` expressions are compiled through the bounded calc session before
 visibility pruning, using their exact source labels (including multiplication syntax).
 Compile diagnostics retain the answer directive's position, including blockquotes.
-This does not evaluate or grade input-dependent expected answers.
+This does not evaluate or grade input-dependent expected answers. Answer `tolerance`,
+when supplied, must be a nonempty finite nonnegative numeric literal. `relative` is a
+boolean flag: bare/true enables relative mode; false disables it. Invalid attributes
+are diagnosed at the answer before pruning, matching the pure `checkAnswer` contract.
+Omitted options retain its defaults (zero absolute tolerance); grading remains deferred.
 
 Optional `quiz-submit` seed bindings must name a declared calc input. Independent
 groups must use distinct seed inputs, and a bound seed cannot have a reader-editable

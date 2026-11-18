@@ -1,13 +1,14 @@
 import type { Root } from 'mdast';
 
-type TreeNode = { type: string; name?: string; position?: Root['position']; children?: readonly TreeNode[] };
+type TreeNode = { type: string; name?: string; attributes?: Record<string, string | null | undefined> | null | undefined; position?: Root['position']; children?: readonly TreeNode[] };
 export type QuizGroupDiagnostic = { message: string; node: TreeNode };
-type Question = { node: TreeNode; context: object };
+type Question = { node: TreeNode; context: object; answers: number; choices: number };
 
 /** Validate source order before any when evaluation/pruning; no rendering or grading yet. */
 export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
   const problems: QuizGroupDiagnostic[] = [];
   const pending: Question[] = [];
+  const questions: Question[] = [];
   // A unique terminal context identifies the exact enclosing when-node chain.
   // Reusing this identity for siblings avoids copying deep ancestor arrays.
   const stack: { node: TreeNode; context: object; question?: Question }[] = [{ node: root, context: {} }];
@@ -22,7 +23,8 @@ export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
       if (node.type !== 'containerDirective') fail(node, 'quiz question must use a :::question container');
       else {
         if (question) fail(node, 'quiz questions cannot be nested');
-        const next = { node, context };
+        const next = { node, context, answers: 0, choices: 0 };
+        questions.push(next);
         if (!question) pending.push(next);
         question = next;
       }
@@ -40,11 +42,29 @@ export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
       const expected = node.name === 'answer' ? 'textDirective' : 'leafDirective';
       if (node.type !== expected) fail(node, `quiz ${node.name} must use a ${node.name === 'answer' ? ':answer text' : '::choice leaf'} directive`);
       if (!question) fail(node, `quiz ${node.name} must be inside a question container`);
-      else if (context !== question.context) fail(node, `quiz ${node.name} must share its question's enclosing when blocks`);
+      else {
+        if (context !== question.context) fail(node, `quiz ${node.name} must share its question's enclosing when blocks`);
+        if (node.type === expected) {
+          if (node.name === 'answer') question.answers++;
+          else question.choices++;
+        }
+      }
     }
     const children = node.children ?? [];
     for (let i = children.length - 1; i >= 0; i--) {
       stack.push({ node: children[i]!, context, ...(question ? { question } : {}) });
+    }
+  }
+  for (const item of questions) {
+    const type = item.node.attributes?.type;
+    if (type !== 'number' && type !== 'single' && type !== 'multiple') {
+      fail(item.node, 'quiz question type must be number, single or multiple');
+    } else if (type === 'number') {
+      if (item.answers !== 1) fail(item.node, 'numeric quiz question must contain exactly one :answer control');
+      if (item.choices) fail(item.node, 'numeric quiz question cannot contain ::choice controls');
+    } else {
+      if (!item.choices) fail(item.node, 'choice quiz question must contain at least one ::choice control');
+      if (item.answers) fail(item.node, 'choice quiz question cannot contain :answer controls');
     }
   }
   for (const item of pending) fail(item.node, 'quiz question has no following quiz-submit');

@@ -532,6 +532,18 @@ different order for every different seed. Permutation collisions are valid; a fu
 Retry policy requiring a visibly changed order must handle repeated permutations.
 No quiz UI, storage or points integration is introduced.
 
+### Pure group score aggregation (#48 prerequisite, unreleased)
+
+`scoreQuizGroup(results)` accepts already-checked boolean correctness plus optional
+numeric points, defaulting to one per question. Explicit weights must be finite and
+nonnegative; zero-point questions are valid. Sum in caller-supplied source order and
+return earned/max totals plus independent normalized per-question rows. Do not compute
+a percentage or invent special pass/fail behavior for a zero maximum. Groups must be
+nonempty and contain at most `DEFAULT_LIMITS.maxDefinitions` (2000) results. Invalid
+correctness/weights or overflowing totals return an invalid field and optional index,
+never a partial score. The helper does not evaluate raw answers, mutate caller data,
+assign question identities, choose authoring syntax, freeze attempts, or persist scores.
+
 ### Quiz authoring validation (#48 prerequisites)
 
 Before evaluating or pruning `when`, the plugin validates question/submit source order.
@@ -571,8 +583,8 @@ Single selection may have several accepted choices (any one earns credit in the
 planned runtime); multiple selection will require the exact accepted set, which may be empty. This pass
 validates authoring only and does not grade responses.
 
-This is authoring validation only: points, rendering, grading and attempt state
-are still unimplemented. Valid quiz
+This is authoring validation only: points syntax, rendering, runtime grading and
+attempt state are still unimplemented. Valid quiz
 directives continue to render as literal source until that integration ships; no quiz
 manifest or snapshot API is exported by this prerequisite.
 

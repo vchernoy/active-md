@@ -500,6 +500,22 @@ without an implicit epsilon or absolute fallback. Tolerance must be finite/nonne
 This helper does not draw randomness, assign points, persist answers, initialize seeds,
 freeze attempts or provide authoritative grading. The quiz syntax below remains proposed.
 
+### Pure choice checking (#48 prerequisite, unreleased)
+
+`checkChoiceAnswer(choices, givenIds, mode)` is a pure host API alongside `checkAnswer`,
+not a calc-language function. Choices have unique nonempty string IDs and explicit
+boolean correct flags; submitted IDs must be known and unique. Single mode accepts
+at most one selection and awards correctness for any accepted choice. An empty single
+response is incorrect; a single question without accepted choices is invalid. Multiple
+mode requires the exact accepted set, including a valid empty set. Reordering choices
+or selections cannot alter correctness; identity comparisons are case-sensitive.
+
+Each array is bounded by `DEFAULT_LIMITS.maxDefinitions` (2000), and its cumulative ID
+length by `maxSourceLength` (65536 UTF-16 code units), checked before hashing. Invalid
+configuration/response/mode returns an invalid result identifying the affected field, distinct
+from an incorrect valid answer. The helper does not mutate inputs, assign points,
+draw randomness, manage attempts, render controls or persist anything.
+
 ### Quiz authoring validation (#48 prerequisites)
 
 Before evaluating or pruning `when`, the plugin validates question/submit source order.

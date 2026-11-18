@@ -84,3 +84,12 @@ it('accepts the exact serialized budget and rejects one extra code unit atomical
   expect(over).not.toHaveProperty('quiz');
   expect(over.messages).toContainEqual(expect.objectContaining({ message: 'quiz manifest exceeds the serialized budget' }));
 });
+it('does not treat ordinary paragraphs as labels in hidden when containers', () => {
+  const source = '::::::when[0]\n:::::when\n1\n\n' + number() + '\n\n' + submit + '\n:::::\n::::::';
+  const result = manifest(source);
+  expect(result).not.toHaveProperty('quiz');
+  expect(result.messages).toContainEqual(expect.objectContaining({ message: expect.stringContaining('quiz condition:'), line: 2, column: 1 }));
+  const labelled = manifest(source.replace(':::::when\n1', ':::::when[1]\n1'));
+  expect(labelled.messages).toEqual([]);
+  expect(labelled.quiz?.groups[0]?.conditions.map(condition => condition.expression)).toEqual(['0', '1']);
+});

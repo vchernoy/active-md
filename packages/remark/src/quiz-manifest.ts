@@ -1,5 +1,5 @@
 import { DEFAULT_LIMITS } from '@vchernoy/calc';
-import type { Root } from 'mdast';
+import type { Paragraph, Root } from 'mdast';
 type Node = { type: string; name?: string; attributes?: Record<string, string | null | undefined> | null | undefined; position?: Root['position']; children?: readonly Node[] };
 export type QuizSource = { line: number; column: number };
 export type QuizCondition = { expression: string; source: QuizSource };
@@ -30,7 +30,9 @@ export function captureQuizManifest(root: Root, label: (node: Node) => string):
       if (node.type === 'containerDirective' && node.name === 'when') {
         // Existing validation rejects depth >8; cap retained context even on invalid input.
         const depth = (context?.depth ?? 0) + 1;
-        context = { parent: depth <= 8 ? context : undefined, expression: depth <= 8 && node.children?.[0] ? label(node.children[0]).trim() : '', source, depth };
+        const first = node.children?.[0];
+        const expression = depth <= 8 && first?.type === 'paragraph' && (first as Paragraph).data?.directiveLabel ? label(first).trim() : '';
+        context = { parent: depth <= 8 ? context : undefined, expression, source, depth };
       }
       if (node.type === 'containerDirective' && node.name === 'question') {
         if (++questionCount > DEFAULT_LIMITS.maxDefinitions) throw new Error('quiz manifest exceeds the question limit');

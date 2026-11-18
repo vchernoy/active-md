@@ -20,3 +20,20 @@ test('opt-in quiz metadata preserves hidden source groups without changing HTML 
     quiz: { version: 1, groups: [{ id: 'quiz-1', seed: 'seed', conditions: [{ expression: '0', source: { line: 5, column: 1 } }],
       questions: [{ id: 'question-1', type: 'number', points: 0.5, expected: '2*3*4', tolerance: 0.1, relative: true }] }] } });
 });
+
+test('hidden labelless when paragraphs cannot become quiz conditions', async ({ page }) => {
+  await page.goto(url);
+  const path = '/@fs' + new URL('../packages/remark/src/index.ts', import.meta.url).pathname;
+  const source = '::::::when[0]\n:::::when\n1\n\n:::question{type=number}\n:answer[10]\n:::\n\n::quiz-submit[Check]\n:::::\n::::::';
+  const result = await page.evaluate(async ({ path, source }) => {
+    const { renderActive } = await import(path) as typeof import('../packages/remark/src/index.js');
+    const invalid = renderActive(source, { quizManifest: true });
+    const valid = renderActive(source.replace(':::::when\n1', ':::::when[1]\n1'), { quizManifest: true });
+    return { invalidHasQuiz: Object.hasOwn(invalid, 'quiz'), errors: invalid.messages,
+      validErrors: valid.messages, conditions: valid.quiz?.groups[0]?.conditions.map(condition => condition.expression) };
+  }, { path, source });
+  expect(result.invalidHasQuiz).toBe(false);
+  expect(result.errors).toContainEqual(expect.objectContaining({ message: expect.stringContaining('quiz condition:'), line: 2, column: 1 }));
+  expect(result.validErrors).toEqual([]);
+  expect(result.conditions).toEqual(['0', '1']);
+});

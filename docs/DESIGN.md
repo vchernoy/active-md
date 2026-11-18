@@ -554,6 +554,8 @@ manifest. The option does not change sanitized HTML, initialize seeds or enable 
 
 Groups have generated `quiz-N` IDs, submit source locations, outer-to-inner conditional
 expressions with their source locations, optional seed-input names, and questions.
+Condition expressions come only from `:::when[...]` directive labels; a labelless
+container cannot infer a condition from its ordinary body paragraphs.
 Questions have document-order `question-N` IDs, type, normalized points and source
 locations. Numeric questions carry exact expected-expression source, tolerance and
 relative mode. Choice questions carry per-question `choice-N` IDs, raw `labelSource`

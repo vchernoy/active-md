@@ -518,7 +518,12 @@ single/multiple questions require at least one `::choice` and no `:answer`. Thes
 checks also run before visibility pruning, report at the question source position,
 and do not count controls inside nested invalid questions toward their parent.
 
-This is authoring validation only: points, answer expressions, accepted-choice flags,
+Expected `:answer` expressions are compiled through the bounded calc session before
+visibility pruning, using their exact source labels (including multiplication syntax).
+Compile diagnostics retain the answer directive's position, including blockquotes.
+This does not evaluate or grade input-dependent expected answers.
+
+This is authoring validation only: points, accepted-choice flags,
 seed bindings, rendering, grading and attempt state are still unimplemented. Valid quiz
 directives continue to render as literal source until that integration ships; no quiz
 manifest or snapshot API is exported by this prerequisite.
@@ -553,7 +558,7 @@ b = randInt(quizSeed, 2, 9, 1)
 - The future runtime exposes attempt/results state for hosts. No such snapshot/event
   API is implemented yet. Hosts own persistence, progress and authoritative grading.
 - Numeric `checkAnswer` and seeded calc draws are implemented prerequisites; grouping
-  validation checks question types/control counts, but not points, expressions, accepted-choice flags or seeds.
+  validation checks question types/control counts, and compiles answer expressions, but not points, accepted-choice flags or seeds.
 
 ## 9. Trust levels and security
 

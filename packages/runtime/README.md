@@ -47,3 +47,13 @@ this API does not introduce quizzes, event initializers, or a persistence layer.
 synchronizes controls and clears unfinished invalid control text even when the model
 already equals defaults. Await `live.settled()` for math updates. Reset does nothing after
 `destroy()`. Hosts own storage deletion/reset policy and lifecycle cancellation.
+
+## Quiz metadata inspection (unreleased)
+
+`inspectQuizManifest(value)` validates unknown object data against the bounded v1
+compiler metadata schema and copies only known fields into an independent manifest.
+It returns `{ kind: 'valid', manifest }` or an invalid `reason` (`malformed`, `version`,
+`too-large`). Empty documents are valid; malformed/oversized groups and ambiguous
+identities are rejected atomically. It does not parse JSON, compile expressions,
+prove source/session compatibility, sanitize label Markdown into HTML, mount quizzes,
+initialize seeds or persist answers. Existing `mount()` behavior is unchanged.

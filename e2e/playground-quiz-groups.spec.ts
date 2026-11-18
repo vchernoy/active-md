@@ -84,3 +84,17 @@ test('hidden single-choice acceptance diagnostics navigate to the question and c
   await page.locator('#source').fill(invalid.replace('correct=false', 'correct'));
   await expect(page.locator('#problems-title')).toHaveText('No problems');
 });
+
+test('hidden quiz tolerance diagnostics navigate to the answer and clear after correction', async ({ page }) => {
+  await page.goto(url);
+  await expect(page.locator('#source')).not.toHaveValue('');
+  const invalid = ':::::when[0]\n:::question{type=number}\nAnswer: :answer[10]{tolerance=-1}\n:::\n\n::quiz-submit[Check]\n:::::';
+  await page.locator('#source').fill(invalid);
+  const problem = page.locator('#problems button').filter({ hasText: 'quiz answer tolerance' });
+  await expect(problem).toHaveText('Line 3:9 — quiz answer tolerance must be a finite nonnegative number');
+  await problem.click();
+  await expect(page.locator('#source')).toBeFocused();
+  expect(await page.locator('#source').evaluate(el => (el as HTMLTextAreaElement).selectionStart)).toBe(invalid.indexOf(':answer'));
+  await page.locator('#source').fill(invalid.replace('tolerance=-1', 'tolerance=0.01 relative'));
+  await expect(page.locator('#problems-title')).toHaveText('No problems');
+});

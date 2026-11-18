@@ -114,6 +114,15 @@ export function remarkActive(options: ActiveOptions = {}) {
     }
     // Validate every authored answer before hidden branches are removed; do not grade it.
     for (const node of answerNodes) {
+      const tolerance = node.attributes?.tolerance;
+      if (tolerance !== undefined && (typeof tolerance !== 'string' || !tolerance.trim() ||
+          !Number.isFinite(Number(tolerance)) || Number(tolerance) < 0)) {
+        report({ message: 'quiz answer tolerance must be a finite nonnegative number', severity: 'error' }, at(node));
+      }
+      const relative = node.attributes?.relative;
+      if (relative !== undefined && relative !== null && relative !== '' && relative !== 'true' && relative !== 'false') {
+        report({ message: 'quiz answer relative must be a boolean flag (true or false)', severity: 'error' }, at(node));
+      }
       const expression = labelSource(node, file).trim();
       for (const diagnostic of session.compile(expression, 'quiz-answer').diagnostics) {
         report({ message: `quiz answer: ${diagnostic.message}`, severity: diagnostic.severity }, at(node));

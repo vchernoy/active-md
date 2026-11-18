@@ -2,7 +2,7 @@ import type { Root } from 'mdast';
 
 type TreeNode = { type: string; name?: string; attributes?: Record<string, string | null | undefined> | null | undefined; position?: Root['position']; children?: readonly TreeNode[] };
 export type QuizGroupDiagnostic = { message: string; node: TreeNode };
-type Question = { node: TreeNode; context: object; answers: number; choices: number; acceptedChoices: number };
+type Question = { node: TreeNode; context: object; answers: number; choices: number; acceptedChoices: number; pointSources: TreeNode[] };
 
 /** Validate source order before any when evaluation/pruning; no rendering or grading yet. */
 export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
@@ -23,7 +23,7 @@ export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
       if (node.type !== 'containerDirective') fail(node, 'quiz question must use a :::question container');
       else {
         if (question) fail(node, 'quiz questions cannot be nested');
-        const next = { node, context, answers: 0, choices: 0, acceptedChoices: 0 };
+        const next = { node, context, answers: 0, choices: 0, acceptedChoices: 0, pointSources: node.attributes?.points !== undefined ? [node] : [] };
         questions.push(next);
         if (!question) pending.push(next);
         question = next;
@@ -45,9 +45,12 @@ export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
       else {
         if (context !== question.context) fail(node, `quiz ${node.name} must share its question's enclosing when blocks`);
         if (node.type === expected) {
-          if (node.name === 'answer') question.answers++;
-          else {
+          if (node.name === 'answer') {
+            question.answers++;
+            if (node.attributes?.points !== undefined) question.pointSources.push(node);
+          } else {
             question.choices++;
+            if (node.attributes?.points !== undefined) fail(node, 'quiz points belong on the question, not an individual choice');
             const correct = node.attributes?.correct;
             if (correct === '' || correct === null || correct === 'true') question.acceptedChoices++;
             else if (correct !== undefined && correct !== 'false') fail(node, 'quiz choice correct must be a boolean flag (true or false)');
@@ -61,6 +64,14 @@ export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
     }
   }
   for (const item of questions) {
+    for (let i = 0; i < item.pointSources.length; i++) {
+      const node = item.pointSources[i]!;
+      const points = node.attributes?.points;
+      if (typeof points !== 'string' || !points.trim() || !Number.isFinite(Number(points)) || Number(points) < 0) {
+        fail(node, 'quiz question points must be a finite nonnegative number');
+      }
+      if (i > 0) fail(node, 'quiz question points must be declared only once');
+    }
     const type = item.node.attributes?.type;
     if (type !== 'number' && type !== 'single' && type !== 'multiple') {
       fail(item.node, 'quiz question type must be number, single or multiple');

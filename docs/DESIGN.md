@@ -583,8 +583,15 @@ Single selection may have several accepted choices (any one earns credit in the
 planned runtime); multiple selection will require the exact accepted set, which may be empty. This pass
 validates authoring only and does not grade responses.
 
-This is authoring validation only: points syntax, rendering, runtime grading and
-attempt state are still unimplemented. Valid quiz
+Question `points` is an optional finite nonnegative number (default one), including
+zero or fractional weights. It applies to the whole question for every answer mode.
+The earlier numeric `:answer[...]{points=...}` form remains an alias for that question;
+declare the weight in only one place, even if duplicate values agree. Individual
+`::choice` weights are rejected. Validate these attributes before hidden pruning and
+report at their original source positions.
+
+This is authoring validation only: rendering, runtime grading and attempt state
+are still unimplemented. Valid quiz
 directives continue to render as literal source until that integration ships; no quiz
 manifest or snapshot API is exported by this prerequisite.
 
@@ -618,7 +625,7 @@ b = randInt(quizSeed, 2, 9, 1)
 - The future runtime exposes attempt/results state for hosts. No such snapshot/event
   API is implemented yet. Hosts own persistence, progress and authoritative grading.
 - Numeric `checkAnswer` and seeded calc draws are implemented prerequisites; grouping
-  validation checks question types/control counts, and compiles answer expressions, and validates seed bindings, and validates accepted-choice flags, but not points.
+  validation checks question types/control counts, and compiles answer expressions, and validates seed bindings, and validates accepted-choice flags and question points.
 
 ## 9. Trust levels and security
 

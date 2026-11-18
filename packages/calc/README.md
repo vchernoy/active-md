@@ -32,3 +32,10 @@ the exact correct set, including empty. Malformed, duplicate or unknown IDs retu
 `{ kind: 'checked', correct }`. Arrays are bounded to 2000 entries and 65536 cumulative
 ID code units per array. It is a pure host API, not a calc-language function or quiz
 UI/attempt/scoring integration.
+
+`shuffleChoiceIds(ids, seed, draw = 0)` returns `{ kind: 'shuffled', ids }` using
+deterministic v1 Fisher–Yates, or `{ kind: 'invalid', field, message }`. It accepts
+unique nonempty string IDs (same entry/length budgets), uint32 seed/draw, and rejects
+draw-counter overflow. Empty/single-ID lists are valid; callers' lists are untouched.
+Identical inputs reproduce the order. Different seeds may produce the same order;
+this helper does not initialize seeds, generate entropy or implement Retry. Unreleased.

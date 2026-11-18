@@ -37,3 +37,23 @@ test('hidden labelless when paragraphs cannot become quiz conditions', async ({ 
   expect(result.validErrors).toEqual([]);
   expect(result.conditions).toEqual(['0', '1']);
 });
+
+test('runtime inspection copies compiler metadata and rejects tampering without DOM changes', async ({ page }) => {
+  await page.goto(url);
+  const remarkPath = '/@fs' + new URL('../packages/remark/src/index.ts', import.meta.url).pathname;
+  const runtimePath = '/@fs' + new URL('../packages/runtime/src/index.ts', import.meta.url).pathname;
+  const result = await page.evaluate(async ({ remarkPath, runtimePath }) => {
+    const { renderActive } = await import(remarkPath) as typeof import('../packages/remark/src/index.js');
+    const { inspectQuizManifest } = await import(runtimePath) as typeof import('../packages/runtime/src/index.js');
+    const input = renderActive(':::question{type=number}\n:answer[10]\n:::\n\n::quiz-submit[Check]', { quizManifest: true }).quiz!;
+    const before = document.body.innerHTML;
+    const checked = inspectQuizManifest(input);
+    if (checked.kind !== 'valid') throw new Error('Invalid fixture');
+    input.groups[0]!.questions[0]!.points = 99;
+    const version = inspectQuizManifest({ ...input, version: 2 });
+    input.groups[0]!.questions.push(input.groups[0]!.questions[0]!);
+    return { independentPoints: checked.manifest.groups[0]!.questions[0]!.points,
+      version, duplicate: inspectQuizManifest(input), unchanged: document.body.innerHTML === before };
+  }, { remarkPath, runtimePath });
+  expect(result).toEqual({ independentPoints: 1, version: { kind: 'invalid', reason: 'version' }, duplicate: { kind: 'invalid', reason: 'malformed' }, unchanged: true });
+});

@@ -258,3 +258,5 @@ function showResult(el: HTMLElement, result: Result, format: Format, locale: str
   if (el.textContent !== text) el.textContent = text;
   el.classList.toggle('active-error', result.kind === 'error');
 }
+
+export { inspectQuizManifest, type QuizManifestInspection } from './quiz-manifest.js';

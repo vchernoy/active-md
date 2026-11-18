@@ -569,6 +569,25 @@ Returned metadata is independent on every render and is never embedded in HTML.
 Runtime controls, metadata mounting, attempt transitions and host snapshots remain
 unimplemented. This is a compiler boundary for subsequent integration, not enabled quizzes.
 
+### Runtime quiz metadata inspection (#48 prerequisite, unreleased)
+
+`inspectQuizManifest(value)` is a runtime schema boundary for unknown object data.
+It returns `{ kind: 'valid', manifest }` with independent copies of known fields, or
+`{ kind: 'invalid', reason }` (`malformed`, `version`, or `too-large`). Root version
+must be one; groups/questions/choices and normalized positions, weights, conditions,
+answer options and correct flags are validated without coercion. Require unique group
+and document question IDs, per-question choice IDs and independent group seed names.
+Single selection requires an accepted choice; multiple selection permits an empty
+correct set. Validate finite group totals and the compiler's count/depth/text/serialized
+budgets before exposing any data. Length checks precede trimming and identity hashing;
+unknown extras are not traversed or copied. Getter failures return invalid results.
+
+This inspection does not parse JSON strings, compile/evaluate expressions, prove
+current source/session/DOM compatibility, render untrusted labels, initialize seeds,
+mount quiz metadata or grade attempts. A structurally valid expression may still be
+incompatible with the current calc program; later integration must check that boundary.
+No default mount behavior or persistence policy changes.
+
 ### Quiz authoring validation (#48 prerequisites)
 
 Before evaluating or pruning `when`, the plugin validates question/submit source order.

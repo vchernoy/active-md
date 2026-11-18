@@ -39,3 +39,10 @@ unique nonempty string IDs (same entry/length budgets), uint32 seed/draw, and re
 draw-counter overflow. Empty/single-ID lists are valid; callers' lists are untouched.
 Identical inputs reproduce the order. Different seeds may produce the same order;
 this helper does not initialize seeds, generate entropy or implement Retry. Unreleased.
+
+`scoreQuizGroup(results)` sums already-checked `{ correct, points? }` rows, defaulting
+to one point per question. Finite nonnegative weights (including zero) produce
+`{ kind: 'scored', earned, max, results }` with independent normalized rows; malformed
+rows/weights, empty or oversized groups, and overflow produce an invalid field/index.
+Groups are bounded to 2000 results. No raw-answer checking, percentage/pass policy,
+points authoring syntax, attempt lifecycle or persistence is implied. Unreleased.

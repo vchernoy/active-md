@@ -8,3 +8,4 @@ export type { Definition, Diagnostic, Expr, Limits, NameInfo, Program, Range, Re
 export { checkAnswer, type NumericAnswerOptions, type NumericAnswerCheck } from './answer.js';
 export { checkChoiceAnswer, type ChoiceOption, type ChoiceMode, type ChoiceAnswerCheck } from './choice-answer.js';
 export { shuffleChoiceIds, type ChoiceOrderResult } from './choice-order.js';
+export { scoreQuizGroup, type QuizScoreInput, type ScoredQuestion, type QuizGroupScore } from './quiz-score.js';

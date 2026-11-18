@@ -39,3 +39,17 @@ test('seeded choice ordering has identical v1 vectors across browsers', async ({
     { kind: 'shuffled', ids: ['b', 'a', 'c', 'd'] }, { kind: 'shuffled', ids: [] },
     { kind: 'invalid', field: 'draw', message: 'draw sequence must fit unsigned 32-bit integers' }]);
 });
+
+test('pure quiz group scoring aggregates checked answers in browsers', async ({ page }) => {
+  await page.goto(url);
+  const modulePath = '/@fs' + new URL('../packages/calc/src/index.ts', import.meta.url).pathname;
+  const result = await page.evaluate(async path => {
+    const { scoreQuizGroup, checkAnswer, checkChoiceAnswer } = await import(path) as typeof import('../packages/calc/src/index.js');
+    const number = checkAnswer(10, 10), choice = checkChoiceAnswer([{ id: 'a', correct: true }], ['a'], 'single');
+    if (number.kind !== 'checked' || choice.kind !== 'checked') throw new Error('Invalid fixture');
+    return [scoreQuizGroup(Object.freeze([Object.freeze({ correct: number.correct }), Object.freeze({ correct: choice.correct, points: 2 }), Object.freeze({ correct: false, points: 0 })])),
+      scoreQuizGroup([{ correct: false, points: Number.MAX_VALUE }, { correct: false, points: Number.MAX_VALUE }])];
+  }, modulePath);
+  expect(result).toEqual([{ kind: 'scored', earned: 3, max: 3, results: [{ correct: true, points: 1, earned: 1 }, { correct: true, points: 2, earned: 2 }, { correct: false, points: 0, earned: 0 }] },
+    { kind: 'invalid', field: 'total', index: 1, message: 'quiz point totals must remain finite' }]);
+});

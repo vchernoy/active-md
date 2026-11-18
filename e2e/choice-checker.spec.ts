@@ -23,3 +23,19 @@ test('pure choice checker works in browsers with stable identities after reorder
     { kind: 'checked', correct: true }, { kind: 'checked', correct: true }, { kind: 'checked', correct: true },
     { kind: 'checked', correct: false }, { kind: 'invalid', field: 'given', message: 'submitted IDs must be known and unique' }]);
 });
+
+test('seeded choice ordering has identical v1 vectors across browsers', async ({ page }) => {
+  await page.goto(url);
+  const modulePath = '/@fs' + new URL('../packages/calc/src/index.ts', import.meta.url).pathname;
+  const result = await page.evaluate(async path => {
+    const { shuffleChoiceIds } = await import(path) as typeof import('../packages/calc/src/index.js');
+    const ids = Object.freeze(['a', 'b', 'c', 'd']);
+    return [shuffleChoiceIds(ids, 0), shuffleChoiceIds(ids, 42), shuffleChoiceIds(ids, 42, 3),
+      shuffleChoiceIds(ids, 4294967295, 4294967293), shuffleChoiceIds([], 1),
+      shuffleChoiceIds(ids, 1, 4294967294)];
+  }, modulePath);
+  expect(result).toEqual([{ kind: 'shuffled', ids: ['c', 'd', 'b', 'a'] },
+    { kind: 'shuffled', ids: ['c', 'b', 'd', 'a'] }, { kind: 'shuffled', ids: ['b', 'd', 'c', 'a'] },
+    { kind: 'shuffled', ids: ['b', 'a', 'c', 'd'] }, { kind: 'shuffled', ids: [] },
+    { kind: 'invalid', field: 'draw', message: 'draw sequence must fit unsigned 32-bit integers' }]);
+});

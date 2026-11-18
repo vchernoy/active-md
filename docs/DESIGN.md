@@ -516,6 +516,22 @@ configuration/response/mode returns an invalid result identifying the affected f
 from an incorrect valid answer. The helper does not mutate inputs, assign points,
 draw randomness, manage attempts, render controls or persist anything.
 
+### Pure seeded choice ordering (#48 prerequisite, unreleased)
+
+`shuffleChoiceIds(ids, seed, draw = 0)` returns a fresh permutation of stable IDs.
+Version 1 uses descending Fisher–Yates, with the existing v1 seeded integer draws at
+counters `draw` through `draw + ids.length - 2` for two or more IDs (none otherwise). Identical ordered IDs/seed/draw are
+reproducible across engines. Seed and every used draw must be uint32; reject counter
+overflow rather than wrap. Empty/single-ID arrays remain valid fresh permutations.
+IDs must be unique nonempty strings; the existing 2000-entry/65536 cumulative-code-unit
+budgets apply, with lengths checked before hashing. Invalid inputs return a field and
+message. Choice identities and correctness metadata remain the caller's responsibility.
+
+This helper does not draw entropy, change calc inputs, manage attempts or promise a
+different order for every different seed. Permutation collisions are valid; a future
+Retry policy requiring a visibly changed order must handle repeated permutations.
+No quiz UI, storage or points integration is introduced.
+
 ### Quiz authoring validation (#48 prerequisites)
 
 Before evaluating or pruning `when`, the plugin validates question/submit source order.

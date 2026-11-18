@@ -544,6 +544,29 @@ correctness/weights or overflowing totals return an invalid field and optional i
 never a partial score. The helper does not evaluate raw answers, mutate caller data,
 assign question identities, choose authoring syntax, freeze attempts, or persist scores.
 
+### Opt-in normalized quiz metadata (#48 prerequisite, unreleased)
+
+`renderActive(source, { quizManifest: true })` may return `quiz: { version: 1, groups }`.
+Default callers receive no quiz property. Capture source order before directive
+transforms/hidden pruning; publish only after an error-free render. Invalid authoring,
+conditions, overflowing group point totals or metadata budgets produce no partial
+manifest. The option does not change sanitized HTML, initialize seeds or enable quiz UI.
+
+Groups have generated `quiz-N` IDs, submit source locations, outer-to-inner conditional
+expressions with their source locations, optional seed-input names, and questions.
+Questions have document-order `question-N` IDs, type, normalized points and source
+locations. Numeric questions carry exact expected-expression source, tolerance and
+relative mode. Choice questions carry per-question `choice-N` IDs, raw `labelSource`
+Markdown, correct flags and source locations. Label source is untrusted Markdown,
+not sanitized HTML. IDs reproduce for the same source order; choice identity is scoped
+to its question. Consumers must apply group conditions before including any score.
+
+At most 2000 questions and 2000 choices are captured per document. Captured text and
+serialized JSON each have a 65536 UTF-16-code-unit budget; condition depth remains eight.
+Returned metadata is independent on every render and is never embedded in HTML.
+Runtime controls, metadata mounting, attempt transitions and host snapshots remain
+unimplemented. This is a compiler boundary for subsequent integration, not enabled quizzes.
+
 ### Quiz authoring validation (#48 prerequisites)
 
 Before evaluating or pruning `when`, the plugin validates question/submit source order.
@@ -592,8 +615,8 @@ report at their original source positions.
 
 This is authoring validation only: rendering, runtime grading and attempt state
 are still unimplemented. Valid quiz
-directives continue to render as literal source until that integration ships; no quiz
-manifest or snapshot API is exported by this prerequisite.
+directives continue to render as literal source until that integration ships; opt-in normalized metadata is available as described above, but no attempt
+snapshot API is implemented.
 
 ## 8. Quizzes and tests (course-platform)
 

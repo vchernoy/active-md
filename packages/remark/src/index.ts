@@ -1,3 +1,4 @@
+import type { QuizManifest } from './quiz-manifest.js';
 import type { Program } from '@vchernoy/calc';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
@@ -13,6 +14,7 @@ import { activeSchema } from './sanitize.js';
 
 export { remarkActive, type ActiveData, type ActiveOptions, type CalcBlock } from './plugin.js';
 export { rehypeActiveKatex, rehypeActiveWrap, renderTex, type KatexOptions } from './rehype.js';
+export type { QuizManifest, QuizGroup, QuizQuestion, QuizChoice, QuizCondition, QuizSource } from './quiz-manifest.js';
 export { activeSchema } from './sanitize.js';
 export { mathBinding, formattedTexNumber, type MathBinding, placeholders, substitute, texNumber, katexSettings, PLACEHOLDER, type MathOutput } from './tex.js';
 
@@ -25,6 +27,8 @@ export type RenderResult = {
   html: string;
   program: Program | undefined;
   messages: RenderMessage[];
+  /** Explicitly requested, bounded quiz metadata. Absent on rendering errors. */
+  quiz?: QuizManifest;
 };
 
 /** The full untrusted-safe pipeline: Markdown (GFM, directives, math, calc) to sanitized HTML. */
@@ -50,6 +54,7 @@ export function createProcessor(options: RenderOptions = {}) {
 export function renderActive(markdown: string, options: RenderOptions = {}): RenderResult {
   const file = createProcessor(options).processSync(markdown);
   return {
+    ...(file.data.active?.quiz && !file.messages.some(m => m.ruleId !== 'warning') ? { quiz: file.data.active.quiz } : {}),
     html: String(file),
     program: file.data.active?.program,
     messages: file.messages.map(m => ({

@@ -6,3 +6,4 @@ export { BUILTINS } from './builtins.js';
 export { DEFAULT_LIMITS } from './types.js';
 export type { Definition, Diagnostic, Expr, Limits, NameInfo, Program, Range, Result, Severity, Span } from './types.js';
 export { checkAnswer, type NumericAnswerOptions, type NumericAnswerCheck } from './answer.js';
+export { checkChoiceAnswer, type ChoiceOption, type ChoiceMode, type ChoiceAnswerCheck } from './choice-answer.js';

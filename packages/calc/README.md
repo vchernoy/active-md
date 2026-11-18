@@ -21,3 +21,14 @@ s.compile('round(growth, 2)').evaluate();   // for :value[…] and {{…}} bindi
 ```
 
 v0 language: `input name = number [in min..max]`, `name = expression`; numbers, `+ - * / % ^`, unary minus, parentheses; `round(x[, digits])`, `min`, `max`, `abs`, `floor`, `ceil`, `sqrt`. Each name is defined once, and an expression uses only names defined above it. See [docs/DESIGN.md](../../docs/DESIGN.md) §0.
+
+## Choice self-check API (unreleased)
+
+`checkChoiceAnswer(choices, givenIds, 'single' | 'multiple')` checks stable string
+identities independently of display order. Each choice has `{ id, correct }` with a
+boolean flag. Single mode accepts any one correct choice; multiple mode requires
+the exact correct set, including empty. Malformed, duplicate or unknown IDs return
+`{ kind: 'invalid', field, message }`; valid submissions return
+`{ kind: 'checked', correct }`. Arrays are bounded to 2000 entries and 65536 cumulative
+ID code units per array. It is a pure host API, not a calc-language function or quiz
+UI/attempt/scoring integration.

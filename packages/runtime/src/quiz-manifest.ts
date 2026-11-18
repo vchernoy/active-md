@@ -12,13 +12,18 @@ export function inspectQuizManifest(value: unknown): QuizManifestInspection {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return fail('malformed');
     return raw as Record<string, unknown>;
   };
-  const list = (raw: unknown, max = DEFAULT_LIMITS.maxDefinitions): unknown[] => {
+  const list = (raw: unknown, max = DEFAULT_LIMITS.maxDefinitions) => {
     if (!Array.isArray(raw)) return fail('malformed');
-    if (raw.length > max) return fail('too-large');
-    for (let index = 0; index < raw.length; index++) {
-      if (!Object.hasOwn(raw, index)) return fail('malformed');
-    }
-    return raw;
+    const length = raw.length;
+    if (length > max) return fail('too-large');
+    return { length, map<T>(visit: (value: unknown) => T): T[] {
+      const copied: T[] = [];
+      for (let index = 0; index < length; index++) {
+        if (!Object.hasOwn(raw, index)) return fail('malformed');
+        copied.push(visit(raw[index]));
+      }
+      return copied;
+    } };
   };
   let chars = 0, questionCount = 0, choiceCount = 0;
   const text = (raw: unknown, nonempty = true): string => {

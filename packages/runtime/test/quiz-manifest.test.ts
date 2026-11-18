@@ -113,3 +113,32 @@ it('rejects sparse arrays at every schema collection boundary', () => {
     expect(inspectQuizManifest(change(path, new Array(1)))).toEqual({ kind: 'invalid', reason: 'malformed' });
   }
 });
+
+const collectionPaths = [['groups'], ['groups', 0, 'conditions'], ['groups', 0, 'questions'], ['groups', 0, 'questions', 1, 'choices']] as const;
+it.each(collectionPaths.map(path => [path] as const))('ignores input-provided map at collection %j', (path) => {
+  const input = fixture(); let node: unknown = input;
+  for (const key of path) node = (node as Record<string | number, unknown>)[key];
+  const collection = node as unknown[];
+  Object.defineProperty(collection, 'map', { get() { throw new Error('Untrusted map accessed'); } });
+  const checked = inspectQuizManifest(input);
+  expect(checked.kind).toBe('valid');
+  if (checked.kind !== 'valid') throw new Error('Invalid fixture');
+  expect(checked.manifest).toEqual(fixture());
+  expect(checked.manifest.groups).not.toBe(input.groups);
+});
+it.each(collectionPaths.map(path => [path] as const))('rejects getter-deleted elements at collection %j', (path) => {
+  const input = fixture(); let node: unknown = input;
+  for (const key of path) node = (node as Record<string | number, unknown>)[key];
+  const collection = node as unknown[];
+  const first = collection[0]; collection[1] = structuredClone(first);
+  Object.defineProperty(collection, 0, { get() { delete collection[1]; return first; } });
+  expect(inspectQuizManifest(input)).toEqual({ kind: 'invalid', reason: 'malformed' });
+});
+it('bounds traversal to the original length when getters append elements', () => {
+  const input = fixture(); const first = input.groups[0]!;
+  Object.defineProperty(input.groups, 0, { get() { input.groups.push(first); return first; } });
+  const checked = inspectQuizManifest(input);
+  expect(checked.kind).toBe('valid');
+  if (checked.kind !== 'valid') throw new Error('Invalid fixture');
+  expect(checked.manifest.groups).toHaveLength(1);
+});

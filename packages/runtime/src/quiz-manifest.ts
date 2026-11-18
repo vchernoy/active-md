@@ -14,7 +14,8 @@ export function inspectQuizManifest(value: unknown): QuizManifestInspection {
   };
   const list = (raw: unknown, max = DEFAULT_LIMITS.maxDefinitions) => {
     if (!Array.isArray(raw)) return fail('malformed');
-    const length = raw.length;
+    const length: unknown = raw.length;
+    if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0) return fail('malformed');
     if (length > max) return fail('too-large');
     return { length, map<T>(visit: (value: unknown) => T): T[] {
       const copied: T[] = [];

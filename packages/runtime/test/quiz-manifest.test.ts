@@ -142,3 +142,26 @@ it('bounds traversal to the original length when getters append elements', () =>
   if (checked.kind !== 'valid') throw new Error('Invalid fixture');
   expect(checked.manifest.groups).toHaveLength(1);
 });
+
+it.each([-1, 0.5, NaN, Infinity, '2', null, undefined, 2n, Number.MAX_SAFE_INTEGER + 1])('rejects proxy-supplied noninteger length %s without consuming entries', length => {
+  const choices = new Proxy([], { get(_target, key) {
+    if (key === 'length') return length;
+    throw new Error('Invalid-length entries must not be read');
+  } });
+  const input = change(['groups', 0, 'questions', 1, 'choices'], choices);
+  input.groups[0]!.questions[1]!.type = 'multiple'; // Empty accepted sets cannot hide a negative proxy length.
+  expect(inspectQuizManifest(input)).toEqual({ kind: 'invalid', reason: 'malformed' });
+});
+it('rejects length objects without coercing their stateful valueOf', () => {
+  let calls = 0;
+  const length = { valueOf() { return calls++ === 0 ? 0 : 9; } };
+  const conditions = new Proxy([], { get(_target, key) { if (key === 'length') return length; throw new Error('Unexpected read'); } });
+  expect(inspectQuizManifest(change(['groups', 0, 'conditions'], conditions))).toEqual({ kind: 'invalid', reason: 'malformed' });
+  expect(calls).toBe(0);
+});
+it('accepts a dense ordinary-length proxy while rejecting its oversized counterpart before reads', () => {
+  const input = fixture(); input.groups = new Proxy(input.groups, {});
+  expect(inspectQuizManifest(input)).toEqual({ kind: 'valid', manifest: fixture() });
+  const groups = new Proxy([], { get(_target, key) { if (key === 'length') return 2001; throw new Error('Unexpected read'); } });
+  expect(inspectQuizManifest({ version: 1, groups })).toEqual({ kind: 'invalid', reason: 'too-large' });
+});

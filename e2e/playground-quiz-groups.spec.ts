@@ -70,3 +70,17 @@ test('hidden quiz seed binding diagnostics navigate to the submit and clear afte
   await page.locator('#source').fill('```calc\ninput seed = 1\n```\n\n' + invalid.replace('missing', 'seed'));
   await expect(page.locator('#problems-title')).toHaveText('No problems');
 });
+
+test('hidden single-choice acceptance diagnostics navigate to the question and clear after correction', async ({ page }) => {
+  await page.goto(url);
+  await expect(page.locator('#source')).not.toHaveValue('');
+  const invalid = ':::::when[0]\n:::question{type=single}\n::choice[Ten]{correct=false}\n:::\n\n::quiz-submit[Check]\n:::::';
+  await page.locator('#source').fill(invalid);
+  const problem = page.locator('#problems button').filter({ hasText: 'must mark at least one choice correct' });
+  await expect(problem).toHaveText('Line 2:1 — choice quiz question must mark at least one choice correct');
+  await problem.click();
+  await expect(page.locator('#source')).toBeFocused();
+  expect(await page.locator('#source').evaluate(el => (el as HTMLTextAreaElement).selectionStart)).toBe(':::::when[0]\n'.length);
+  await page.locator('#source').fill(invalid.replace('correct=false', 'correct'));
+  await expect(page.locator('#problems-title')).toHaveText('No problems');
+});

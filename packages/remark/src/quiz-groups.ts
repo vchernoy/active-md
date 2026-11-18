@@ -2,7 +2,7 @@ import type { Root } from 'mdast';
 
 type TreeNode = { type: string; name?: string; attributes?: Record<string, string | null | undefined> | null | undefined; position?: Root['position']; children?: readonly TreeNode[] };
 export type QuizGroupDiagnostic = { message: string; node: TreeNode };
-type Question = { node: TreeNode; context: object; answers: number; choices: number };
+type Question = { node: TreeNode; context: object; answers: number; choices: number; acceptedChoices: number };
 
 /** Validate source order before any when evaluation/pruning; no rendering or grading yet. */
 export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
@@ -23,7 +23,7 @@ export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
       if (node.type !== 'containerDirective') fail(node, 'quiz question must use a :::question container');
       else {
         if (question) fail(node, 'quiz questions cannot be nested');
-        const next = { node, context, answers: 0, choices: 0 };
+        const next = { node, context, answers: 0, choices: 0, acceptedChoices: 0 };
         questions.push(next);
         if (!question) pending.push(next);
         question = next;
@@ -46,7 +46,12 @@ export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
         if (context !== question.context) fail(node, `quiz ${node.name} must share its question's enclosing when blocks`);
         if (node.type === expected) {
           if (node.name === 'answer') question.answers++;
-          else question.choices++;
+          else {
+            question.choices++;
+            const correct = node.attributes?.correct;
+            if (correct === '' || correct === null || correct === 'true') question.acceptedChoices++;
+            else if (correct !== undefined && correct !== 'false') fail(node, 'quiz choice correct must be a boolean flag (true or false)');
+          }
         }
       }
     }
@@ -64,6 +69,7 @@ export function validateQuizGroups(root: Root): QuizGroupDiagnostic[] {
       if (item.choices) fail(item.node, 'numeric quiz question cannot contain ::choice controls');
     } else {
       if (!item.choices) fail(item.node, 'choice quiz question must contain at least one ::choice control');
+      else if (type === 'single' && !item.acceptedChoices) fail(item.node, 'choice quiz question must mark at least one choice correct');
       if (item.answers) fail(item.node, 'choice quiz question cannot contain :answer controls');
     }
   }

@@ -10,7 +10,7 @@ area = a * b / 2
 perimeter = a + b + c
 ```
 
-Sides :input[a]{widget=slider step=0.1} and :input[b]{widget=slider step=0.1}.
+Sides :slider{input=a step=0.1} and :slider{input=b step=0.1}.
 
 - Hypotenuse: **:value[c]{format=fixed:3}**
 - Area: :value[area]{format=fixed:2}

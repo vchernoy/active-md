@@ -11,7 +11,7 @@ perMonth = kwhDay * 30 * price
 perYear = kwhDay * 365 * price
 ```
 
-A :input[watts] W appliance, used :input[hours] hours a day, at \$:input[price] per kWh.
+A :edit{input=watts} W appliance, used :edit{input=hours} hours a day, at \$:edit{input=price} per kWh.
 
 | | Energy | Cost |
 |---|---|---|

@@ -19,8 +19,8 @@ Small, safe and usable as soon as possible in both course-platform and TypeBridg
   - single assignment and define-before-use;
   - errors shown inline, with source positions.
 - **Bindings:**
-  - `:input[x]`, a number box;
-  - `:input[x]{widget=slider min=… max=… step=…}`;
+  - `:edit{input=x}`, a number box (current 0.6.0 spelling);
+  - `:slider{input=x min=… max=… step=…}` (current 0.6.0 spelling; original `:input` forms remain compatible);
   - `:value[expr]{format=…}`, read-only;
   - `{{expr}}` inside math (unchanged numeric TeX), or `{{expr | spec}}` for the same locale-aware formats as `:value` (`auto`, `int`, `fixed:N`, `percent:N`). A single `|` separates the expression and format; pipes are not calc operators. Formatted separators and TeX special characters are escaped before KaTeX sees them; invalid formats produce a red `?` and a positioned diagnostic. Server defaults and live updates share this substitution path.
 - **Not in v0:**
@@ -93,7 +93,7 @@ It's built for authors writing prose, not for programmers writing code.
 | **Definition** | `y = 10 * x` | An immutable value, recomputed when what it depends on changes |
 | **Function** | `f(a, b) = a * b + rate` | At least one parameter. Pure. Can use names defined above it. |
 | **Binding** | Markdown directive | Connects a name or expression to a place in the text |
-| **Control** | `:input[x]` | The **one** editable binding of an input: widget, label, step, format |
+| **Control** | `:edit{input=x}`, `:slider{input=x}` | An editable binding; several controls may edit the same input |
 | **View** | `:value[y]`, `{{y}}` in math, table cells | Read-only. Any number of them. |
 
 **Rules:**
@@ -363,7 +363,7 @@ share = round(stay / people)
 
 **На человека:** :value[share]{format=currency} — **жильё:** :value[stay] ₽
 
-Нас: :input[people]{widget=slider label="Сколько человек"} · ночей: :input[nights]
+Нас: :slider[Сколько человек]{input=people step=1} · ночей: :edit[Ночей]{input=nights step=1}
 
 $$ {{share}} $$                                  <!-- the formula of share, drawn automatically, with its value -->
 $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX with live values -->
@@ -379,7 +379,8 @@ $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX
 
 | Directive | Kind | Attributes |
 |---|---|---|
-| `:input[name]` | A control for an input (several may edit the same input, kept in sync) | `widget` = `number` \| `slider` \| `select` \| `checkbox` \| `text`; `label`; `step`; `min`/`max` (only to narrow the model's range); `placeholder`; `format` |
+| `:edit[Accessible name]{input=name}` / `:slider[Accessible name]{input=name}` | Numeric control, inline or standalone (`::`); optional bracket name is accessible-only | `input`; `step`; `min`/`max` (only to narrow the model's range) |
+| `:::radio[Visible label]{input=name}` / `:::select[Visible label]{input=name}` | Native numeric choice control with visible option labels | `input`; child `::option[Label]{value=number}` directives |
 | `:value[expr]` | A read-only view | `format` (`number` \| `percent` \| `currency` \| `fixed:2`…); `placeholder` (for missing) |
 | `::table{columns="a, b"}` / `:::table{for="x in list"}` | A table generated from lists (v2) | `columns`; `for`, with a template row; `max` |
 | `:answer[expr]` | A quiz answer box (§8) | `tolerance`, `relative`, `points`, `feedback` |
@@ -768,7 +769,7 @@ final = principal * growth
 interest = final - principal
 ```
 
-Вложив :input[principal]{format=currency} под :input[rate]{widget=slider step=0.5} % на :input[years] лет,
+Вложив :edit[Начальный вклад]{input=principal} ₽ под :slider[Годовая ставка]{input=rate step=0.5} % на :edit[Срок в годах]{input=years step=1} лет,
 вы получите **:value[final]{format=currency}**, из них проценты — :value[interest]{format=currency}.
 
 $$ {{final}} $$

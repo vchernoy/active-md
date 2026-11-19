@@ -22,11 +22,11 @@ gives **:value[final]{format=fixed:0}**.
 $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{final | fixed:2}} $$
 ````
 
-More: **[examples/](examples/)** contains complete calculators, inline controls, select lists and legacy syntax examples. Every example is rendered in CI.
+More: **[examples/](examples/)** contains complete calculators using readable controls, radio groups and dropdowns, plus an explicit compatibility comparison. Every example is rendered in CI.
 
 ## Readable controls (0.6.0)
 
-For new documents on current source, prefer `:edit{input=principal}` and
+For new documents, use `:edit{input=principal}` and
 `:slider[Annual interest rate]{input=rate step=0.5}`. Both inline (`:`) and
 standalone (`::`) forms work. Optional bracket text supplies an accessible name,
 without inserting a visible label into prose; omission uses the input name.
@@ -135,7 +135,7 @@ calc. Keep `:value[expression]` for outputs. Existing `:input[name]` and its vis
 
 Use `:::radio[Delivery]{input=delivery}` with the same options for native radio
 buttons under a visible legend. Both choice controls use calc defaults for reset
-and for saved values no longer offered. See the [radio example](examples/radio-control.md).
+and for saved values no longer offered. See the [radio example](examples/radio-control.md) and [trip budget](examples/trip-budget.md).
 
 Checkbox collections and button assignment actions remain proposals. Complete quiz submission/Retry
 UI also remains future work (#48); pure self-check helpers do not provide it.

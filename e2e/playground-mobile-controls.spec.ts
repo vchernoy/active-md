@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { ViteDevServer } from 'vite';
 import { createPlaygroundServer } from './playground-server';
+import { SAMPLE } from '../apps/playground/src/sample';
 let server: ViteDevServer;
 let url: string;
 test.beforeAll(async () => {
@@ -10,10 +11,13 @@ test.beforeAll(async () => {
 });
 test.afterAll(async () => { await server?.close(); });
 
-test('sample labels, units, inputs and slider values stay together on phones and inline on desktop', async ({ page }) => {
+test('legacy visible labels, units, inputs and slider values stay together on phones and inline on desktop', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  await page.locator('#source').fill(SAMPLE
+    .replace('Deposit :edit[Deposit]{input=principal}, at :slider[Rate (%/year)]{input=rate step=0.5}% per year\nfor :edit[Term (years)]{input=years step=1} years.',
+      ':input[principal]{label="Deposit"} :input[rate]{label="Rate (%/year)" widget=slider step=0.5}\n:input[years]{label="Term (years)" step=1}'));
   await page.locator('#mode-view').click();
   const controls = page.locator('#doc p > .active-input').filter({ has: page.locator('.active-input-label') });
   await expect(controls).toHaveCount(3);

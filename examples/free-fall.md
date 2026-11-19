@@ -10,7 +10,7 @@ v = g * t                    // m/s
 kmh = v * 3.6
 ```
 
-Height :input[h]{widget=slider} m, gravity :input[g] m/s².
+Height :slider{input=h} m, gravity :edit{input=g} m/s².
 
 The stone falls for **:value[t]{format=fixed:2} s** and hits the ground at :value[v]{format=fixed:1} m/s (:value[kmh]{format=int} km/h).
 

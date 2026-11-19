@@ -12,7 +12,7 @@ each = total / people
 eachRounded = ceil(each)
 ```
 
-The bill is \$:input[bill]. Tip :input[tip]{widget=slider step=1} %, shared by :input[people]{step=1} people.
+The bill is \$:edit{input=bill}. Tip :slider{input=tip step=1} %, shared by :edit{input=people step=1} people.
 
 - Tip: \$:value[tipAmount]{format=fixed:2}
 - Total: \$:value[total]{format=fixed:2}

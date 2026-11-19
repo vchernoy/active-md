@@ -57,3 +57,10 @@ It returns `{ kind: 'valid', manifest }` or an invalid `reason` (`malformed`, `v
 identities are rejected atomically. It does not parse JSON, compile expressions,
 prove source/session compatibility, sanitize label Markdown into HTML, mount quizzes,
 initialize seeds or persist answers. Existing `mount()` behavior is unchanged.
+
+`compileQuizManifest(value, session)` prepares inspected quiz metadata against a trusted
+calc session, returning `kind: 'compiled'` with independent `manifest`, group-ID
+`conditions` and numeric-question-ID `answers` maps, or an all-or-nothing invalid result.
+It checks declared seed inputs and expression diagnostics without evaluating answers,
+changing inputs or mounting controls. Expressions stay bound to the supplied session.
+This unreleased helper does not prove source/DOM provenance or enable quiz attempts.

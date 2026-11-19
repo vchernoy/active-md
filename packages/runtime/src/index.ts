@@ -260,3 +260,4 @@ function showResult(el: HTMLElement, result: Result, format: Format, locale: str
 }
 
 export { inspectQuizManifest, type QuizManifestInspection } from './quiz-manifest.js';
+export { compileQuizManifest, type QuizCompilation } from './quiz-compile.js';

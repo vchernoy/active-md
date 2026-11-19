@@ -30,3 +30,12 @@ it.each([
     expect.objectContaining({ line: expect.any(Number), column: 1, message: expect.stringContaining(message) }),
   ]);
 });
+
+it('includes radio groups in conditional control reachability', () => {
+  const selfHiding = calc + '::::when[delivery]\n' + choices + '::::';
+  expect(renderActive(selfHiding).messages).toContainEqual(
+    expect.objectContaining({ line: 5, message: expect.stringContaining('only control') }),
+  );
+  const outsideRadio = calc + choices + '\n:::when[delivery]\n:edit{input=delivery}\n:::';
+  expect(renderActive(outsideRadio).messages).toEqual([]);
+});

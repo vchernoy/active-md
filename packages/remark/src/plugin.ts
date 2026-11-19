@@ -38,6 +38,7 @@ type Directive = TextDirective | LeafDirective | ContainerDirective;
 type ControlDirective = Directive;
 
 const isChoice = (node: { type: string; name?: string }) => node.type === 'containerDirective' && (node.name === 'select' || node.name === 'radio');
+const isRenderedControl = (node: ControlDirective) => node.data?.hName === 'label' || node.data?.hName === 'fieldset';
 
 /**
  * remark plugin: collects ```calc blocks into one program, turns :input/:value directives into
@@ -161,7 +162,7 @@ export function remarkActive(options: ActiveOptions = {}) {
 
     // Numeric peers may narrow the model range; every offered option must still fit.
     for (const node of controlNodes) {
-      if (!isChoice(node) || (node.data?.hName !== 'label' && node.data?.hName !== 'fieldset')) continue;
+      if (!isChoice(node) || !isRenderedControl(node)) continue;
       const name = controlName(node), range = controlled.get(name);
       if (range && [...(choiceDomains.get(name) ?? [])].some(value =>
         (range.lo !== undefined && value < range.lo) || (range.hi !== undefined && value > range.hi))) {
@@ -174,7 +175,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       const expression = whenExpressions.get(node) ?? '';
       return { expression, deps: session.compile(expression, 'when-check').deps };
     });
-    const controls = controlNodes.filter(node => node.data?.hName === 'label').map(node => ({
+    const controls = controlNodes.filter(isRenderedControl).map(node => ({
       name: controlName(node), ancestors: (ancestors.get(node) ?? []).map(a => whenIndexes.get(a)!),
     }));
     for (const problem of checkWhenControls(program, checks, controls, options.limits?.maxSteps)) report(problem, at(whenNodes[problem.index]!));

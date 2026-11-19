@@ -22,7 +22,7 @@ s.compile('round(growth, 2)').evaluate();   // for :value[…] and {{…}} bindi
 
 v0 language: `input name = number [in min..max]`, `name = expression`; numbers, `+ - * / % ^`, unary minus, parentheses; `round(x[, digits])`, `min`, `max`, `abs`, `floor`, `ceil`, `sqrt`. Each name is defined once, and an expression uses only names defined above it. See [docs/DESIGN.md](../../docs/DESIGN.md) §0.
 
-## Choice self-check API (unreleased)
+## Choice self-check API (0.6.0)
 
 `checkChoiceAnswer(choices, givenIds, 'single' | 'multiple')` checks stable string
 identities independently of display order. Each choice has `{ id, correct }` with a
@@ -38,11 +38,11 @@ deterministic v1 Fisher–Yates, or `{ kind: 'invalid', field, message }`. It ac
 unique nonempty string IDs (same entry/length budgets), uint32 seed/draw, and rejects
 draw-counter overflow. Empty/single-ID lists are valid; callers' lists are untouched.
 Identical inputs reproduce the order. Different seeds may produce the same order;
-this helper does not initialize seeds, generate entropy or implement Retry. Unreleased.
+this helper does not initialize seeds, generate entropy or implement Retry. Available in 0.6.0.
 
 `scoreQuizGroup(results)` sums already-checked `{ correct, points? }` rows, defaulting
 to one point per question. Finite nonnegative weights (including zero) produce
 `{ kind: 'scored', earned, max, results }` with independent normalized rows; malformed
 rows/weights, empty or oversized groups, and overflow produce an invalid field/index.
 Groups are bounded to 2000 results. No raw-answer checking, percentage/pass policy,
-points authoring syntax, attempt lifecycle or persistence is implied. Unreleased.
+points authoring syntax, attempt lifecycle or persistence is implied. Available in 0.6.0.

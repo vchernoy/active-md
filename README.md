@@ -4,9 +4,9 @@ Markdown + LaTeX with **live calculations and form controls**: inputs the reader
 
 It's built for authors writing prose, and it's safe for documents that anyone may have written: no JavaScript in documents, no `eval`, no network.
 
-**Status:** v0 in progress. Try it in the **[playground](https://vchernoy.xyz/active-md/)**: one editor, one Edit/View switch, share links that keep the document in the URL. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
+**Status:** 0.6.0 release documentation (publication is verified through the release workflow). Try it in the **[playground](https://vchernoy.xyz/active-md/)**: one editor, one Edit/View switch, share links that keep the document in the URL. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
 
-## Example (v0)
+## Example
 
 ````markdown
 ```calc
@@ -16,21 +16,21 @@ input years = 10 in 1..50
 final = principal * (1 + rate / 100) ^ years
 ```
 
-Investing :input[principal] at :input[rate]{widget=slider step=0.5} % for :input[years]{step=1} years
+Investing :edit{input=principal} at :slider[Annual interest rate]{input=rate step=0.5}% for :edit[Years]{input=years step=1} years
 gives **:value[final]{format=fixed:0}**.
 
 $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{final | fixed:2}} $$
 ````
 
-More: **[examples/](examples/)** has eleven complete documents (compound interest, a loan, a recipe that rescales, splitting a bill, running pace, free fall, appliance running cost, Pythagoras, powers and roots). Each is rendered in CI.
+More: **[examples/](examples/)** contains complete calculators, inline controls, select lists and legacy syntax examples. Every example is rendered in CI.
 
-## Readable controls (unreleased)
+## Readable controls (0.6.0)
 
 For new documents on current source, prefer `:edit{input=principal}` and
 `:slider[Annual interest rate]{input=rate step=0.5}`. Both inline (`:`) and
 standalone (`::`) forms work. Optional bracket text supplies an accessible name,
 without inserting a visible label into prose; omission uses the input name.
-Defaults remain in calc. These forms are not in published 0.5.0 yet.
+Defaults remain in calc. Use package version 0.6.0 or later for these forms.
 
 Existing `:input[principal]` and `:input[rate]{widget=slider}` remain supported
 with identical behavior, including the legacy visible `label` attribute. No
@@ -95,7 +95,7 @@ Publishing uses **npm trusted publishing** (OIDC). No npm token or secret is sto
 - [TypeBridge](https://github.com/vchernoy/typebridge): pins ActiveMD **0.5.0** packages for rendered Markdown documents and shareable pages with live calculations and controls. See its [verified dependency snapshot](https://github.com/vchernoy/typebridge/blob/089a6218995bc1709a7102aea2ad349ae3e1d01d/package.json).
 - [course-platform](https://github.com/vchernoy/course-platform): integration for websites, blogs, lessons and tests remains planned; tracked in [#1](https://github.com/vchernoy/active-md/issues/1).
 
-Additional quiz authoring checks and pure quiz helpers added after 0.5.0 remain unreleased. Complete quiz controls and attempt APIs are still planned in [#48](https://github.com/vchernoy/active-md/issues/48); the consumer integration above does not imply support for these main-only additions.
+Version 0.6.0 includes additional quiz authoring checks and pure quiz helpers. Complete quiz controls and attempt APIs are still planned in [#48](https://github.com/vchernoy/active-md/issues/48); the consumer integration above does not imply support for a complete quiz UI.
 
 ## License
 
@@ -103,7 +103,7 @@ MIT
 
 In math, `{{expr}}` retains its original numeric TeX output; `{{expr | fixed:2}}` uses locale-aware formatting, like `:value[expr]{format=fixed:2}`. Supported specs are `auto`, `int`, `fixed:N` and `percent:N` (N:0–15). Commas and percent signs are TeX-escaped, locale spacing becomes a thin space. Invalid specs show a red `?` with a positioned renderer diagnostic. Only placeholders are live; literal numbers stay as authored.
 
-## Numeric select lists (unreleased)
+## Numeric select lists (0.6.0)
 
 Use `:::select[Delivery]{input=delivery}` with direct
 `::option[Standard]{value=10}` children and a closing `:::`. Declare the default in
@@ -111,10 +111,31 @@ calc, matching one of the finite numeric option values. Labels are visible text;
 exactly one option is selected. See [the delivery example](examples/select-control.md).
 Controls sharing the binding stay synchronized; unlisted values are rejected by the
 mounted session and incompatible restored values keep the authored default. Pure calc
-sessions retain their model ranges. This feature is current source, not published 0.5.0.
+sessions retain their model ranges. Use version 0.6.0 or later.
 
-### Numeric radio groups
 
-Use `:::radio[Delivery]{input=delivery}` with named numeric options for a visible
-group of native radio buttons. Defaults and reset come from calc. See the
-[delivery radio example](examples/radio-control.md).
+````markdown
+```calc
+input delivery = 10 in 0..25
+```
+
+:::select[Delivery]{input=delivery}
+::option[Standard]{value=10}
+::option[Express]{value=25}
+::option[Pickup]{value=0}
+:::
+
+Delivery costs :value[delivery].
+````
+
+Edit/slider brackets are optional accessible names, without extra visible prose.
+Select brackets and option brackets are visible labels. Defaults always belong in
+calc. Keep `:value[expression]` for outputs. Existing `:input[name]` and its visible
+`label` attribute remain supported; no document migration is required.
+
+Use `:::radio[Delivery]{input=delivery}` with the same options for native radio
+buttons under a visible legend. Both choice controls use calc defaults for reset
+and for saved values no longer offered. See the [radio example](examples/radio-control.md).
+
+Checkbox collections and button assignment actions remain proposals. Complete quiz submission/Retry
+UI also remains future work (#48); pure self-check helpers do not provide it.

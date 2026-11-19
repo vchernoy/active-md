@@ -1,6 +1,6 @@
 # Delivery calculator
 
-Select controls are available in current source and are unreleased.
+Select controls require ActiveMD 0.6.0 or later.
 
 ```calc
 input delivery = 10 in 0..25

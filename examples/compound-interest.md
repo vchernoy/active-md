@@ -13,7 +13,7 @@ doubling = if(rate > 0, log(2) / log(1 + rate/100), 0)
 rule72 = if(rate > 0, 72 / rate, 0)
 ```
 
-Deposit \$:input[principal] at :input[rate]{widget=slider step=0.1} % a year for :input[years]{step=1} years.
+Deposit \$:edit{input=principal} at :slider[Annual interest rate]{input=rate step=0.1} % a year for :edit[Years]{input=years step=1} years.
 
 After :value[years] years you have **\$:value[final]{format=fixed:2}**, of which \$:value[earned]{format=fixed:2} is interest (:value[growth - 1]{format=percent:1} growth).
 

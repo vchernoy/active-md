@@ -1,6 +1,6 @@
 # Delivery calculator
 
-Radio controls are available in current source and are unreleased.
+Radio controls are available in ActiveMD 0.6.0 and later.
 
 ```calc
 input delivery = 10 in 0..25

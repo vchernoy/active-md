@@ -37,6 +37,8 @@ const CALLOUTS: Record<string, string> = {
 type Directive = TextDirective | LeafDirective | ContainerDirective;
 type ControlDirective = Directive;
 
+const isChoice = (node: { type: string; name?: string }) => node.type === 'containerDirective' && (node.name === 'select' || node.name === 'radio');
+
 /**
  * remark plugin: collects ```calc blocks into one program, turns :input/:value directives into
  * controls and views showing default values, marks {{…}} in math, and adds callouts and :::details.
@@ -60,7 +62,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     const mark = (parent: Parent, enclosing: ContainerDirective[]): void => {
       for (const node of parent.children) {
         ancestors.set(node, enclosing);
-        if ((node.type === 'containerDirective' && node.name === 'select') || (node.type === 'textDirective' && node.name === 'input') ||
+        if (isChoice(node) || (node.type === 'textDirective' && node.name === 'input') ||
           ((node.type === 'textDirective' || node.type === 'leafDirective') && (node.name === 'edit' || node.name === 'slider'))) controlNodes.push(node as ControlDirective);
         if (node.type === 'textDirective' && node.name === 'answer') answerNodes.push(node);
         if (node.type === 'leafDirective' && node.name === 'quiz-submit') submitNodes.push(node);
@@ -159,11 +161,11 @@ export function remarkActive(options: ActiveOptions = {}) {
 
     // Numeric peers may narrow the model range; every offered option must still fit.
     for (const node of controlNodes) {
-      if (node.name !== 'select' || node.data?.hName !== 'label') continue;
+      if (!isChoice(node) || (node.data?.hName !== 'label' && node.data?.hName !== 'fieldset')) continue;
       const name = controlName(node), range = controlled.get(name);
       if (range && [...(choiceDomains.get(name) ?? [])].some(value =>
         (range.lo !== undefined && value < range.lo) || (range.hi !== undefined && value > range.hi))) {
-        showError(node, 'select options must fit the range of numeric controls sharing its input');
+        showError(node, `${node.name} options must fit the range of numeric controls sharing its input`);
       }
     }
 
@@ -238,7 +240,7 @@ export function remarkActive(options: ActiveOptions = {}) {
         else conditionErrors.push({ parent, node, error });
         return undefined;
       }
-      if (node.type === 'containerDirective' && node.name === 'select') { select(node); return undefined; }
+      if (node.type === 'containerDirective' && isChoice(node)) { choice(node); return undefined; }
       if (node.type === 'textDirective' && node.name === 'input') { input(node, attrs); return undefined; }
       if ((node.type === 'textDirective' || node.type === 'leafDirective') && (node.name === 'edit' || node.name === 'slider')) {
         if (!attrs.input?.trim()) showError(node, `${node.name} needs input= naming a declared calc input`);
@@ -266,36 +268,51 @@ export function remarkActive(options: ActiveOptions = {}) {
       return index + 1;
     }
 
-    function select(node: ContainerDirective): void {
+    function choice(node: ContainerDirective): void {
       const attrs = node.attributes ?? {};
       const name = controlName(node);
       const fail = (message: string) => { showError(node, message); node.children = []; };
-      if (Object.keys(attrs).some(key => key !== 'input')) return fail('select accepts only input=; defaults belong in calc');
+      if (Object.keys(attrs).some(key => key !== 'input')) return fail(`${node.name} accepts only input=; defaults belong in calc`);
       const def = program.inputs.find(input => input.name === name);
-      if (!def) return fail('select input= must name a declared calc input');
+      if (!def) return fail(`${node.name} input= must name a declared calc input`);
       const label = node.children[0];
       const hasLabel = label?.type === 'paragraph' && label.data?.directiveLabel;
       const title = hasLabel ? toString(label).trim() : '';
-      if (!title) return fail('select needs a nonempty bracket label');
+      if (!title) return fail(`${node.name} needs a nonempty bracket label`);
       const options = node.children.slice(1);
-      if (!options.length || options.length > 256) return fail('select needs 1 to 256 options');
+      if (!options.length || options.length > 256) return fail(`${node.name} needs 1 to 256 options`);
       const domain = new Set<number>();
       const children: ElementContent[] = [];
       for (const option of options) {
-        if (option.type !== 'leafDirective' || option.name !== 'option') return fail('select children must be ::option[label]{value=number}');
+        if (option.type !== 'leafDirective' || option.name !== 'option') return fail(`${node.name} children must be ::option[label]{value=number}`);
         const raw = option.attributes?.value;
         const value = typeof raw === 'string' && raw.trim() ? Number(raw) : NaN;
         if (Object.keys(option.attributes ?? {}).some(key => key !== 'value') || !Number.isFinite(value) || !toString(option).trim()) return fail('each option needs a nonempty label and finite numeric value only');
-        if (domain.has(value)) return fail('select option values must be unique');
-        if (def.range && (value < def.range.min || value > def.range.max)) return fail('select option is outside the calc input range');
+        if (domain.has(value)) return fail(`${node.name} option values must be unique`);
+        if (def.range && (value < def.range.min || value > def.range.max)) return fail(`${node.name} option is outside the calc input range`);
         domain.add(value);
-        children.push({ type: 'element', tagName: 'option', properties: { value: String(value), selected: value === def.default }, children: [{ type: 'text', value: toString(option) }] });
+        const text = { type: 'text' as const, value: toString(option) };
+        if (node.name === 'radio') {
+          children.push({ type: 'element', tagName: 'label', properties: {}, children: [
+            { type: 'element', tagName: 'input', properties: { type: 'radio', value: String(value), checked: value === def.default }, children: [] },
+            text,
+          ] });
+        } else {
+          children.push({ type: 'element', tagName: 'option', properties: { value: String(value), selected: value === def.default }, children: [text] });
+        }
       }
-      if (!domain.has(def.default)) return fail('select options must contain the calc default');
+      if (!domain.has(def.default)) return fail(`${node.name} options must contain the calc default`);
       const previous = choiceDomains.get(name);
-      if (previous && (previous.size !== domain.size || [...domain].some(value => !previous.has(value)))) return fail('selects sharing an input must have the same option values');
+      if (previous && (previous.size !== domain.size || [...domain].some(value => !previous.has(value)))) return fail(node.name === 'select' ? 'selects sharing an input must have the same option values' : 'radio and select controls sharing an input must have the same option values');
       choiceDomains.set(name, domain);
       node.children = [];
+      if (node.name === 'radio') {
+        node.data = { hName: 'fieldset', hProperties: { className: ['active-input-radio'], dataActiveInput: name }, hChildren: [
+          { type: 'element', tagName: 'legend', properties: {}, children: [{ type: 'text', value: title }] },
+          ...children,
+        ] };
+        return;
+      }
       node.data = { hName: 'label', hProperties: { className: ['active-input', 'active-input-select'] }, hChildren: [
         { type: 'element', tagName: 'span', properties: { className: ['active-input-label'] }, children: [{ type: 'text', value: title }] },
         { type: 'element', tagName: 'select', properties: { dataActiveInput: name, ariaLabel: title }, children },

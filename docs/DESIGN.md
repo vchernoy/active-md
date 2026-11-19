@@ -795,3 +795,22 @@ The optional runtime stylesheet maps these names to light/dark theme tokens
 `data-theme` explicitly selects light/dark. Hosts may override tokens in their CSS;
 documents cannot provide CSS. Without the stylesheet, the text remains readable
 with the host's ordinary text color. Extension registries remain deferred.
+
+### Runtime quiz expression compilation (#48 prerequisite, unreleased)
+
+`compileQuizManifest(value, session)` first inspects unknown metadata, then compiles
+its conditions and numeric expected answers against a trusted calc `Session`. Reject
+programs with error diagnostics, seeds that are not declared inputs, and expressions
+with error diagnostics. Failures are all-or-nothing, with a reason and, where available,
+group/question identity and the original manifest source position. Numeric expression
+failures use the question location; condition failures use the condition location.
+Successful preparation returns an independent normalized manifest, group-ID condition
+maps (outer-to-inner), and numeric-question-ID answer maps. Repeated expression text
+is compiled once per call using the supplied session's existing compiler limits.
+
+Compilation calls no expression evaluation, input mutation, reset, or subscription.
+Prepared expressions remain bound to that session and observe later input changes;
+current evaluation errors remain a later consumer's responsibility. Schema/name
+compatibility does not prove matching document source, DOM, reader-control exclusion,
+or author provenance. Choice labels stay untrusted Markdown. This adds no mounting,
+seed initialization, entropy, quiz UI, submission, scoring, attempts or persistence.

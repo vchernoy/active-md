@@ -35,7 +35,7 @@ const CALLOUTS: Record<string, string> = {
 };
 
 type Directive = TextDirective | LeafDirective | ContainerDirective;
-type ControlDirective = TextDirective | LeafDirective;
+type ControlDirective = Directive;
 
 /**
  * remark plugin: collects ```calc blocks into one program, turns :input/:value directives into
@@ -60,7 +60,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     const mark = (parent: Parent, enclosing: ContainerDirective[]): void => {
       for (const node of parent.children) {
         ancestors.set(node, enclosing);
-        if ((node.type === 'textDirective' && node.name === 'input') ||
+        if ((node.type === 'containerDirective' && node.name === 'select') || (node.type === 'textDirective' && node.name === 'input') ||
           ((node.type === 'textDirective' || node.type === 'leafDirective') && (node.name === 'edit' || node.name === 'slider'))) controlNodes.push(node as ControlDirective);
         if (node.type === 'textDirective' && node.name === 'answer') answerNodes.push(node);
         if (node.type === 'leafDirective' && node.name === 'quiz-submit') submitNodes.push(node);
@@ -147,6 +147,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     }
 
     /** The range of the first control of each input; later controls of the same input must match it. */
+    const choiceDomains = new Map<string, Set<number>>();
     const controlled = new Map<string, { lo: number | undefined; hi: number | undefined; line: number | undefined }>();
     walk(tree, (node, parent, index) => {
       if (node.type === 'textDirective' || node.type === 'leafDirective' || node.type === 'containerDirective') {
@@ -155,6 +156,16 @@ export function remarkActive(options: ActiveOptions = {}) {
       if (node.type === 'math' || node.type === 'inlineMath') math(node as Math | InlineMath);
       return undefined;
     });
+
+    // Numeric peers may narrow the model range; every offered option must still fit.
+    for (const node of controlNodes) {
+      if (node.name !== 'select' || node.data?.hName !== 'label') continue;
+      const name = controlName(node), range = controlled.get(name);
+      if (range && [...(choiceDomains.get(name) ?? [])].some(value =>
+        (range.lo !== undefined && value < range.lo) || (range.hi !== undefined && value > range.hi))) {
+        showError(node, 'select options must fit the range of numeric controls sharing its input');
+      }
+    }
 
     const whenIndexes = new Map(whenNodes.map((node, index) => [node, index]));
     const checks = whenNodes.map(node => {
@@ -227,6 +238,7 @@ export function remarkActive(options: ActiveOptions = {}) {
         else conditionErrors.push({ parent, node, error });
         return undefined;
       }
+      if (node.type === 'containerDirective' && node.name === 'select') { select(node); return undefined; }
       if (node.type === 'textDirective' && node.name === 'input') { input(node, attrs); return undefined; }
       if ((node.type === 'textDirective' || node.type === 'leafDirective') && (node.name === 'edit' || node.name === 'slider')) {
         if (!attrs.input?.trim()) showError(node, `${node.name} needs input= naming a declared calc input`);
@@ -252,6 +264,42 @@ export function remarkActive(options: ActiveOptions = {}) {
       const replacement = node.type === 'textDirective' ? text : ({ type: 'paragraph', children: [{ type: 'text', value: source }] } satisfies Paragraph);
       parent.children.splice(index, 1, replacement as never);
       return index + 1;
+    }
+
+    function select(node: ContainerDirective): void {
+      const attrs = node.attributes ?? {};
+      const name = controlName(node);
+      const fail = (message: string) => { showError(node, message); node.children = []; };
+      if (Object.keys(attrs).some(key => key !== 'input')) return fail('select accepts only input=; defaults belong in calc');
+      const def = program.inputs.find(input => input.name === name);
+      if (!def) return fail('select input= must name a declared calc input');
+      const label = node.children[0];
+      const hasLabel = label?.type === 'paragraph' && label.data?.directiveLabel;
+      const title = hasLabel ? toString(label).trim() : '';
+      if (!title) return fail('select needs a nonempty bracket label');
+      const options = node.children.slice(1);
+      if (!options.length || options.length > 256) return fail('select needs 1 to 256 options');
+      const domain = new Set<number>();
+      const children: ElementContent[] = [];
+      for (const option of options) {
+        if (option.type !== 'leafDirective' || option.name !== 'option') return fail('select children must be ::option[label]{value=number}');
+        const raw = option.attributes?.value;
+        const value = typeof raw === 'string' && raw.trim() ? Number(raw) : NaN;
+        if (Object.keys(option.attributes ?? {}).some(key => key !== 'value') || !Number.isFinite(value) || !toString(option).trim()) return fail('each option needs a nonempty label and finite numeric value only');
+        if (domain.has(value)) return fail('select option values must be unique');
+        if (def.range && (value < def.range.min || value > def.range.max)) return fail('select option is outside the calc input range');
+        domain.add(value);
+        children.push({ type: 'element', tagName: 'option', properties: { value: String(value), selected: value === def.default }, children: [{ type: 'text', value: toString(option) }] });
+      }
+      if (!domain.has(def.default)) return fail('select options must contain the calc default');
+      const previous = choiceDomains.get(name);
+      if (previous && (previous.size !== domain.size || [...domain].some(value => !previous.has(value)))) return fail('selects sharing an input must have the same option values');
+      choiceDomains.set(name, domain);
+      node.children = [];
+      node.data = { hName: 'label', hProperties: { className: ['active-input', 'active-input-select'] }, hChildren: [
+        { type: 'element', tagName: 'span', properties: { className: ['active-input-label'] }, children: [{ type: 'text', value: title }] },
+        { type: 'element', tagName: 'select', properties: { dataActiveInput: name, ariaLabel: title }, children },
+      ] };
     }
 
     function controlName(node: ControlDirective): string {

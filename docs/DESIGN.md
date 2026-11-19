@@ -853,3 +853,27 @@ and maximum points in fresh detached rows; later input/response changes do not r
 This is a point-in-time self-check, not a managed/frozen attempt or authoritative grade.
 It writes no seeds/inputs, subscribes to nothing, changes no DOM and adds no Retry,
 response parsing, quiz UI, persistence or host snapshot protocol.
+
+### Numeric select controls (#87, unreleased)
+
+`:::select[Delivery]{input=delivery}` contains 1–256 direct
+`::option[Standard]{value=10}` leaf directives. The group bracket is a required
+visible accessible label, unlike edit/slider's optional accessible-only labels.
+Option labels are safe flattened text; values are finite numeric literals, with
+zero/negative/decimal values allowed and numeric duplicates (including ±0) rejected.
+Only `input` on the group and `value` on an option are accepted. Empty groups,
+non-option children, out-of-model-range values and a missing calc default are
+positioned errors. Defaults/reset belong in calc; no first-option inference or
+mount-time default writes. Native single-select HTML works before runtime mount.
+
+Selects sharing a binding must have identical value sets, though labels/order may
+differ. The mounted runtime rejects values absent from any select's options,
+including public session setters, numeric peer edits and restored snapshots; invalid
+restored bindings retain the calc default. Accepted initial values are applied before
+views/conditions refresh without synthetic input/change events. Browser-restored
+select values use the existing restoration precedence. Numeric peers stay synchronized;
+reset restores calc defaults and destroy removes handlers. Pure calc APIs and interval
+proofs remain based on model ranges, not widget option domains. Select uses native
+change/keyboard behavior and adds no persistence or
+network. Host integration and radio/checkbox controls remain separate work; this is
+not in published 0.5.0.

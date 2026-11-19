@@ -22,7 +22,7 @@ gives **:value[final]{format=fixed:0}**.
 $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{final | fixed:2}} $$
 ````
 
-More: **[examples/](examples/)** has ten complete documents (compound interest, a loan, a recipe that rescales, splitting a bill, running pace, free fall, appliance running cost, Pythagoras, powers and roots). Each is rendered in CI.
+More: **[examples/](examples/)** has eleven complete documents (compound interest, a loan, a recipe that rescales, splitting a bill, running pace, free fall, appliance running cost, Pythagoras, powers and roots). Each is rendered in CI.
 
 ## Readable controls (unreleased)
 
@@ -102,3 +102,13 @@ Additional quiz authoring checks and pure quiz helpers added after 0.5.0 remain 
 MIT
 
 In math, `{{expr}}` retains its original numeric TeX output; `{{expr | fixed:2}}` uses locale-aware formatting, like `:value[expr]{format=fixed:2}`. Supported specs are `auto`, `int`, `fixed:N` and `percent:N` (N:0–15). Commas and percent signs are TeX-escaped, locale spacing becomes a thin space. Invalid specs show a red `?` with a positioned renderer diagnostic. Only placeholders are live; literal numbers stay as authored.
+
+## Numeric select lists (unreleased)
+
+Use `:::select[Delivery]{input=delivery}` with direct
+`::option[Standard]{value=10}` children and a closing `:::`. Declare the default in
+calc, matching one of the finite numeric option values. Labels are visible text;
+exactly one option is selected. See [the delivery example](examples/select-control.md).
+Controls sharing the binding stay synchronized; unlisted values are rejected by the
+mounted session and incompatible restored values keep the authored default. Pure calc
+sessions retain their model ranges. This feature is current source, not published 0.5.0.

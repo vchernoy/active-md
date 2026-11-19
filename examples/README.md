@@ -18,3 +18,4 @@ Real documents that show what active-md is for. Each one is plain Markdown: open
 Every example is rendered in CI (`packages/remark/test/examples.test.ts`) and must have no errors or warnings.
 
 - [Readable edit and slider controls (unreleased)](readable-controls.md): accessible-only names, inline/standalone controls and legacy compatibility.
+- [Delivery select (unreleased)](select-control.md): numeric choices and synchronized controls.

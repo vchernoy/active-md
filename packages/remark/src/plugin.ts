@@ -246,7 +246,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       if ((node.type === 'textDirective' || node.type === 'leafDirective') && (node.name === 'edit' || node.name === 'slider')) {
         if (!attrs.input?.trim()) showError(node, `${node.name} needs input= naming a declared calc input`);
         else if (Object.keys(attrs).some(key => !['input', 'min', 'max', 'step'].includes(key))) showError(node, `${node.name} accepts only input, min, max and step; labels go in brackets and defaults in calc`);
-        else input(node, { ...attrs, widget: node.name === 'slider' ? 'slider' : 'number' }, toString(node).trim() || controlName(node));
+        else input(node, { ...attrs, widget: node.name === 'slider' ? 'slider' : 'number' }, labelText(node, file).trim() || controlName(node));
         return undefined;
       }
       if (node.type === 'textDirective' && node.name === 'value') { value(node, attrs); return undefined; }
@@ -278,7 +278,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       if (!def) return fail(`${node.name} input= must name a declared calc input`);
       const label = node.children[0];
       const hasLabel = label?.type === 'paragraph' && label.data?.directiveLabel;
-      const title = hasLabel ? toString(label).trim() : '';
+      const title = hasLabel ? labelText(label, file).trim() : '';
       if (!title) return fail(`${node.name} needs a nonempty bracket label`);
       const options = node.children.slice(1);
       if (!options.length || options.length > 256) return fail(`${node.name} needs 1 to 256 options`);
@@ -288,11 +288,11 @@ export function remarkActive(options: ActiveOptions = {}) {
         if (option.type !== 'leafDirective' || option.name !== 'option') return fail(`${node.name} children must be ::option[label]{value=number}`);
         const raw = option.attributes?.value;
         const value = typeof raw === 'string' && raw.trim() ? Number(raw) : NaN;
-        if (Object.keys(option.attributes ?? {}).some(key => key !== 'value') || !Number.isFinite(value) || !toString(option).trim()) return fail('each option needs a nonempty label and finite numeric value only');
+        if (Object.keys(option.attributes ?? {}).some(key => key !== 'value') || !Number.isFinite(value) || !labelText(option, file).trim()) return fail('each option needs a nonempty label and finite numeric value only');
         if (domain.has(value)) return fail(`${node.name} option values must be unique`);
         if (def.range && (value < def.range.min || value > def.range.max)) return fail(`${node.name} option is outside the calc input range`);
         domain.add(value);
-        const text = { type: 'text' as const, value: toString(option) };
+        const text = { type: 'text' as const, value: labelText(option, file) };
         if (node.name === 'radio') {
           children.push({ type: 'element', tagName: 'label', properties: {}, children: [
             { type: 'element', tagName: 'input', properties: { type: 'radio', value: String(value), checked: value === def.default }, children: [] },
@@ -465,6 +465,20 @@ function labelSource(node: ControlDirective | Paragraph, file: VFile): string {
   const last = node.children[node.children.length - 1]?.position?.end.offset;
   if (first === undefined || last === undefined) return toString(node);
   return String(file.value).slice(first, last);
+}
+
+/** Text directive names the compiler gives meaning to; any other ":name" is literal text. */
+const KNOWN_TEXT_DIRECTIVES = new Set(['input', 'edit', 'slider', 'value', 'mark', 'answer']);
+
+/**
+ * A label flattened to plain text, like `toString`, except that an unknown text directive keeps its
+ * source: Markdown reads the ":1" in "3:1" or the ":10" in "16:10" as a directive named "1" or "10".
+ */
+function labelText(node: RootContent, file: VFile): string {
+  if (node.type === 'textDirective' && !KNOWN_TEXT_DIRECTIVES.has(node.name)) return sourceOf(node, file);
+  if ('value' in node && typeof node.value === 'string') return node.value;
+  if (node.type === 'image' || node.type === 'imageReference') return node.alt ?? '';
+  return 'children' in node ? node.children.map(child => labelText(child as RootContent, file)).join('') : '';
 }
 
 function sourceOf(node: Directive, file: VFile): string {

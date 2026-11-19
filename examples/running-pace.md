@@ -15,7 +15,7 @@ speed = km / (time / 3600)                     // km/h
 marathon = 42.195 * pace / 3600                // h, at the same pace
 ```
 
-Distance :input[km] km in :input[hours] h :input[minutes] min :input[seconds] s.
+Distance :edit{input=km} km in :edit{input=hours} h :edit{input=minutes} min :edit{input=seconds} s.
 
 **Pace: :value[paceMin] min :value[paceSec] s per km**, or :value[speed]{format=fixed:1} km/h.
 

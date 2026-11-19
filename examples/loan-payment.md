@@ -15,9 +15,9 @@ interest = total - amount
 
 | Loan | |
 |---|---|
-| Amount, \$ | :input[amount] |
-| Interest, % a year | :input[rate]{widget=slider step=0.1} |
-| Term, years | :input[years]{widget=slider} |
+| Amount, \$ | :edit{input=amount} |
+| Interest, % a year | :slider{input=rate step=0.1} |
+| Term, years | :slider{input=years} |
 | **Monthly payment** | **\$:value[payment]{format=fixed:2}** |
 | Paid in total | \$:value[total]{format=fixed:0} |
 | Of which interest | \$:value[interest]{format=fixed:0} (:value[interest / amount]{format=percent:0} of the loan) |

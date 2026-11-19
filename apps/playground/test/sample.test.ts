@@ -3,16 +3,20 @@ import { expect, it } from 'vitest';
 import { renderActive } from '@vchernoy/remark-active';
 import { SAMPLE } from '../src/sample';
 
-it('renders named compound-interest controls with their units and slider readout inside the associated label', () => {
+it('renders current-syntax sample controls with accessible names and authored visible prose', () => {
   const rendered = renderActive(SAMPLE);
   expect(rendered.messages).toEqual([]);
-  const { document } = new JSDOM(rendered.html).window;
+  const dom = new JSDOM(rendered.html);
+  const { document } = dom.window;
   for (const [name, text] of [['principal', 'Deposit'], ['rate', 'Rate (%/year)'], ['years', 'Term (years)']]) {
     const input = document.querySelector<HTMLInputElement>(`input[data-active-input="${name}"]`)!;
-    expect(input.labels).toHaveLength(1);
-    expect(input.labels![0]!.querySelector('.active-input-label')?.textContent).toBe(text);
-    expect(input.hasAttribute('aria-label')).toBe(false); // The visible label supplies the name.
+    expect(input.getAttribute('aria-label')).toBe(text);
+    expect(input.closest('p')?.textContent).toContain('Deposit');
+    expect(input.closest('p')?.textContent).toContain('% per year');
+    expect(input.closest('p')?.textContent).toContain('years.');
   }
-  const rate = document.querySelector<HTMLInputElement>('input[data-active-input="rate"]')!;
-  expect(rate.labels![0]!.querySelector('output[data-active-value="rate"]')?.textContent).toBe(rate.value);
+  expect(document.querySelector('output[data-active-value="rate"]')?.textContent).toBe('8');
+  expect(document.querySelector('select')?.value).toBe('5200');
+  expect(document.querySelector<HTMLInputElement>('input[type=radio]:checked')?.value).toBe('0');
+  dom.window.close();
 });

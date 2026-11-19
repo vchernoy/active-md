@@ -22,4 +22,7 @@ Initial investment:
 
 ::edit[Initial investment]{input=principal}
 
+## Legacy compatibility comparison
+
+For existing documents only; use `:edit{input=principal}` in new prose.
 The existing spelling still works and stays synchronized: :input[principal].

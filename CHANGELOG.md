@@ -2,6 +2,13 @@
 
 All three packages share one version.
 
+## 0.6.1
+
+- Keep colon-number text such as `3:1` or `16:10` in radio/select titles, option labels and edit/slider accessible names; Markdown had read `:1` as an unknown directive and dropped it (#100, #103).
+- Open the playground's example in View on a first visit, so newcomers see the document working before its source (#101).
+- Add a phone-plan comparison example (#102).
+- Synchronize all three versions/internal/playground pins at exact 0.6.1.
+
 ## 0.6.0
 
 - Add readable inline/standalone edit and slider directives with optional accessible-only bracket labels; preserve all legacy input syntax and calc-owned defaults (#90).

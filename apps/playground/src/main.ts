@@ -169,7 +169,8 @@ $('share').addEventListener('click', async () => {
 
 async function start(): Promise<void> {
   // Show the saved document at once; a shared link (decoded asynchronously) replaces it below.
-  source.value = stored() ?? SAMPLE;
+  const saved = stored();
+  source.value = saved ?? SAMPLE;
   const before = revision;
   let fromLink: string | undefined;
   try {
@@ -180,8 +181,9 @@ async function start(): Promise<void> {
   // If the reader typed or loaded the example meanwhile, their text wins (their edit already dropped the hash).
   if (revision !== before) return;
   if (fromLink !== undefined) { stopView(false); source.value = fromLink; }
-  // A shared link opens as a page; your own document opens for editing.
-  setMode(fromLink !== undefined ? 'view' : 'edit', false);
+  // A shared link and a first visit (the example) open as a page, so newcomers see the
+  // document working before its source; a document you saved in this browser opens for editing.
+  setMode(fromLink !== undefined || saved === null ? 'view' : 'edit', false);
   if (fromLink !== undefined) say('Opened a shared document. Editing it replaces the document saved in this browser.');
 }
 

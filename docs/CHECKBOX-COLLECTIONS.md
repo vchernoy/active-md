@@ -35,7 +35,7 @@ are compatibility observations, not new collection tests or proof of a future AP
 | General numeric list | Reusable ordered sequence; can support duplicates and future tables/maps/folds. | A checkbox selection has neither order nor duplicates. Must separately enforce selection invariants; general list operators, bounds and type behavior substantially enlarge the first slice. | Useful future substrate, but do not require the whole general-list language to ship a selection control. |
 | Native selection/set value | Equality reflects membership; empty selection is explicit; UI order is independent. | Still requires typed calc values/APIs, bounded operations and a serialized representation. A JS `Set` is mutable and is not a JSON wire format. | Preferred semantic model for this use case, pending review. |
 | One scalar input per independent checkbox | Fixed known extras can drive formulas such as `10 * insurance + 20 * tracking`; current numeric state can persist each input. | A future ordinary toggle control and strict 0/1 policy are still needed. This does not provide one collection binding, generic membership, dynamic options or a sorted selected-value result. More inputs and authored formulas grow with option count. | Credible separate feature for independent flags; not an implementation or approved simulation of #86. |
-| Numeric bitmask or packed decimal | Appears to reuse numeric APIs. | Bit positions tie meaning to presentation/order; JS bitwise operations are 32-bit, while exact integers have a different 53-bit bound. Large/dynamic sets and migrations fail; snapshots look valid while meaning changes. | Reject. No implementation or migration based on numeric packing. |
+| Numeric bitmask or packed decimal | Fixed semantic bit assignments can represent a small known option set and remain stable across display reordering; appears to reuse numeric APIs. | Assigning bits by display position is fragile, but that is avoidable. Even stable assignments require an explicit mapping/version policy and bounded capacity: JS bitwise operations are 32-bit, while exact integers have a different 53-bit bound. Reusing or changing assignments can silently reinterpret otherwise valid numeric snapshots. Packed decimals need their own capacity and decoding rules. Neither representation supplies typed set semantics or ordinary collection operations. | Recommend against this for the proposed slice because of the opaque scalar encoding and compatibility/budget costs, not because display-order coupling is inherent; the research does not approve any encoding. No implementation or migration based on numeric packing. |
 | JSON/string inside a scalar | Familiar serialized array. | Numeric calc/snapshots reject strings today; repeated parsing, ambiguous types and new limits still need design. A string is not a usable calc collection. | Reject as an escape hatch. A future typed wire envelope is different from storing JSON in an input value. |
 
 A numeric selection can use an immutable/copied **canonical array internally and on
@@ -65,8 +65,18 @@ canonicalizing an arbitrary list would destroy meaningful order and duplicates.
 - Define the allowed option domain at the model/validated-program boundary, not only
   in the DOM. Multiple controls for one binding must agree on the allowed value set;
   they may use different display order/labels. Otherwise a session value or one
-  control could leave another showing an impossible selection. Radio/select #85/#87
-  need the analogous scalar-domain decision, separately from this collection work.
+  control could leave another showing an impossible selection. This model-level ownership
+  is a proposed strengthening, not an already implemented scalar-domain guarantee.
+  Published 0.6.0 ([release source `adc4c7c`](https://github.com/vchernoy/active-md/tree/adc4c7ccca23da3f3a448eedac385a9a064e8666))
+  includes radio #95 and select #92: the compiler checks matching control domains and
+  numeric-peer ranges, while the mounted session checks option membership for setters,
+  initial restoration and peers. Pure calc sessions and range proofs remain model-range
+  based, without widget option domains. See the [compiler](https://github.com/vchernoy/active-md/blob/adc4c7ccca23da3f3a448eedac385a9a064e8666/packages/remark/src/plugin.ts)
+  and [runtime](https://github.com/vchernoy/active-md/blob/adc4c7ccca23da3f3a448eedac385a9a064e8666/packages/runtime/src/index.ts).
+  A future typed selection can reuse matching-domain/default/restore tests, but deciding
+  to validate its domain in pure model-only sessions would require a new typed model
+  declaration and API contract; it cannot be inferred from DOM widget validation.
+  The historical evidence table above remains pinned to its original baseline.
 - For restore, distinguish invalid wire data from incompatible current-document data.
   Reject malformed/duplicate/oversized typed envelopes before applying any values.
   Skip unknown bindings or bindings with changed types. Proposed policy for a known

@@ -35,6 +35,7 @@ const CALLOUTS: Record<string, string> = {
 };
 
 type Directive = TextDirective | LeafDirective | ContainerDirective;
+type ControlDirective = TextDirective | LeafDirective;
 
 /**
  * remark plugin: collects ```calc blocks into one program, turns :input/:value directives into
@@ -52,14 +53,15 @@ export function remarkActive(options: ActiveOptions = {}) {
     const sourceLines = String(file.value).split(/\r?\n/);
     const ancestors = new WeakMap<object, ContainerDirective[]>();
     const whenNodes: ContainerDirective[] = [];
-    const controlNodes: TextDirective[] = [];
+    const controlNodes: ControlDirective[] = [];
     const answerNodes: TextDirective[] = [];
     const submitNodes: LeafDirective[] = [];
     const structural: { message: string; node: { position?: Root['position'] } }[] = validateQuizGroups(tree);
     const mark = (parent: Parent, enclosing: ContainerDirective[]): void => {
       for (const node of parent.children) {
         ancestors.set(node, enclosing);
-        if (node.type === 'textDirective' && node.name === 'input') controlNodes.push(node);
+        if ((node.type === 'textDirective' && node.name === 'input') ||
+          ((node.type === 'textDirective' || node.type === 'leafDirective') && (node.name === 'edit' || node.name === 'slider'))) controlNodes.push(node as ControlDirective);
         if (node.type === 'textDirective' && node.name === 'answer') answerNodes.push(node);
         if (node.type === 'leafDirective' && node.name === 'quiz-submit') submitNodes.push(node);
         const isWhen = node.type === 'containerDirective' && node.name === 'when';
@@ -112,7 +114,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       } else boundSeeds.add(seed);
     }
     for (const node of controlNodes) {
-      if (boundSeeds.has(labelSource(node, file).trim())) {
+      if (boundSeeds.has(controlName(node))) {
         report({ message: 'quiz seed inputs cannot have reader-editable controls', severity: 'error' }, at(node));
       }
     }
@@ -160,7 +162,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       return { expression, deps: session.compile(expression, 'when-check').deps };
     });
     const controls = controlNodes.filter(node => node.data?.hName === 'label').map(node => ({
-      name: labelSource(node, file).trim(), ancestors: (ancestors.get(node) ?? []).map(a => whenIndexes.get(a)!),
+      name: controlName(node), ancestors: (ancestors.get(node) ?? []).map(a => whenIndexes.get(a)!),
     }));
     for (const problem of checkWhenControls(program, checks, controls, options.limits?.maxSteps)) report(problem, at(whenNodes[problem.index]!));
     for (const { parent, node, error } of conditionErrors) parent.children.splice(parent.children.indexOf(node as never), 0, error as never);
@@ -198,7 +200,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       return node.position ? { line: node.position.start.line, column: node.position.start.column } : undefined;
     }
 
-    function showError(node: TextDirective, message: string): void {
+    function showError(node: ControlDirective, message: string): void {
       if (isVisible(node)) report({ message, severity: 'error' }, at(node));
       node.data = { hName: 'span', hProperties: { className: ['active-error'], role: 'note' }, hChildren: [{ type: 'text', value: `⚠ ${message}` }] };
     }
@@ -226,6 +228,12 @@ export function remarkActive(options: ActiveOptions = {}) {
         return undefined;
       }
       if (node.type === 'textDirective' && node.name === 'input') { input(node, attrs); return undefined; }
+      if ((node.type === 'textDirective' || node.type === 'leafDirective') && (node.name === 'edit' || node.name === 'slider')) {
+        if (!attrs.input?.trim()) showError(node, `${node.name} needs input= naming a declared calc input`);
+        else if (Object.keys(attrs).some(key => !['input', 'min', 'max', 'step'].includes(key))) showError(node, `${node.name} accepts only input, min, max and step; labels go in brackets and defaults in calc`);
+        else input(node, { ...attrs, widget: node.name === 'slider' ? 'slider' : 'number' }, toString(node).trim() || controlName(node));
+        return undefined;
+      }
       if (node.type === 'textDirective' && node.name === 'value') { value(node, attrs); return undefined; }
       if (node.type === 'textDirective' && node.name === 'mark') {
         const colors = ['red', 'green', 'blue', 'orange', 'purple', 'gray'];
@@ -246,8 +254,12 @@ export function remarkActive(options: ActiveOptions = {}) {
       return index + 1;
     }
 
-    function input(node: TextDirective, attrs: Record<string, string | null | undefined>): void {
-      const name = labelSource(node, file).trim();
+    function controlName(node: ControlDirective): string {
+      return node.name === 'input' ? labelSource(node, file).trim() : (node.attributes?.input ?? '').trim();
+    }
+
+    function input(node: ControlDirective, attrs: Record<string, string | null | undefined>, accessibleLabel?: string): void {
+      const name = controlName(node);
       const def = program.inputs.find(i => i.name === name);
       const fail = (message: string) => showError(node, message);
       if (!def) return fail(program.names.has(name) ? `"${name}" is not an input, so it can't have a control` : `unknown input "${name}"`);
@@ -287,12 +299,12 @@ export function remarkActive(options: ActiveOptions = {}) {
         return fail(`${name} starts at ${shown}, which step ${step} from ${base} can't reach`);
       const inferred = widget === 'slider' ? sliderStep(lo!, hi!) : undefined;
       const controlStep: number | string = (step as number | undefined) ?? (inferred !== undefined && onStep(shown, base, inferred) ? inferred : 'any');
-      const label = attrs.label ?? undefined;
+      const label = accessibleLabel === undefined ? attrs.label ?? undefined : undefined;
       const props: Record<string, string | number> = {
         type: widget === 'slider' ? 'range' : 'number', value: String(shown), dataActiveInput: name,
         ...(lo !== undefined ? { min: lo } : {}), ...(hi !== undefined ? { max: hi } : {}),
         step: controlStep,
-        ...(label ? {} : { ariaLabel: name }),
+        ...(label ? {} : { ariaLabel: accessibleLabel ?? name }),
       };
       const children: ElementContent[] = [];
       if (label) children.push({ type: 'element', tagName: 'span', properties: { className: ['active-input-label'] }, children: [{ type: 'text', value: label }] });
@@ -382,7 +394,7 @@ function sliderStep(min: number, max: number): number {
  * The directive label exactly as written. The label is parsed as Markdown, so `:value[2*3*4]` has an
  * emphasis child; flattening it to text would drop the operators. Use the source between the children.
  */
-function labelSource(node: TextDirective | Paragraph, file: VFile): string {
+function labelSource(node: ControlDirective | Paragraph, file: VFile): string {
   const first = node.children[0]?.position?.start.offset;
   const last = node.children[node.children.length - 1]?.position?.end.offset;
   if (first === undefined || last === undefined) return toString(node);

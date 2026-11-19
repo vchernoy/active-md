@@ -390,6 +390,25 @@ inline `$…$` math use the same sanitized rendering path as paragraph content. 
 titles inside hidden `when` blocks retain the same lazy evaluation rules. Unlabelled
 containers keep their existing default titles.
 
+### Readable numeric control names (#89, unreleased)
+
+Inline `:edit{input=name}` and `:slider{input=name}` and standalone leaf forms
+`::edit` / `::slider` reuse the existing number/range control representation.
+Optional bracket text supplies the accessible name only (Markdown phrasing is
+flattened to text); omission or an empty label falls back to the binding name.
+Visible labels belong in surrounding prose. Neither form renders the bracket
+contents as visible prose or HTML. `input=` must name a declared calc input.
+
+Both forms accept only `input`, `min`, `max` and `step`. They share the existing
+range narrowing, matching-control range, default/step alignment and slider-range
+requirements. A widget cannot declare a default via `value=` or override its type
+via `widget=`. Defaults and reset remain owned by calc; restored accepted values
+are preserved without synthetic input/change events at mount. Hidden-control
+reachability and quiz seed-control exclusion include all new forms.
+
+Legacy `:input[name]` syntax and visible `label` attributes remain unchanged;
+`:value[expr]` remains an output. No automatic migration or runtime API change.
+
 ### Conditional containers (0.2)
 
 Prefer one condition, such as `:::when[rate > 0 and years > 5]`, over two nested `when` blocks when both conditions gate the same content. A callout or `details` directly inside a `when` needs only one extra colon on the outer `when` (`::::when` around `:::note`); only a `when` inside another `when` adds another conditional level. Increase outer fences for each container level, including callouts/details.

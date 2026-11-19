@@ -112,3 +112,9 @@ exactly one option is selected. See [the delivery example](examples/select-contr
 Controls sharing the binding stay synchronized; unlisted values are rejected by the
 mounted session and incompatible restored values keep the authored default. Pure calc
 sessions retain their model ranges. This feature is current source, not published 0.5.0.
+
+### Numeric radio groups
+
+Use `:::radio[Delivery]{input=delivery}` with named numeric options for a visible
+group of native radio buttons. Defaults and reset come from calc. See the
+[delivery radio example](examples/radio-control.md).

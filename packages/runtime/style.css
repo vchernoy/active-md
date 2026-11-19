@@ -125,3 +125,17 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+.active-doc .active-input-radio {
+  min-inline-size: 0;
+  margin-inline: 0;
+  overflow-wrap: anywhere;
+}
+.active-doc .active-input-radio > label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+.active-doc .active-input-radio > label > input {
+  flex: none;
+}

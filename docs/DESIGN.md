@@ -875,5 +875,16 @@ select values use the existing restoration precedence. Numeric peers stay synchr
 reset restores calc defaults and destroy removes handlers. Pure calc APIs and interval
 proofs remain based on model ranges, not widget option domains. Select uses native
 change/keyboard behavior and adds no persistence or
-network. Host integration and radio/checkbox controls remain separate work; this is
+network. Host integration and checkbox controls remain separate work; this is
 not in published 0.5.0.
+
+### Numeric radio controls (#85)
+
+`:::radio[Delivery]{input=delivery}` uses the same `::option[Label]{value=number}`
+syntax and numeric choice rules as a dropdown. Radio groups and dropdowns bound
+to the same input must offer the same numeric values. Option order and labels
+may differ. Native radio buttons are labeled and grouped under a visible legend.
+The calc default determines the initially checked option and the reset value.
+A saved value that is no longer offered falls back to the calc default. On mount,
+each group gets a distinct native name for keyboard navigation and independent
+mounts. Accepted changes synchronize other controls through the session.

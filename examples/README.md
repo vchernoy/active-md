@@ -4,6 +4,7 @@ Real documents that show what active-md is for. Each one is plain Markdown: open
 
 | Example | What the reader changes |
 |---|---|
+| [Which phone plan is cheaper?](compare-plans.md) | Monthly data use and both plans' prices; both bills and the verdict update |
 | [Compound interest](compound-interest.md) | Deposit, rate and years; the formula is worked through with the reader's numbers |
 | [Loan payment](loan-payment.md) | Amount, rate and term; monthly payment, total cost and interest |
 | [Pancakes for any number of people](recipe-scaler.md) | Servings; the ingredient table rescales |

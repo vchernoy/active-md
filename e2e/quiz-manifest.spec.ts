@@ -83,3 +83,26 @@ test('quiz compilation binds expressions to the live session without changing in
   expect(result).toEqual({ initial: { answer: { kind: 'value', value: 2 }, condition: { kind: 'value', value: 0 }, untouched: true },
     updated: { answer: { kind: 'value', value: 14 }, condition: { kind: 'value', value: 1 } }, incompatible: 'invalid', domSame: true });
 });
+
+test('group self-checks use live answers, skip hidden groups and leave inputs and DOM alone', async ({ page }) => {
+  await page.goto(url);
+  const paths = { remark: '/@fs' + new URL('../packages/remark/src/index.ts', import.meta.url).pathname,
+    runtime: '/@fs' + new URL('../packages/runtime/src/index.ts', import.meta.url).pathname,
+    calc: '/@fs' + new URL('../packages/calc/src/index.ts', import.meta.url).pathname };
+  const result = await page.evaluate(async paths => {
+    const { renderActive } = await import(paths.remark) as typeof import('../packages/remark/src/index.js');
+    const { compileQuizManifest, checkQuizGroup } = await import(paths.runtime) as typeof import('../packages/runtime/src/index.js');
+    const { createSession } = await import(paths.calc) as typeof import('../packages/calc/src/index.js');
+    const source = '```calc\ninput topic = 1\ninput seed = 2\n```\n\n:::::when[topic]\n:::question{type=number points=2}\n:answer[seed]\n:::\n\n:::question{type=single points=3}\n::choice[A]{correct}\n:::\n\n:::question{type=multiple}\n::choice[A]{correct}\n:::\n\n::quiz-submit[Check]{seed=seed}\n:::::';
+    const rendered = renderActive(source, { quizManifest: true }); const session = createSession(rendered.program!);
+    const prepared = compileQuizManifest(rendered.quiz, session); if (prepared.kind !== 'compiled') throw new Error('Invalid fixture');
+    const values = new Map<string, number | readonly string[]>([['question-1', 2], ['question-2', ['choice-1']], ['question-3', ['choice-1']]]);
+    const before = document.body.innerHTML, inputs = JSON.stringify([...session.inputValues()]);
+    const first = checkQuizGroup(prepared, 'quiz-1', values), untouched = inputs === JSON.stringify([...session.inputValues()]);
+    session.set('seed', 9); const next = checkQuizGroup(prepared, 'quiz-1', values);
+    session.set('topic', 0); const hidden = checkQuizGroup(prepared, 'quiz-1', values);
+    return { first, next, hidden, untouched, domSame: before === document.body.innerHTML };
+  }, paths);
+  expect(result).toMatchObject({ first: { kind: 'checked', earned: 6, max: 6 }, next: { kind: 'checked', earned: 4, max: 6 },
+    hidden: { kind: 'hidden', groupId: 'quiz-1' }, untouched: true, domSame: true });
+});

@@ -64,3 +64,9 @@ calc session, returning `kind: 'compiled'` with independent `manifest`, group-ID
 It checks declared seed inputs and expression diagnostics without evaluating answers,
 changing inputs or mounting controls. Expressions stay bound to the supplied session.
 This unreleased helper does not prove source/DOM provenance or enable quiz attempts.
+
+`checkQuizGroup(prepared, groupId, responses)` checks one prepared visible group using
+host-parsed numeric responses or choice-ID arrays. It returns `hidden`, `invalid`, or
+`checked` with detached weighted result rows. It applies current session conditions and
+expected answers without changing inputs or enabling quiz UI. This unreleased self-check
+helper does not manage attempts, Retry, persistence or authoritative grading.

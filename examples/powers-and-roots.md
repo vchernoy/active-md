@@ -11,7 +11,12 @@ reciprocal = if(x != 0, 1/x, 0)
 total = x ^ 2 + if(useExtra, extra, 0)
 ```
 
-Base :input[x]. Include an extra amount (0 = no, 1 = yes): :input[useExtra].
+Base :edit[Base]{input=x}.
+
+:::radio[Include an extra amount?]{input=useExtra}
+::option[No]{value=0}
+::option[Yes]{value=1}
+:::
 
 ::::when[x != 0]
 For a nonzero base, the reciprocal is :value[reciprocal]{format=fixed:3}.
@@ -36,7 +41,7 @@ A negative base has no real square root. The lazy formula does not evaluate `sqr
 :::
 
 :::when[useExtra]
-Extra amount: :input[extra].
+Extra amount: :edit{input=extra}.
 :::
 
 Squared base plus the opted-in extra: **:value[total]**.

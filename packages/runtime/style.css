@@ -110,3 +110,32 @@
 .active-doc .active-mark-orange { color: var(--active-mark-orange); }
 .active-doc .active-mark-purple { color: var(--active-mark-purple); }
 .active-doc .active-mark-gray { color: var(--active-mark-gray); }
+
+.active-doc .active-input-select { max-width: 100%; }
+.active-doc .active-input select {
+  min-width: 0;
+  max-width: 100%;
+  font: inherit;
+}
+.active-doc .active-input select[aria-invalid="true"] {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.active-doc .active-input-select .active-input-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.active-doc .active-input-radio {
+  min-inline-size: 0;
+  margin-inline: 0;
+  overflow-wrap: anywhere;
+}
+.active-doc .active-input-radio > label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
+.active-doc .active-input-radio > label > input {
+  flex: none;
+}

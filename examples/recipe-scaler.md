@@ -12,7 +12,7 @@ sugar = 25 * k         // g
 butter = 30 * k        // g
 ```
 
-Servings: :input[people]{widget=slider}
+Servings: :slider{input=people}
 
 | Ingredient | Amount |
 |---|---|

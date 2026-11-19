@@ -19,8 +19,8 @@ Small, safe and usable as soon as possible in both course-platform and TypeBridg
   - single assignment and define-before-use;
   - errors shown inline, with source positions.
 - **Bindings:**
-  - `:input[x]`, a number box;
-  - `:input[x]{widget=slider min=… max=… step=…}`;
+  - `:edit{input=x}`, a number box (current 0.6.0 spelling);
+  - `:slider{input=x min=… max=… step=…}` (current 0.6.0 spelling; original `:input` forms remain compatible);
   - `:value[expr]{format=…}`, read-only;
   - `{{expr}}` inside math (unchanged numeric TeX), or `{{expr | spec}}` for the same locale-aware formats as `:value` (`auto`, `int`, `fixed:N`, `percent:N`). A single `|` separates the expression and format; pipes are not calc operators. Formatted separators and TeX special characters are escaped before KaTeX sees them; invalid formats produce a red `?` and a positioned diagnostic. Server defaults and live updates share this substitution path.
 - **Not in v0:**
@@ -93,7 +93,7 @@ It's built for authors writing prose, not for programmers writing code.
 | **Definition** | `y = 10 * x` | An immutable value, recomputed when what it depends on changes |
 | **Function** | `f(a, b) = a * b + rate` | At least one parameter. Pure. Can use names defined above it. |
 | **Binding** | Markdown directive | Connects a name or expression to a place in the text |
-| **Control** | `:input[x]` | The **one** editable binding of an input: widget, label, step, format |
+| **Control** | `:edit{input=x}`, `:slider{input=x}` | An editable binding; several controls may edit the same input |
 | **View** | `:value[y]`, `{{y}}` in math, table cells | Read-only. Any number of them. |
 
 **Rules:**
@@ -309,7 +309,7 @@ before omission; skipped subtree evaluation errors stay lazy and unreported.
 
 - No clock and no `Math.random`: the same program and inputs give the same values within a JavaScript engine.
 - Transcendental functions use JavaScript Math approximations. Node/V8, Firefox and Safari may differ in the last bit. Displayed formatted values normally agree, but values near rounding boundaries can differ; exact `==` is not a portable tolerance comparison. Prefer `abs(a - b) < 1e-9` when comparing approximate results. This does not weaken the language's exact equality semantics.
-- Implemented seeded calc draws (unreleased, #48 prerequisite): `rand(seed[, draw])` returns a value in `[0, 1)`; `randInt(seed, min, max[, draw])` returns an integer in inclusive bounds. `seed` and optional `draw` are integers in `0..4294967295`; `draw` defaults to zero. Bounds are safe integers, min <= max, spanning at most 2^32 integers. Invalid arguments report positioned errors. Distinct draw counters give reproducible draws without mutable state (not a guarantee of different outputs).
+- Implemented seeded calc draws (0.5.0, #48 prerequisite): `rand(seed[, draw])` returns a value in `[0, 1)`; `randInt(seed, min, max[, draw])` returns an integer in inclusive bounds. `seed` and optional `draw` are integers in `0..4294967295`; `draw` defaults to zero. Bounds are safe integers, min <= max, spanning at most 2^32 integers. Invalid arguments report positioned errors. Distinct draw counters give reproducible draws without mutable state (not a guarantee of different outputs).
 - Seeded algorithm v1 applies MurmurHash3 fmix32 to `(seed + imul(draw, 0x9e3779b9)) mod 2^32` and divides the unsigned word by 2^32. Integer draws map with `min + floor(rand * (max-min+1))`. This is a discrete, deterministic educational generator, not cryptography or authoritative grading. Future snapshot compatibility must include algorithm identity if the algorithm changes.
 - Inputs used as seeds remain live dependencies through ordinary session setters and simplification; literal seeds may fold. Calc draws no entropy. Runtime-owned quiz seeds, attempt initialization/retry and question/answer UI are still unimplemented #48 work.
 
@@ -363,7 +363,7 @@ share = round(stay / people)
 
 **На человека:** :value[share]{format=currency} — **жильё:** :value[stay] ₽
 
-Нас: :input[people]{widget=slider label="Сколько человек"} · ночей: :input[nights]
+Нас: :slider[Сколько человек]{input=people step=1} · ночей: :edit[Ночей]{input=nights step=1}
 
 $$ {{share}} $$                                  <!-- the formula of share, drawn automatically, with its value -->
 $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX with live values -->
@@ -379,7 +379,8 @@ $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX
 
 | Directive | Kind | Attributes |
 |---|---|---|
-| `:input[name]` | A control for an input (several may edit the same input, kept in sync) | `widget` = `number` \| `slider` \| `select` \| `checkbox` \| `text`; `label`; `step`; `min`/`max` (only to narrow the model's range); `placeholder`; `format` |
+| `:edit[Accessible name]{input=name}` / `:slider[Accessible name]{input=name}` | Numeric control, inline or standalone (`::`); optional bracket name is accessible-only | `input`; `step`; `min`/`max` (only to narrow the model's range) |
+| `:::radio[Visible label]{input=name}` / `:::select[Visible label]{input=name}` | Native numeric choice control with visible option labels | `input`; child `::option[Label]{value=number}` directives |
 | `:value[expr]` | A read-only view | `format` (`number` \| `percent` \| `currency` \| `fixed:2`…); `placeholder` (for missing) |
 | `::table{columns="a, b"}` / `:::table{for="x in list"}` | A table generated from lists (v2) | `columns`; `for`, with a template row; `max` |
 | `:answer[expr]` | A quiz answer box (§8) | `tolerance`, `relative`, `points`, `feedback` |
@@ -397,7 +398,7 @@ independent scalar controls, inventories current numeric API/host constraints an
 proposes bounded typed-selection semantics and a staged plan. It is research for
 review, not approved collection syntax, API, implementation or host support.
 
-### Readable numeric control names (#89, unreleased)
+### Readable numeric control names (#89, 0.6.0)
 
 Inline `:edit{input=name}` and `:slider{input=name}` and standalone leaf forms
 `::edit` / `::slider` reuse the existing number/range control representation.
@@ -454,7 +455,7 @@ Authored parentheses remain untouched. Every substituted value still forms one T
 for commands/exponents. Text-mode commands such as `\text`/`\emph`/`\operatorname`, boxed labels (`\fbox`,
 `\colorbox`, `\fcolorbox`, including preceding color arguments), and verbatim
 labels keep numeric text without injected math delimiters. This is conservative display
-context handling, not symbolic algebra or a general TeX parser (#30, unreleased).
+context handling, not symbolic algebra or a general TeX parser (#30, 0.5.0).
 For other macros that enter text mode only during expansion, generated grouping uses
 KaTeX’s built-in `\TextOrMath` to select unchanged numeric text versus mathematical
 parentheses at parse time. JavaScript does not expand document macros; KaTeX’s existing
@@ -486,7 +487,7 @@ expansion limit still applies.
    - an `<ActiveDocument>` wrapper, and a mapping from directives to MDX components;
    - it coexists with `remarkCalloutDirectives`.
 
-Runtime initial input restoration (#54, unreleased): `mount` accepts a host-supplied
+Runtime initial input restoration (#54, 0.5.0): `mount` accepts a host-supplied
 `initialInputs` numeric map. It validates declared model inputs plus all authored control
 bounds before the first refresh; accepted entries override browser-restored controls.
 Unknown/nonfinite/incompatible entries are skipped. Model-only inputs participate, and
@@ -509,7 +510,7 @@ implemented; any future initializer contract must preserve accepted restored inp
   - errors are announced as text, not only by color.
 - **Locale:** for display and reader input, set by the host per document or per reader (open question §13).
 
-### Numeric answer checking (implemented helper, unreleased #48 prerequisite)
+### Numeric answer checking (implemented helper, 0.5.0 #48 prerequisite)
 
 `checkAnswer(expected, given, { tolerance = 0, relative = false })` is a pure exported
 calc API, not a calc-language function or quiz UI. Hosts separately evaluate expected
@@ -526,7 +527,7 @@ without an implicit epsilon or absolute fallback. Tolerance must be finite/nonne
 This helper does not draw randomness, assign points, persist answers, initialize seeds,
 freeze attempts or provide authoritative grading. The quiz syntax below remains proposed.
 
-### Pure choice checking (#48 prerequisite, unreleased)
+### Pure choice checking (#48 prerequisite, 0.6.0)
 
 `checkChoiceAnswer(choices, givenIds, mode)` is a pure host API alongside `checkAnswer`,
 not a calc-language function. Choices have unique nonempty string IDs and explicit
@@ -542,7 +543,7 @@ configuration/response/mode returns an invalid result identifying the affected f
 from an incorrect valid answer. The helper does not mutate inputs, assign points,
 draw randomness, manage attempts, render controls or persist anything.
 
-### Pure seeded choice ordering (#48 prerequisite, unreleased)
+### Pure seeded choice ordering (#48 prerequisite, 0.6.0)
 
 `shuffleChoiceIds(ids, seed, draw = 0)` returns a fresh permutation of stable IDs.
 Version 1 uses descending Fisher–Yates, with the existing v1 seeded integer draws at
@@ -558,7 +559,7 @@ different order for every different seed. Permutation collisions are valid; a fu
 Retry policy requiring a visibly changed order must handle repeated permutations.
 No quiz UI, storage or points integration is introduced.
 
-### Pure group score aggregation (#48 prerequisite, unreleased)
+### Pure group score aggregation (#48 prerequisite, 0.6.0)
 
 `scoreQuizGroup(results)` accepts already-checked boolean correctness plus optional
 numeric points, defaulting to one per question. Explicit weights must be finite and
@@ -570,7 +571,7 @@ correctness/weights or overflowing totals return an invalid field and optional i
 never a partial score. The helper does not evaluate raw answers, mutate caller data,
 assign question identities, choose authoring syntax, freeze attempts, or persist scores.
 
-### Opt-in normalized quiz metadata (#48 prerequisite, unreleased)
+### Opt-in normalized quiz metadata (#48 prerequisite, 0.6.0)
 
 `renderActive(source, { quizManifest: true })` may return `quiz: { version: 1, groups }`.
 Default callers receive no quiz property. Capture source order before directive
@@ -595,7 +596,7 @@ Returned metadata is independent on every render and is never embedded in HTML.
 Runtime controls, metadata mounting, attempt transitions and host snapshots remain
 unimplemented. This is a compiler boundary for subsequent integration, not enabled quizzes.
 
-### Runtime quiz metadata inspection (#48 prerequisite, unreleased)
+### Runtime quiz metadata inspection (#48 prerequisite, 0.6.0)
 
 `inspectQuizManifest(value)` is a runtime schema boundary for unknown object data.
 It returns `{ kind: 'valid', manifest }` with independent copies of known fields, or
@@ -625,7 +626,7 @@ independent, and conditional explanatory content is allowed. Questions cannot ne
 submits belong outside questions; `:answer` and `::choice` belong inside questions.
 This pass is iterative and linear in tree size and does not evaluate quiz expressions.
 
-The additional type/control-count validation is unreleased.
+The additional type/control-count validation is available from 0.6.0.
 Question containers require explicit `type=number`, `type=single` or `type=multiple`.
 Numeric questions require exactly one correctly formed `:answer` and no `::choice`;
 single/multiple questions require at least one `::choice` and no `:answer`. These
@@ -775,7 +776,7 @@ final = principal * growth
 interest = final - principal
 ```
 
-Вложив :input[principal]{format=currency} под :input[rate]{widget=slider step=0.5} % на :input[years] лет,
+Вложив :edit[Начальный вклад]{input=principal} ₽ под :slider[Годовая ставка]{input=rate step=0.5} % на :edit[Срок в годах]{input=years step=1} лет,
 вы получите **:value[final]{format=currency}**, из них проценты — :value[interest]{format=currency}.
 
 $$ {{final}} $$
@@ -810,7 +811,7 @@ Labeled controls in prose remain inline on desktop and use compact aligned rows 
 560px and narrower; number widths remain bounded and slider readouts stay in the row.
 This host CSS does not change the renderer or saved reader state.
 
-### Named prose colors (#9, unreleased)
+### Named prose colors (#9, 0.5.0)
 
 `:mark[important text]{color=red}` wraps inline Markdown in a sanitized span.
 The required color is exactly red, green, blue, orange, purple or gray; other
@@ -822,7 +823,7 @@ The optional runtime stylesheet maps these names to light/dark theme tokens
 documents cannot provide CSS. Without the stylesheet, the text remains readable
 with the host's ordinary text color. Extension registries remain deferred.
 
-### Runtime quiz expression compilation (#48 prerequisite, unreleased)
+### Runtime quiz expression compilation (#48 prerequisite, 0.6.0)
 
 `compileQuizManifest(value, session)` first inspects unknown metadata, then compiles
 its conditions and numeric expected answers against a trusted calc `Session`. Reject
@@ -841,7 +842,7 @@ compatibility does not prove matching document source, DOM, reader-control exclu
 or author provenance. Choice labels stay untrusted Markdown. This adds no mounting,
 seed initialization, entropy, quiz UI, submission, scoring, attempts or persistence.
 
-### Runtime group self-checking (#48 prerequisite, unreleased)
+### Runtime group self-checking (#48 prerequisite, 0.6.0)
 
 `checkQuizGroup(prepared, groupId, responses)` checks one trusted, unchanged
 `compileQuizManifest` result against a host-owned map of parsed finite numeric values
@@ -860,3 +861,38 @@ and maximum points in fresh detached rows; later input/response changes do not r
 This is a point-in-time self-check, not a managed/frozen attempt or authoritative grade.
 It writes no seeds/inputs, subscribes to nothing, changes no DOM and adds no Retry,
 response parsing, quiz UI, persistence or host snapshot protocol.
+
+### Numeric select controls (#87, 0.6.0)
+
+`:::select[Delivery]{input=delivery}` contains 1–256 direct
+`::option[Standard]{value=10}` leaf directives. The group bracket is a required
+visible accessible label, unlike edit/slider's optional accessible-only labels.
+Option labels are safe flattened text; values are finite numeric literals, with
+zero/negative/decimal values allowed and numeric duplicates (including ±0) rejected.
+Only `input` on the group and `value` on an option are accepted. Empty groups,
+non-option children, out-of-model-range values and a missing calc default are
+positioned errors. Defaults/reset belong in calc; no first-option inference or
+mount-time default writes. Native single-select HTML works before runtime mount.
+
+Selects sharing a binding must have identical value sets, though labels/order may
+differ. The mounted runtime rejects values absent from any select's options,
+including public session setters, numeric peer edits and restored snapshots; invalid
+restored bindings retain the calc default. Accepted initial values are applied before
+views/conditions refresh without synthetic input/change events. Browser-restored
+select values use the existing restoration precedence. Numeric peers stay synchronized;
+reset restores calc defaults and destroy removes handlers. Pure calc APIs and interval
+proofs remain based on model ranges, not widget option domains. Select uses native
+change/keyboard behavior and adds no persistence or
+network. Host integration and checkbox controls remain separate work; this is
+available from 0.6.0.
+
+### Numeric radio controls (#85, 0.6.0)
+
+`:::radio[Delivery]{input=delivery}` uses the same `::option[Label]{value=number}`
+syntax and numeric choice rules as a dropdown. Radio groups and dropdowns bound
+to the same input must offer the same numeric values. Option order and labels
+may differ. Native radio buttons are labeled and grouped under a visible legend.
+The calc default determines the initially checked option and the reset value.
+A saved value that is no longer offered falls back to the calc default. On mount,
+each group gets a distinct native name for keyboard navigation and independent
+mounts. Accepted changes synchronize other controls through the session.

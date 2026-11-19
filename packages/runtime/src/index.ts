@@ -4,6 +4,7 @@ import { katexSettings, placeholders, substitute, type MathOutput } from '@vcher
 import type katex from 'katex';
 
 let nextProblemId = 0;
+let nextRadioGroupId = 0;
 
 type Katex = Pick<typeof katex, 'renderToString'>;
 
@@ -30,6 +31,32 @@ export type Mounted = {
   destroy(): void;
 };
 
+type Control = HTMLInputElement | HTMLSelectElement | HTMLFieldSetElement;
+
+const isSelect = (input: Control): input is HTMLSelectElement => input.tagName === 'SELECT';
+const isRadioGroup = (input: Control): input is HTMLFieldSetElement => input.tagName === 'FIELDSET';
+const radioOptions = (group: HTMLFieldSetElement) => [...group.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+
+function controlValue(input: Control): number {
+  if (isRadioGroup(input)) return Number(radioOptions(input).find(option => option.checked)?.value ?? NaN);
+  if (isSelect(input)) return input.value === '' ? NaN : Number(input.value);
+  return input.valueAsNumber;
+}
+
+function differsFromDefault(input: Control): boolean {
+  if (isRadioGroup(input)) return radioOptions(input).some(option => option.checked !== option.defaultChecked);
+  if (isSelect(input)) return input.value !== ([...input.options].find(option => option.defaultSelected)?.value ?? '');
+  return input.value !== input.defaultValue;
+}
+
+function writeControl(input: Control, value: number): void {
+  if (isRadioGroup(input)) {
+    for (const option of radioOptions(input)) option.checked = Number(option.value) === value;
+  } else {
+    input.value = String(value);
+  }
+}
+
 type View = { el: HTMLElement; deps: ReadonlySet<string>; update(): void };
 
 const intersects = (a: ReadonlySet<string>, b: ReadonlySet<string>) => [...a].some(x => b.has(x));
@@ -54,9 +81,9 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   if (!doc) throw new Error('active-md: no .active-doc element to mount');
   const program = parse(readBlocks(doc), options.limits);
   const session = createSession(program, options.limits);
-  const controls = new Map<string, HTMLInputElement[]>();
-  const problems = new Map<HTMLInputElement, HTMLElement>();
-  const clearProblem = (input: HTMLInputElement): void => {
+  const controls = new Map<string, Control[]>();
+  const problems = new Map<Control, HTMLElement>();
+  const clearProblem = (input: Control): void => {
     input.setCustomValidity('');
     input.removeAttribute('aria-invalid');
     input.removeAttribute('title');
@@ -65,10 +92,30 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   };
 
   const inputNames = new Set(program.inputs.map(input => input.name));
-  for (const input of doc.querySelectorAll<HTMLInputElement>('input[data-active-input]')) {
+  for (const input of doc.querySelectorAll<Control>('input[data-active-input], select[data-active-input], fieldset[data-active-input]')) {
     const name = input.dataset.activeInput ?? '';
-    if (inputNames.has(name)) controls.set(name, [...(controls.get(name) ?? []), input]);
+    if (!inputNames.has(name)) continue;
+    if (isRadioGroup(input)) {
+      // Names are assigned per instance so separately mounted copies never uncheck one another.
+      let groupName: string;
+      do { groupName = `active-radio-${++nextRadioGroupId}`; }
+      while (input.ownerDocument.getElementsByName(groupName).length);
+      for (const option of radioOptions(input)) option.name = groupName;
+    }
+    controls.set(name, [...(controls.get(name) ?? []), input]);
   }
+  // Choice domains constrain this mounted session, including host setters and numeric peers.
+  // Pure calc sessions retain their model range; widgets do not alter compiler proofs.
+  const setInput = session.set.bind(session);
+  session.set = (name, value) => {
+    for (const input of controls.get(name) ?? []) {
+      if (isSelect(input) || isRadioGroup(input)) {
+        const problem = outsideControl(input, value);
+        if (problem) return problem;
+      }
+    }
+    return setInput(name, value);
+  };
   // Initialize before exposing the session or refreshing views. Iterate declared inputs,
   // not an unbounded host snapshot; include inputs that have no rendered controls.
   const initialAccepted = new Set<string>();
@@ -118,7 +165,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   }
 
   /** Every control of each input: a number box and a slider may edit the same input and stay in sync. */
-  let editing: HTMLInputElement | undefined;
+  let editing: Control | undefined;
   const conditionErrors = new Map([...doc.querySelectorAll<HTMLElement>('[data-active-when-error]')].map(el => [el.dataset.activeWhenError, el]));
   const conditions = [...doc.querySelectorAll<HTMLElement>('[data-active-when]')].map(el => ({ el, compiled: session.compile(el.dataset.activeWhen ?? '', 'when') }));
   const wasVisible = new WeakMap<HTMLElement, boolean>();
@@ -155,18 +202,18 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
    * clear their stale errors. The control the reader is editing is never rewritten under the cursor. A slider
    * whose step can't represent the value shows the nearest position; the model and the readout keep the value.
    */
-  const syncPeers = (name: string, editing?: HTMLInputElement): void => {
+  const syncPeers = (name: string, editing?: Control): void => {
     const r = session.get(name);
     if (r?.kind !== 'value') return;
     for (const other of controls.get(name) ?? []) {
       if (other === editing) continue;
-      if (other.valueAsNumber !== r.value) other.value = String(r.value);
+      if (controlValue(other) !== r.value) writeControl(other, r.value);
       clearProblem(other);
     }
   };
 
-  const restorable: { name: string; input: HTMLInputElement; apply: () => boolean }[] = [];
-  // Controls: <input data-active-input="name">
+  const restorable: { name: string; input: Control; apply: () => boolean }[] = [];
+  // Each numeric control or choice group updates one declared input.
   for (const [name, inputs] of controls) for (const input of inputs) {
     const message = input.ownerDocument.createElement('span');
     do { message.id = `active-input-problem-${++nextProblemId}`; }
@@ -186,15 +233,20 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
       message.remove();
       problems.delete(input);
     });
-    if (input.type === 'number') input.style.setProperty('--active-input-ch', String(inputWidth(input.min, input.max, input.defaultValue, input.step)));
-    if (initialAccepted.has(name)) input.value = String(initialValues.get(name));
+    if (!isSelect(input) && !isRadioGroup(input) && input.type === 'number') input.style.setProperty('--active-input-ch', String(inputWidth(input.min, input.max, input.defaultValue, input.step)));
+    const initialValue = initialValues.get(name);
+    if (initialAccepted.has(name) && initialValue !== undefined) writeControl(input, initialValue);
     const apply = () => {
-      const value = input.valueAsNumber;
+      const value = controlValue(input);
       let problem: string | undefined;
       editing = input;
       try { problem = Number.isNaN(value) ? 'enter a number' : outsideControl(input, value) ?? session.set(name, value); }
       finally { editing = undefined; }
       if (problem) {
+        if (isRadioGroup(input)) {
+          syncPeers(name);
+          return false;
+        }
         input.setCustomValidity(problem);
         input.setAttribute('aria-invalid', 'true');
         input.title = problem;
@@ -205,15 +257,16 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
       syncPeers(name, input);
       return true;
     };
-    input.addEventListener('input', apply);
-    cleanups.push(() => input.removeEventListener('input', apply));
+    const event = isSelect(input) || isRadioGroup(input) ? 'change' : 'input';
+    input.addEventListener(event, apply);
+    cleanups.push(() => input.removeEventListener(event, apply));
     restorable.push({ name, input, apply });
   }
 
   // The browser may have restored a value (back/forward cache, autofill): adopt it. A control counts as restored
   // if its value differs from what was rendered, decided before anything is applied, so values written by syncing
   // (a slider rounded to its step, say) are never mistaken for restored ones. One restored control per input wins.
-  const restored = restorable.filter(({ name, input }) => !initialAccepted.has(name) && !Number.isNaN(input.valueAsNumber) && input.value !== input.defaultValue);
+  const restored = restorable.filter(({ name, input }) => !initialAccepted.has(name) && !Number.isNaN(controlValue(input)) && differsFromDefault(input));
   const adopted = new Set<string>();
   for (const { name, apply } of restored) {
     if (adopted.has(name)) continue;
@@ -223,7 +276,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   // Empty edits cannot adopt a model value or suppress a valid restored peer.
   // If no peer was accepted, retain the edit and explain the unchanged model.
   for (const { name, input, apply } of restorable) {
-    if (!initialAccepted.has(name) && !adopted.has(name) && Number.isNaN(input.valueAsNumber)) apply();
+    if (!initialAccepted.has(name) && !adopted.has(name) && Number.isNaN(controlValue(input))) apply();
   }
 
   return {
@@ -245,7 +298,9 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
 }
 
 /** A control may narrow the input's range (min/max attributes); the session only knows the model's range. */
-function outsideControl(input: HTMLInputElement, value: number): string | undefined {
+function outsideControl(input: Control, value: number): string | undefined {
+  if (isRadioGroup(input)) return radioOptions(input).some(option => Number(option.value) === value) ? undefined : 'choose an available option';
+  if (isSelect(input)) return [...input.options].some(option => Number(option.value) === value) ? undefined : 'choose an available option';
   const min = input.min === '' ? -Infinity : Number(input.min);
   const max = input.max === '' ? Infinity : Number(input.max);
   if (value >= min && value <= max) return undefined;

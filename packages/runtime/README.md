@@ -12,7 +12,7 @@ const live = mount(container, { locale });   // later: live.destroy()
 ```
 
 - Reads the calc program from `data-active-calc` on `.active-doc` and starts a session.
-- `input[data-active-input]` controls set inputs; several controls of one input stay in sync (the one being edited is never rewritten); values outside the input's range are rejected (`aria-invalid`, a `title` and the browser's validation message), and nothing changes.
+- `input[data-active-input]` and `select[data-active-input]` controls set inputs; several controls of one input stay in sync (the one being edited is never rewritten); values outside the input's range are rejected (`aria-invalid`, a `title` and the browser's validation message), and nothing changes.
 - `[data-active-value]` views and `[data-active-tex]` formulas are redrawn only when a value they use changes. KaTeX is loaded on the first formula update (`loadKatex` to supply it yourself).
 - Values the browser restored into controls (back/forward, autofill) are adopted on mount.
 - Use the same `locale` (and math `output`) as the renderer so updated text matches the first render.
@@ -20,7 +20,7 @@ const live = mount(container, { locale });   // later: live.destroy()
 The optional stylesheet is scoped to `.active-doc`, sizes number/range controls, marks invalid inputs with the current text color, and honors KaTeX MathML column alignment. Override `--active-input-ch` (default `8`) to choose a number input width. Load this stylesheet with the renderer in lazy integrations; importing the runtime JavaScript does not load CSS automatically. It adds no fonts, requests or theme palette.
 
 
-## Restoring reader inputs (unreleased)
+## Restoring reader inputs (0.5.0)
 
 Pass `initialInputs: new Map([['x', 5]])` to `mount`. The runtime iterates declared
 inputs (including model-only inputs), accepts finite numeric values through the model
@@ -48,7 +48,7 @@ synchronizes controls and clears unfinished invalid control text even when the m
 already equals defaults. Await `live.settled()` for math updates. Reset does nothing after
 `destroy()`. Hosts own storage deletion/reset policy and lifecycle cancellation.
 
-## Quiz metadata inspection (unreleased)
+## Quiz metadata inspection (0.6.0)
 
 `inspectQuizManifest(value)` validates unknown object data against the bounded v1
 compiler metadata schema and copies only known fields into an independent manifest.
@@ -63,10 +63,26 @@ calc session, returning `kind: 'compiled'` with independent `manifest`, group-ID
 `conditions` and numeric-question-ID `answers` maps, or an all-or-nothing invalid result.
 It checks declared seed inputs and expression diagnostics without evaluating answers,
 changing inputs or mounting controls. Expressions stay bound to the supplied session.
-This unreleased helper does not prove source/DOM provenance or enable quiz attempts.
+This helper does not prove source/DOM provenance or enable quiz attempts.
 
 `checkQuizGroup(prepared, groupId, responses)` checks one prepared visible group using
 host-parsed numeric responses or choice-ID arrays. It returns `hidden`, `invalid`, or
 `checked` with detached weighted result rows. It applies current session conditions and
-expected answers without changing inputs or enabling quiz UI. This unreleased self-check
+expected answers without changing inputs or enabling quiz UI. This self-check
 helper does not manage attempts, Retry, persistence or authoritative grading.
+
+
+## Numeric choice controls (0.6.0)
+
+Readable edit/slider controls use the same runtime paths as legacy number/range
+controls. Selects use native change events and share the same numeric binding and
+reset API. The mounted session rejects values absent from its select option domains,
+including public setters and numeric peer edits. Initial restored values must fit
+all controls; a removed option retains the authored default. Pure calc sessions do
+not acquire widget domains. Source/defaults are never rewritten. Group/option labels
+are visible, unlike edit/slider bracket names. Optional CSS bounds long dropdowns
+and wraps group labels. Checkbox/button controls and complete quiz UI are not
+provided by these APIs.
+
+Radio groups use native names scoped per mounted group. They share numeric option
+validation, peer synchronization and reset behavior with selects.

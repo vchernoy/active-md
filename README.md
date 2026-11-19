@@ -22,7 +22,19 @@ gives **:value[final]{format=fixed:0}**.
 $$ P_n = {{principal}} \cdot (1 + {{rate}}/100)^{ {{years}} } = {{final | fixed:2}} $$
 ````
 
-More: **[examples/](examples/)** has nine complete documents (compound interest, a loan, a recipe that rescales, splitting a bill, running pace, free fall, appliance running cost, Pythagoras, powers and roots). Each is rendered in CI.
+More: **[examples/](examples/)** has ten complete documents (compound interest, a loan, a recipe that rescales, splitting a bill, running pace, free fall, appliance running cost, Pythagoras, powers and roots). Each is rendered in CI.
+
+## Readable controls (unreleased)
+
+For new documents on current source, prefer `:edit{input=principal}` and
+`:slider[Annual interest rate]{input=rate step=0.5}`. Both inline (`:`) and
+standalone (`::`) forms work. Optional bracket text supplies an accessible name,
+without inserting a visible label into prose; omission uses the input name.
+Defaults remain in calc. These forms are not in published 0.5.0 yet.
+
+Existing `:input[principal]` and `:input[rate]{widget=slider}` remain supported
+with identical behavior, including the legacy visible `label` attribute. No
+migration or source rewriting is required. See [the readable controls example](examples/readable-controls.md).
 
 ## Conditions (0.2)
 

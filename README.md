@@ -133,6 +133,9 @@ Select brackets and option brackets are visible labels. Defaults always belong i
 calc. Keep `:value[expression]` for outputs. Existing `:input[name]` and its visible
 `label` attribute remain supported; no document migration is required.
 
-Ordinary radio groups, checkbox collections and button assignment actions remain
-proposals (#85/#86), not controls shipped in 0.6.0. Complete quiz submission/Retry
+Use `:::radio[Delivery]{input=delivery}` with the same options for native radio
+buttons under a visible legend. Both choice controls use calc defaults for reset
+and for saved values no longer offered. See the [radio example](examples/radio-control.md).
+
+Checkbox collections and button assignment actions remain proposals. Complete quiz submission/Retry
 UI also remains future work (#48); pure self-check helpers do not provide it.

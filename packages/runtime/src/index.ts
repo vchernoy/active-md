@@ -4,6 +4,7 @@ import { katexSettings, placeholders, substitute, type MathOutput } from '@vcher
 import type katex from 'katex';
 
 let nextProblemId = 0;
+let nextRadioGroupId = 0;
 
 type Katex = Pick<typeof katex, 'renderToString'>;
 
@@ -30,10 +31,31 @@ export type Mounted = {
   destroy(): void;
 };
 
-type Control = HTMLInputElement | HTMLSelectElement;
+type Control = HTMLInputElement | HTMLSelectElement | HTMLFieldSetElement;
+
 const isSelect = (input: Control): input is HTMLSelectElement => input.tagName === 'SELECT';
-const controlValue = (input: Control): number => isSelect(input) ? (input.value === '' ? NaN : Number(input.value)) : input.valueAsNumber;
-const controlDefault = (input: Control): string => isSelect(input) ? [...input.options].find(option => option.defaultSelected)?.value ?? '' : input.defaultValue;
+const isRadioGroup = (input: Control): input is HTMLFieldSetElement => input.tagName === 'FIELDSET';
+const radioOptions = (group: HTMLFieldSetElement) => [...group.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+
+function controlValue(input: Control): number {
+  if (isRadioGroup(input)) return Number(radioOptions(input).find(option => option.checked)?.value ?? NaN);
+  if (isSelect(input)) return input.value === '' ? NaN : Number(input.value);
+  return input.valueAsNumber;
+}
+
+function differsFromDefault(input: Control): boolean {
+  if (isRadioGroup(input)) return radioOptions(input).some(option => option.checked !== option.defaultChecked);
+  if (isSelect(input)) return input.value !== ([...input.options].find(option => option.defaultSelected)?.value ?? '');
+  return input.value !== input.defaultValue;
+}
+
+function writeControl(input: Control, value: number): void {
+  if (isRadioGroup(input)) {
+    for (const option of radioOptions(input)) option.checked = Number(option.value) === value;
+  } else {
+    input.value = String(value);
+  }
+}
 
 type View = { el: HTMLElement; deps: ReadonlySet<string>; update(): void };
 
@@ -70,16 +92,24 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   };
 
   const inputNames = new Set(program.inputs.map(input => input.name));
-  for (const input of doc.querySelectorAll<Control>('input[data-active-input], select[data-active-input]')) {
+  for (const input of doc.querySelectorAll<Control>('input[data-active-input], select[data-active-input], fieldset[data-active-input]')) {
     const name = input.dataset.activeInput ?? '';
-    if (inputNames.has(name)) controls.set(name, [...(controls.get(name) ?? []), input]);
+    if (!inputNames.has(name)) continue;
+    if (isRadioGroup(input)) {
+      // Names are assigned per instance so separately mounted copies never uncheck one another.
+      let groupName: string;
+      do { groupName = `active-radio-${++nextRadioGroupId}`; }
+      while (input.ownerDocument.getElementsByName(groupName).length);
+      for (const option of radioOptions(input)) option.name = groupName;
+    }
+    controls.set(name, [...(controls.get(name) ?? []), input]);
   }
   // Choice domains constrain this mounted session, including host setters and numeric peers.
   // Pure calc sessions retain their model range; widgets do not alter compiler proofs.
   const setInput = session.set.bind(session);
   session.set = (name, value) => {
     for (const input of controls.get(name) ?? []) {
-      if (isSelect(input)) {
+      if (isSelect(input) || isRadioGroup(input)) {
         const problem = outsideControl(input, value);
         if (problem) return problem;
       }
@@ -177,13 +207,13 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     if (r?.kind !== 'value') return;
     for (const other of controls.get(name) ?? []) {
       if (other === editing) continue;
-      if (controlValue(other) !== r.value) other.value = String(r.value);
+      if (controlValue(other) !== r.value) writeControl(other, r.value);
       clearProblem(other);
     }
   };
 
   const restorable: { name: string; input: Control; apply: () => boolean }[] = [];
-  // Controls: <input data-active-input="name">
+  // Each numeric control or choice group updates one declared input.
   for (const [name, inputs] of controls) for (const input of inputs) {
     const message = input.ownerDocument.createElement('span');
     do { message.id = `active-input-problem-${++nextProblemId}`; }
@@ -203,8 +233,9 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
       message.remove();
       problems.delete(input);
     });
-    if (!isSelect(input) && input.type === 'number') input.style.setProperty('--active-input-ch', String(inputWidth(input.min, input.max, input.defaultValue, input.step)));
-    if (initialAccepted.has(name)) input.value = String(initialValues.get(name));
+    if (!isSelect(input) && !isRadioGroup(input) && input.type === 'number') input.style.setProperty('--active-input-ch', String(inputWidth(input.min, input.max, input.defaultValue, input.step)));
+    const initialValue = initialValues.get(name);
+    if (initialAccepted.has(name) && initialValue !== undefined) writeControl(input, initialValue);
     const apply = () => {
       const value = controlValue(input);
       let problem: string | undefined;
@@ -212,6 +243,10 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
       try { problem = Number.isNaN(value) ? 'enter a number' : outsideControl(input, value) ?? session.set(name, value); }
       finally { editing = undefined; }
       if (problem) {
+        if (isRadioGroup(input)) {
+          syncPeers(name);
+          return false;
+        }
         input.setCustomValidity(problem);
         input.setAttribute('aria-invalid', 'true');
         input.title = problem;
@@ -222,7 +257,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
       syncPeers(name, input);
       return true;
     };
-    const event = isSelect(input) ? 'change' : 'input';
+    const event = isSelect(input) || isRadioGroup(input) ? 'change' : 'input';
     input.addEventListener(event, apply);
     cleanups.push(() => input.removeEventListener(event, apply));
     restorable.push({ name, input, apply });
@@ -231,7 +266,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   // The browser may have restored a value (back/forward cache, autofill): adopt it. A control counts as restored
   // if its value differs from what was rendered, decided before anything is applied, so values written by syncing
   // (a slider rounded to its step, say) are never mistaken for restored ones. One restored control per input wins.
-  const restored = restorable.filter(({ name, input }) => !initialAccepted.has(name) && !Number.isNaN(controlValue(input)) && input.value !== controlDefault(input));
+  const restored = restorable.filter(({ name, input }) => !initialAccepted.has(name) && !Number.isNaN(controlValue(input)) && differsFromDefault(input));
   const adopted = new Set<string>();
   for (const { name, apply } of restored) {
     if (adopted.has(name)) continue;
@@ -264,6 +299,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
 
 /** A control may narrow the input's range (min/max attributes); the session only knows the model's range. */
 function outsideControl(input: Control, value: number): string | undefined {
+  if (isRadioGroup(input)) return radioOptions(input).some(option => Number(option.value) === value) ? undefined : 'choose an available option';
   if (isSelect(input)) return [...input.options].some(option => Number(option.value) === value) ? undefined : 'choose an available option';
   const min = input.min === '' ? -Infinity : Number(input.min);
   const max = input.max === '' ? Infinity : Number(input.max);

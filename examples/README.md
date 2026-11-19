@@ -19,3 +19,4 @@ Every example is rendered in CI (`packages/remark/test/examples.test.ts`) and mu
 
 - [Readable edit and slider controls (0.6.0)](readable-controls.md): accessible-only names, inline/standalone controls and legacy compatibility.
 - [Delivery select (0.6.0)](select-control.md): numeric choices and synchronized controls.
+- [Delivery radio (0.6.0)](radio-control.md): native numeric choices with a calc-owned default.

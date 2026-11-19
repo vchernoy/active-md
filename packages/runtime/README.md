@@ -72,7 +72,7 @@ expected answers without changing inputs or enabling quiz UI. This self-check
 helper does not manage attempts, Retry, persistence or authoritative grading.
 
 
-## Numeric selects (0.6.0)
+## Numeric choice controls (0.6.0)
 
 Readable edit/slider controls use the same runtime paths as legacy number/range
 controls. Selects use native change events and share the same numeric binding and
@@ -81,5 +81,8 @@ including public setters and numeric peer edits. Initial restored values must fi
 all controls; a removed option retains the authored default. Pure calc sessions do
 not acquire widget domains. Source/defaults are never rewritten. Group/option labels
 are visible, unlike edit/slider bracket names. Optional CSS bounds long dropdowns
-and wraps group labels. Radio/checkbox/button controls and complete quiz UI are not
+and wraps group labels. Checkbox/button controls and complete quiz UI are not
 provided by these APIs.
+
+Radio groups use native names scoped per mounted group. They share numeric option
+validation, peer synchronization and reset behavior with selects.

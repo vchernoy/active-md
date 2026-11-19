@@ -14,6 +14,7 @@ const { html, messages } = renderActive(markdown, { locale: 'en-US' });
 
 - ` ```calc ` blocks: collected in document order into one program (`@vchernoy/calc`), hidden from readers (`showCalc: true` shows them as code).
 - Readable 0.6.0 controls: `:edit{input=name}` and `:slider[Accessible name]{input=name step=0.1}`, inline or standalone (`::`). Optional brackets name the control without inserting visible text; omission uses the binding name. Defaults are declared in calc.
+- Numeric choices (0.6.0): `:::select[Label]{input=name}` or `:::radio[Label]{input=name}` with child `::option[Label]{value=number}` directives. The group and option labels are visible, and the calc default must match an option.
 - Native select groups: `:::select[Visible label]{input=name}` with direct `::option[Visible option]{value=10}` children and closing `:::`. Require 1–256 unique finite numeric values, a matching calc default and compatible ranges/domains across controls. See [delivery](../../examples/select-control.md).
 - Legacy `:input[name]` is a number box. Add `{widget=slider}` for a slider, with `min`, `max` and `step` (they may only narrow the input's range) and `label="…"`. An input may have several controls (say a number box and a slider): they stay in sync and must use the same range.
 - `:value[expr]{format=fixed:2|percent:1|int}`: a read-only view of a value or expression.

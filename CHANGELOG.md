@@ -9,7 +9,8 @@ All three packages share one version.
 - Extend authoring validation for quiz question/control types, expected expressions, tolerance, accepted-choice flags, seed bindings and point values (#70–#74, #80).
 - Add pure identity-based answer checking, seeded choice ordering and weighted scores; opt-in bounded quiz metadata and runtime inspection/compilation/group self-check helpers (#75, #78–#79, #82–#84, #88). These do not implement quiz UI, attempt freezing, Retry or persistence.
 - Isolate concurrent playground browser fixture caches (#77).
-- Refresh author/package docs and executable examples; synchronize all three versions/internal/playground pins at exact 0.6.0. Radio, checkbox groups and button actions are not included.
+- Add native numeric radio groups with visible legends, keyboard navigation, shared choice validation, and calc-owned defaults (#85, #95).
+- Refresh author/package docs and executable examples; synchronize all three versions/internal/playground pins at exact 0.6.0. Checkbox groups and button actions remain future work.
 
 ## 0.5.0
 

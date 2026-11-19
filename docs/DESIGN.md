@@ -814,3 +814,23 @@ current evaluation errors remain a later consumer's responsibility. Schema/name
 compatibility does not prove matching document source, DOM, reader-control exclusion,
 or author provenance. Choice labels stay untrusted Markdown. This adds no mounting,
 seed initialization, entropy, quiz UI, submission, scoring, attempts or persistence.
+
+### Runtime group self-checking (#48 prerequisite, unreleased)
+
+`checkQuizGroup(prepared, groupId, responses)` checks one trusted, unchanged
+`compileQuizManifest` result against a host-owned map of parsed finite numeric values
+or choice-ID arrays. It is not an unknown-object deserializer or response text parser.
+Evaluate group conditions outer-to-inner: zero returns `hidden` without inspecting
+responses or evaluating answers; errors/nonfinite conditions return `invalid`.
+Visible groups reject foreign response IDs, wrong response types and invalid selections.
+Missing numeric responses are incorrect; missing choice responses use an empty selection
+under the existing choice-checking contract (including an empty accepted multiple set).
+
+Evaluate numeric expected expressions against their current session, apply the existing
+numeric tolerance/choice-identity checkers, then aggregate source-order question weights.
+Configuration, expected-evaluation or response errors never become incorrect answers
+or partial scores. A `checked` result contains group/question IDs, correctness, earned
+and maximum points in fresh detached rows; later input/response changes do not rewrite it.
+This is a point-in-time self-check, not a managed/frozen attempt or authoritative grade.
+It writes no seeds/inputs, subscribes to nothing, changes no DOM and adds no Retry,
+response parsing, quiz UI, persistence or host snapshot protocol.

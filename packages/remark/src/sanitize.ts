@@ -10,7 +10,7 @@ const ACTIVE = ['dataActiveWhenConstant', 'dataActiveWhen', 'dataActiveWhenId', 
 export const activeSchema: Schema = {
   ...defaultSchema,
   // <picture>/<source> would fetch images on display; images become links instead (rehypeActiveImages).
-  tagNames: [...(defaultSchema.tagNames ?? []).filter(t => t !== 'picture' && t !== 'source'), 'input', 'output', 'aside', 'label'],
+  tagNames: [...(defaultSchema.tagNames ?? []).filter(t => t !== 'picture' && t !== 'source'), 'input', 'output', 'aside', 'label', 'select', 'option'],
   attributes: {
     ...defaultSchema.attributes,
     '*': [...(defaultSchema.attributes?.['*'] ?? []), ...ACTIVE, 'hidden', 'className', 'role', 'ariaLive', 'ariaLabel', 'title'],
@@ -21,6 +21,8 @@ export const activeSchema: Schema = {
       'rel',
     ],
     // Task-list checkboxes keep GitHub's rule (disabled checkbox) through remark-gfm; our inputs are number/range.
+    select: [],
+    option: ['value', 'selected'],
     input: [['disabled', true], ['type', 'checkbox', 'number', 'range'], 'checked', 'value', 'min', 'max', 'step', 'inputMode'],
   },
   // GitHub's schema forces every <input> to be a disabled checkbox; ours are live number boxes and sliders.

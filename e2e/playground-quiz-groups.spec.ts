@@ -13,6 +13,8 @@ test.afterAll(async () => { await server?.close(); });
 test('quiz grouping diagnostics precede hidden pruning and navigate to the original source', async ({ page }) => {
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  // A first visit opens the example as a page; switch to the source to edit it.
+  await page.locator('#mode-edit').click();
   const question = ':::question{type=number}\nWhat is ten?\n\n:answer[10]\n:::';
   const invalid = ':::::when[0]\n' + question + '\n:::::\n\n::quiz-submit[Check]';
   await page.locator('#source').fill(invalid);
@@ -30,6 +32,8 @@ test('quiz grouping diagnostics precede hidden pruning and navigate to the origi
 test('hidden question control diagnostics keep source positions and disappear after correction', async ({ page }) => {
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  // A first visit opens the example as a page; switch to the source to edit it.
+  await page.locator('#mode-edit').click();
   const prefix = ':::::when[0]\n';
   const invalid = prefix + ':::question{type=number}\nMissing answer\n:::\n\n::quiz-submit[Check]\n:::::';
   await page.locator('#source').fill(invalid);
@@ -47,6 +51,8 @@ test('hidden question control diagnostics keep source positions and disappear af
 test('hidden quiz answer expression errors navigate to the answer and clear after correction', async ({ page }) => {
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  // A first visit opens the example as a page; switch to the source to edit it.
+  await page.locator('#mode-edit').click();
   const invalid = ':::::when[0]\n:::question{type=number}\nAnswer: :answer[missing]\n:::\n\n::quiz-submit[Check]\n:::::';
   await page.locator('#source').fill(invalid);
   const problem = page.locator('#problems button').filter({ hasText: 'quiz answer: unknown name' });
@@ -61,6 +67,8 @@ test('hidden quiz answer expression errors navigate to the answer and clear afte
 test('hidden quiz seed binding diagnostics navigate to the submit and clear after a declared binding', async ({ page }) => {
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  // A first visit opens the example as a page; switch to the source to edit it.
+  await page.locator('#mode-edit').click();
   const invalid = ':::::when[0]\n:::question{type=number}\n:answer[10]\n:::\n\n::quiz-submit[Check]{seed=missing}\n:::::';
   await page.locator('#source').fill(invalid);
   const problem = page.locator('#problems button').filter({ hasText: 'quiz seed must name' });
@@ -75,6 +83,8 @@ test('hidden quiz seed binding diagnostics navigate to the submit and clear afte
 test('hidden single-choice acceptance diagnostics navigate to the question and clear after correction', async ({ page }) => {
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  // A first visit opens the example as a page; switch to the source to edit it.
+  await page.locator('#mode-edit').click();
   const invalid = ':::::when[0]\n:::question{type=single}\n::choice[Ten]{correct=false}\n:::\n\n::quiz-submit[Check]\n:::::';
   await page.locator('#source').fill(invalid);
   const problem = page.locator('#problems button').filter({ hasText: 'must mark at least one choice correct' });
@@ -89,6 +99,8 @@ test('hidden single-choice acceptance diagnostics navigate to the question and c
 test('hidden quiz tolerance diagnostics navigate to the answer and clear after correction', async ({ page }) => {
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  // A first visit opens the example as a page; switch to the source to edit it.
+  await page.locator('#mode-edit').click();
   const invalid = ':::::when[0]\n:::question{type=number}\nAnswer: :answer[10]{tolerance=-1}\n:::\n\n::quiz-submit[Check]\n:::::';
   await page.locator('#source').fill(invalid);
   const problem = page.locator('#problems button').filter({ hasText: 'quiz answer tolerance' });
@@ -103,6 +115,8 @@ test('hidden quiz tolerance diagnostics navigate to the answer and clear after c
 test('hidden question points diagnostics navigate to the declaration and clear after correction', async ({ page }) => {
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  // A first visit opens the example as a page; switch to the source to edit it.
+  await page.locator('#mode-edit').click();
   const invalid = ':::::when[0]\n:::question{type=number points=-1}\n:answer[10]\n:::\n\n::quiz-submit[Check]\n:::::';
   await page.locator('#source').fill(invalid);
   const problem = page.locator('#problems button').filter({ hasText: 'quiz question points must be a finite' });

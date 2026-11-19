@@ -14,6 +14,8 @@ test('wide display formulas advertise scrolling at 390px and support keyboard ac
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  // A first visit opens the example as a page; switch to the source to edit it.
+  await page.locator('#mode-edit').click();
   const text = '$$a+b+c+d+e+f+g+h+i+j+k+l+m+n+o+p+q+r+s+t=u$$';
   await page.locator('#source').fill(text);
   await page.locator('#mode-view').click();

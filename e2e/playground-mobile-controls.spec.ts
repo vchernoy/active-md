@@ -15,6 +15,8 @@ test('legacy visible labels, units, inputs and slider values stay together on ph
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(url);
   await expect(page.locator('#source')).not.toHaveValue('');
+  // A first visit opens the example as a page; switch to the source to edit it.
+  await page.locator('#mode-edit').click();
   await page.locator('#source').fill(SAMPLE
     .replace('Deposit :edit[Deposit]{input=principal}, at :slider[Rate (%/year)]{input=rate step=0.5}% per year\nfor :edit[Term (years)]{input=years step=1} years.',
       ':input[principal]{label="Deposit"} :input[rate]{label="Rate (%/year)" widget=slider step=0.5}\n:input[years]{label="Term (years)" step=1}'));

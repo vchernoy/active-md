@@ -391,6 +391,13 @@ inline `$…$` math use the same sanitized rendering path as paragraph content. 
 titles inside hidden `when` blocks retain the same lazy evaluation rules. Unlabelled
 containers keep their existing default titles.
 
+### Checkbox collection research (#86)
+
+[Checkbox collections](CHECKBOX-COLLECTIONS.md) compares numeric lists/sets with
+independent scalar controls, inventories current numeric API/host constraints and
+proposes bounded typed-selection semantics and a staged plan. It is research for
+review, not approved collection syntax, API, implementation or host support.
+
 ### Readable numeric control names (#89, 0.6.0)
 
 Inline `:edit{input=name}` and `:slider{input=name}` and standalone leaf forms

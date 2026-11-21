@@ -24,6 +24,15 @@ const { html, messages } = renderActive(markdown, { locale: 'en-US' });
 
 Errors appear inline (`⚠ message`) and as `messages` with document line and column.
 
+## Heading links (unreleased)
+
+Use `## Later` with `[Jump](#later)`. Headings get unique GitHub-style slugs, and
+known local fragments are matched to sanitizer-prefixed IDs. Duplicate headings
+use numbered suffixes; Unicode works in literal or percent-encoded fragments.
+Raw HTML IDs remain disallowed. Slugs use initial rendered text and stay fixed
+when live values change. Unknown/external links are unchanged. This is current
+source behavior, requiring a future published version for consumers.
+
 ## Safety
 
 Raw HTML in the Markdown is dropped. Output goes through `rehype-sanitize` (GitHub's schema plus the elements and `data-active-*` attributes this plugin emits) before KaTeX runs with `trust: false`. Calc has no access to anything but numbers.

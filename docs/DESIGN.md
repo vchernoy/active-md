@@ -375,6 +375,21 @@ $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX
 :::
 ````
 
+### Heading anchors (#106, unreleased)
+
+Headings receive document-scoped GitHub-style IDs from their initial rendered text:
+`## Later` becomes `user-content-later` after sanitizing. Repeated slugs use `-1`,
+`-2`, etc.; existing generated IDs (including footnote headings) are reserved.
+Empty/punctuation-only slugs fall back to `section`. Inline formatting is flattened;
+Unicode is retained. IDs remain fixed when live calc values change.
+
+Write `[Jump](#later)` or an encoded Unicode fragment. Only fragments matching a
+heading are rewritten to the matching sanitized ID. Unknown fragments, malformed
+percent escapes and external URLs are preserved. Sanitizer clobber protection is
+unchanged; raw HTML cannot supply authored IDs. Footnote links keep their separate
+forward/back target handling. This is unreleased source behavior; hosts using a
+published earlier version require a separately authorized release/adoption.
+
 ### Directives
 
 | Directive | Kind | Attributes |

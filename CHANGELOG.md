@@ -2,6 +2,12 @@
 
 All three packages share one version.
 
+## 0.6.2
+
+- Generated footnote links now point at their sanitized ids, so footnote references and back-links scroll to their targets (#106, #110).
+- Headings get safe GitHub-style ids (unique, Unicode-aware, with the sanitizer's clobber prefix), and local `#fragment` links resolve to them (#106, #111).
+- Synchronize all three versions/internal/playground pins at exact 0.6.2.
+
 ## 0.6.1
 
 - Keep colon-number text such as `3:1` or `16:10` in radio/select titles, option labels and edit/slider accessible names; Markdown had read `:1` as an unknown directive and dropped it (#100, #103).

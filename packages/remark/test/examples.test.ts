@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 import { renderActive } from '../src/index.js';
 
@@ -44,4 +45,28 @@ it.each([0, 30])('compound interest handles doubling-time rate %s without domain
   expect(rendered.messages).toEqual([]);
   expect(rendered.html).not.toContain('active-error');
   expect(rendered.html).not.toContain('katex-error');
+});
+
+const unlimitedNeverCostsMore = 'Unlimited never costs more than Basic at these prices.';
+const basicNeverCostsMore = 'Extra data is free, so Basic never costs more than Unlimited at these prices.';
+
+it.each([
+  [0, 5, unlimitedNeverCostsMore],
+  [0, 10, unlimitedNeverCostsMore],
+  [0, 25, basicNeverCostsMore],
+  [3, 5, unlimitedNeverCostsMore],
+  [3, 10, unlimitedNeverCostsMore],
+  [3, 25, 'Above about 10.0 GB a month, Unlimited costs less.'],
+])('phone plans explain the break-even for extra price %s and Unlimited fee %s', (extraPrice, unlimitedFee, explanation) => {
+  const source = readFileSync(dir + 'compare-plans.md', 'utf8')
+    .replace('input extraPrice = 3', `input extraPrice = ${extraPrice}`)
+    .replace('input unlimitedFee = 25', `input unlimitedFee = ${unlimitedFee}`);
+  const { html, messages } = renderActive(source, { locale: 'en-US' });
+  expect(messages).toEqual([]);
+  const { document } = new JSDOM(html).window;
+  const visibleExplanations = [...document.querySelectorAll('details p')]
+    .filter(paragraph => !paragraph.closest('[hidden]'))
+    .map(paragraph => paragraph.textContent?.trim())
+    .filter(text => text && /^(Above about|Unlimited never|Extra data is free)/.test(text));
+  expect(visibleExplanations).toEqual([explanation]);
 });

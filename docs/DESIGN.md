@@ -8,7 +8,7 @@ Consumers: **TypeBridge** (vchernoy/typebridge) and **course-platform** (vcherno
 Small, safe and usable as soon as possible in both course-platform and TypeBridge. Everything later in this document stays the direction; v0 is the subset that ships first.
 
 - **Markdown with directives, not MDX.** MDX compiles to JavaScript and runs it. That's fine for trusted course authors, but not for TypeBridge share links, which anyone can write. The v0 plugin is a remark plugin, so it works in a plain remark pipeline (TypeBridge, sanitized) and inside course-platform's existing MDX pipeline.
-- **Markdown:** GFM (tables, task lists, strikethrough, autolinks), plus callouts `:::note|tip|warning|danger|important|exercise` and `:::details[Title]`, as course-platform already has.
+- **Markdown:** GFM (tables, task lists, strikethrough, autolinks), plus callouts `:::note|tip|warning|danger|important|exercise` and `:::details[Title]`, as course-platform already has. Generated footnote links resolve to the sanitized, clobber-prefixed targets.
 - **LaTeX:** `$…$` and `$$…$$`, rendered by KaTeX.
 - **Calc, minimal:**
   - `input x = 5`, a number with a default, and optional `in a..b`;

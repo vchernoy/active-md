@@ -10,7 +10,7 @@ import remarkRehype from 'remark-rehype';
 import { unified } from 'unified';
 import { remarkActive, type ActiveOptions } from './plugin.js';
 import { rehypeActiveImages, rehypeActiveKatex, rehypeActiveWrap, type ImageOptions, type KatexOptions } from './rehype.js';
-import { activeSchema } from './sanitize.js';
+import { activeSchema, rehypeActiveFootnoteLinks } from './sanitize.js';
 
 export { remarkActive, type ActiveData, type ActiveOptions, type CalcBlock } from './plugin.js';
 export { rehypeActiveKatex, rehypeActiveWrap, renderTex, type KatexOptions } from './rehype.js';
@@ -42,6 +42,7 @@ export function createProcessor(options: RenderOptions = {}) {
     .use(remarkRehype)
     .use(rehypeActiveWrap)
     .use(rehypeActiveImages, options)
+    .use(rehypeActiveFootnoteLinks)
     .use(rehypeSanitize, activeSchema)
     .use(rehypeActiveKatex, options)
     .use(rehypeStringify, { allowDangerousHtml: true });

@@ -13,8 +13,8 @@ const points = (value: number): string => String(Number(value.toFixed(6)));
 export type QuizSeedSource = (size: number) => number | undefined;
 const SEED_MAX = 4294967295;
 /**
- * Choice shuffles draw from a counter range far above the small counters authors pass to
- * `rand`/`randInt`, so a question's order is independent of its generated numbers.
+ * Choice shuffles use high counters to avoid overlapping typical low author counters.
+ * These counters are also valid for `rand` and `randInt`.
  */
 const SHUFFLE_DRAW_BASE = 0x40000000;
 const SHUFFLE_DRAW_STRIDE = 4096;

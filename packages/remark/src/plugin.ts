@@ -1,5 +1,6 @@
 import { captureQuizManifest, type QuizManifest } from './quiz-manifest.js';
 import { validateQuizGroups } from './quiz-groups.js';
+import { renderQuizNode } from './quiz-render.js';
 import { warnStrayFences } from './stray-fences.js';
 import { checkWhenControls } from './when-check.js';
 import { createSession, scoreQuizGroup, formatNumber, parse, parseFormat, type Diagnostic, type Format, type Limits, type Program, type Result } from '@vchernoy/calc';
@@ -48,6 +49,8 @@ const isRenderedControl = (node: ControlDirective) => node.data?.hName === 'labe
 export function remarkActive(options: ActiveOptions = {}) {
   return (tree: Root, file: VFile): void => {
     const quiz = options.quizManifest ? captureQuizManifest(tree, node => labelSource(node as TextDirective, file)) : undefined;
+    // Quiz directives stay in the tree until validation decides between controls and source text.
+    const quizNodes = quiz && 'nodes' in quiz ? quiz.nodes : undefined;
     warnStrayFences(tree, file);
     const blocks: CalcBlock[] = [];
     const blockStart = new Map<string, number>();
@@ -202,6 +205,19 @@ export function remarkActive(options: ActiveOptions = {}) {
       }
     }
 
+    // Quiz controls render only with a published (error-free, opted-in) manifest; otherwise the
+    // directives keep their literal source as before. Answers and correct flags never enter HTML.
+    if (quizNodes) {
+      const published = file.data.active.quiz !== undefined;
+      walk(tree, (node, parent, index) => {
+        const tag = quizNodes.get(node);
+        if (!tag) return undefined;
+        if (!published) return restoreSource(node as Directive, parent, index);
+        renderQuizNode(node as ContainerDirective | LeafDirective | TextDirective, tag);
+        return undefined;
+      });
+    }
+
     // Validate the original tree first, including structural errors in dead
     // branches. Remove proven-false subtrees before rehype/KaTeX/serialization;
     // no descendant controls, bindings or condition-error placeholders survive.
@@ -220,6 +236,7 @@ export function remarkActive(options: ActiveOptions = {}) {
     }
 
     function directive(node: Directive, parent: Parent, index: number): number | undefined {
+      if (quizNodes?.has(node)) return undefined;
       const attrs = node.attributes ?? {};
       if (node.type === 'containerDirective' && node.name === 'when') {
         const label = node.children[0];
@@ -262,6 +279,10 @@ export function remarkActive(options: ActiveOptions = {}) {
         return undefined;
       }
       // Anything else (":30" in "10:30" is not a directive, but "Note:this" is) goes back to its source text.
+      return restoreSource(node, parent, index);
+    }
+
+    function restoreSource(node: Directive, parent: Parent, index: number): number {
       const source = sourceOf(node, file);
       const text: RootContent = { type: 'text', value: source };
       const replacement = node.type === 'textDirective' ? text : ({ type: 'paragraph', children: [{ type: 'text', value: source }] } satisfies Paragraph);

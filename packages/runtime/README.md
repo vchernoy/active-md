@@ -71,6 +71,15 @@ host-parsed numeric responses or choice-ID arrays. It returns `hidden`, `invalid
 expected answers without changing inputs or enabling quiz UI. This self-check
 helper does not manage attempts, Retry, persistence or authoritative grading.
 
+## Quizzes with Check / Retry (unreleased, #48)
+
+Render with `renderActive(source, { quizManifest: true })` and pass the returned `quiz` to
+`mount(root, { quiz })`. Each `::quiz-submit` group gets a working Check button: it grades the
+group against live calc values, shows per-question feedback and the score, and freezes the group;
+Retry reopens only that group. The HTML carries only identities; answers stay in the manifest.
+Without the option or with an incompatible manifest, quiz controls stay inert. Seeded variants
+and a host attempt API are not implemented yet.
+
 
 ## Numeric choice controls (0.6.0)
 
@@ -81,8 +90,8 @@ including public setters and numeric peer edits. Initial restored values must fi
 all controls; a removed option retains the authored default. Pure calc sessions do
 not acquire widget domains. Source/defaults are never rewritten. Group/option labels
 are visible, unlike edit/slider bracket names. Optional CSS bounds long dropdowns
-and wraps group labels. Checkbox/button controls and complete quiz UI are not
-provided by these APIs.
+and wraps group labels. Checkbox controls for calc inputs are not provided by these APIs;
+quizzes are described below.
 
 Radio groups use native names scoped per mounted group. They share numeric option
 validation, peer synchronization and reset behavior with selects.

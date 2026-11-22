@@ -10,13 +10,20 @@ export type QuizQuestion = { id: string; points: number; source: QuizSource } & 
 );
 export type QuizGroup = { id: string; source: QuizSource; conditions: QuizCondition[]; seed?: string; questions: QuizQuestion[] };
 export type QuizManifest = { version: 1; groups: QuizGroup[] };
+/** Which manifest entry a quiz directive node renders (renderer-internal; never serialized). */
+export type QuizNodeTag =
+  | { kind: 'question'; questionId: string; number: number; type: 'number' | 'single' | 'multiple' }
+  | { kind: 'answer'; questionId: string }
+  | { kind: 'choice'; questionId: string; choiceId: string; type: 'single' | 'multiple' }
+  | { kind: 'submit'; groupId: string };
 type Context = { parent: Context | undefined; expression: string; source: QuizSource; depth: number };
 const location = (node: Node): QuizSource => ({ line: node.position?.start.line ?? 1, column: node.position?.start.column ?? 1 });
 
 /** Capture original source before directive transforms/pruning. Validation gates publication separately. */
 export function captureQuizManifest(root: Root, label: (node: Node) => string):
-  { manifest: QuizManifest } | { problem: string; source: QuizSource } {
+  { manifest: QuizManifest; nodes: ReadonlyMap<object, QuizNodeTag> } | { problem: string; source: QuizSource } {
   const groups: QuizGroup[] = [];
+  const nodes = new Map<object, QuizNodeTag>();
   let pending: QuizQuestion[] = [], questionCount = 0, choiceCount = 0, chars = 0;
   const charge = (value: string) => { chars += value.length; if (chars > DEFAULT_LIMITS.maxSourceLength) throw new Error('quiz manifest exceeds the text budget'); return value; };
   const stack: { node: Node; context: Context | undefined; question: QuizQuestion | undefined; questionNode: Node | undefined }[] = [
@@ -41,9 +48,11 @@ export function captureQuizManifest(root: Root, label: (node: Node) => string):
         const next: QuizQuestion = type === 'single' || type === 'multiple' ? { ...base, type, choices: [] }
           : { ...base, type: 'number', expected: '', tolerance: 0, relative: false };
         if (!question) pending.push(next);
+        nodes.set(node, { kind: 'question', questionId: next.id, number: questionCount, type: next.type });
         question = next; questionNode = node;
       } else if (question && node.type === 'textDirective' && node.name === 'answer' && question.type === 'number') {
         question.expected = charge(label(node).trim());
+        nodes.set(node, { kind: 'answer', questionId: question.id });
         question.tolerance = node.attributes?.tolerance === undefined ? 0 : Number(node.attributes.tolerance);
         const relative = node.attributes?.relative;
         question.relative = relative === '' || relative === null || relative === 'true';
@@ -51,8 +60,10 @@ export function captureQuizManifest(root: Root, label: (node: Node) => string):
       } else if (question && node.type === 'leafDirective' && node.name === 'choice' && question.type !== 'number') {
         if (++choiceCount > DEFAULT_LIMITS.maxDefinitions) throw new Error('quiz manifest exceeds the choice limit');
         const correct = node.attributes?.correct;
-        question.choices.push({ id: 'choice-' + (question.choices.length + 1), labelSource: charge(label(node)),
+        const choiceId = 'choice-' + (question.choices.length + 1);
+        question.choices.push({ id: choiceId, labelSource: charge(label(node)),
           correct: correct === '' || correct === null || correct === 'true', source });
+        nodes.set(node, { kind: 'choice', questionId: question.id, choiceId, type: question.type });
       } else if (node.type === 'leafDirective' && node.name === 'quiz-submit' && !question && pending.length) {
         const conditions: QuizCondition[] = [];
         for (let cursor = context; cursor; cursor = cursor.parent) {
@@ -60,6 +71,7 @@ export function captureQuizManifest(root: Root, label: (node: Node) => string):
           conditions.push({ expression: charge(cursor.expression), source: cursor.source });
         }
         const seed = node.attributes?.seed;
+        nodes.set(node, { kind: 'submit', groupId: 'quiz-' + (groups.length + 1) });
         groups.push({ id: 'quiz-' + (groups.length + 1), source, conditions: conditions.reverse(),
           ...(typeof seed === 'string' ? { seed: charge(seed) } : {}), questions: pending });
         pending = [];
@@ -69,6 +81,6 @@ export function captureQuizManifest(root: Root, label: (node: Node) => string):
     }
     const manifest: QuizManifest = { version: 1, groups };
     if (JSON.stringify(manifest).length > DEFAULT_LIMITS.maxSourceLength) throw new Error('quiz manifest exceeds the serialized budget');
-    return { manifest };
+    return { manifest, nodes };
   } catch (error) { return { problem: error instanceof Error ? error.message : 'quiz manifest capture failed', source }; }
 }

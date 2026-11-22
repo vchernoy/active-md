@@ -115,20 +115,85 @@ it('leaves a group inert when a stale manifest describes other controls (#114 re
   expect(root.querySelector<HTMLButtonElement>('[data-active-quiz-group] button')!.disabled).toBe(false);
 });
 
-it('keeps a seeded group inert until the seed lifecycle exists; unseeded groups still work (#114 review)', () => {
-  const seeded = '```calc\ninput variant = 1\nx = randInt(variant, 1, 100)\n```\n\n:::question{type=number}\nQ?\n\n:answer[x]\n:::\n\n::quiz-submit[Check]{seed=variant}\n\n' +
-    ':::question{type=number}\nPlain?\n\n:answer[1]\n:::\n\n::quiz-submit[Check plain]\n';
-  const rendered = renderActive(seeded, { quizManifest: true });
+/** A scripted seed source: returns the queued offsets in order, then 0. */
+const scripted = (...offsets: number[]) => (size: number) => {
+  const next = offsets.shift() ?? 0;
+  expect(next).toBeLessThan(size);
+  return next;
+};
+
+const seededSource = '```calc\ninput variant = 1 in 1..1000\nx = randInt(variant, 1, 100)\ny = x * 2\ninput other = 5 in 1..1000\n```\n\n' +
+  'Double :value[x]: (:value[y] is the answer)\n\n:::question{type=number}\nQ?\n\n:answer[y]\n:::\n\n::quiz-submit[Check]{seed=variant}\n\n' +
+  ':::question{type=number}\nPlain?\n\n:answer[1]\n:::\n\n::quiz-submit[Check plain]\n';
+
+function seeded(source: (size: number) => number) {
+  const rendered = renderActive(seededSource, { quizManifest: true });
+  expect(rendered.messages).toEqual([]);
+  const root = document.createElement('div');
+  root.innerHTML = rendered.html;
+  document.body.append(root);
+  const live = mount(root, { quiz: rendered.quiz, quizSeedSource: source });
+  const [first, second] = [...root.querySelectorAll<HTMLElement>('[data-active-quiz-group]')];
+  const answer = (q: string) => root.querySelector<HTMLInputElement>(`input[data-active-answer="${q}"]`)!;
+  return { root, live, first: first!, second: second!, answer, value: (name: string) => live.session.inputValues().get(name) };
+}
+
+it('draws the seed when the attempt starts, keeps it on Check, and redraws only it on Retry (#48)', () => {
+  const ui = seeded(scripted(6, 41));
+  // The first attempt drew variant = 1 + 6 inside its declared range 1..1000.
+  expect(ui.value('variant')).toBe(7);
+  const y = ui.live.session.get('y');
+  expect(y?.kind).toBe('value');
+  // A dependent binding shows the drawn variant's value, not the default's.
+  expect(ui.root.querySelectorAll('output')[1]!.textContent).toBe(String((y as { value: number }).value));
+  ui.answer('question-1').value = String((y as { value: number }).value);
+  ui.first.querySelector('button')!.click();
+  expect(ui.root.querySelector('[data-active-question="question-1"] .active-question-feedback')!.textContent).toBe('Correct (1 of 1)');
+  expect(ui.value('variant')).toBe(7);
+  // Retry draws among the other 999 values: offset 41 is 42, which skips past the old 7 to 43.
+  ui.first.querySelector('button')!.click();
+  expect(ui.value('variant')).toBe(43);
+  expect(ui.value('other')).toBe(5);
+  expect(ui.answer('question-1').value).toBe('');
+  const redrawn = ui.live.session.get('y') as { value: number };
+  expect(ui.root.querySelectorAll('output')[1]!.textContent).toBe(String(redrawn.value));
+});
+
+it('Retry always changes the variant when the range allows, even if the draw repeats', () => {
+  // Offset 6 first (variant 7), then offset 6 among the remaining values skips past 7 to 8.
+  const ui = seeded(scripted(6, 6));
+  expect(ui.value('variant')).toBe(7);
+  ui.first.querySelector('button')!.click();
+  ui.first.querySelector('button')!.click();
+  expect(ui.value('variant')).toBe(8);
+});
+
+it('an unbound group never writes a calc input', () => {
+  const ui = seeded(scripted(0));
+  const before = new Map(ui.live.session.inputValues());
+  ui.answer('question-2').value = '1';
+  ui.second.querySelector('button')!.click();
+  ui.second.querySelector('button')!.click();
+  expect(ui.live.session.inputValues()).toEqual(before);
+});
+
+it('a seed input whose range holds no integer leaves its group inert', () => {
+  const source = '```calc\ninput variant = 0.5 in 0.2..0.8\n```\n\n:::question{type=number}\nQ?\n\n:answer[1]\n:::\n\n::quiz-submit[Check]{seed=variant}\n';
+  const rendered = renderActive(source, { quizManifest: true });
   expect(rendered.messages).toEqual([]);
   const root = document.createElement('div');
   root.innerHTML = rendered.html;
   document.body.append(root);
   const live = mount(root, { quiz: rendered.quiz });
-  const [first, second] = [...root.querySelectorAll<HTMLElement>('[data-active-quiz-group]')];
-  expect(first!.querySelector('button')!.disabled).toBe(true);
-  expect(first!.querySelector('.active-quiz-status')!.textContent).toBe('Randomized quizzes cannot be checked here yet.');
-  expect(second!.querySelector('button')!.disabled).toBe(false);
-  expect(live.session.inputValues().get('variant')).toBe(1);
+  expect(root.querySelector<HTMLButtonElement>('[data-active-quiz-group] button')!.disabled).toBe(true);
+  expect(root.querySelector('.active-quiz-status')!.textContent).toBe('This quiz cannot be checked here.');
+  expect(live.session.inputValues().get('variant')).toBe(0.5);
+});
+
+it('the default seed source is the platform CSPRNG, within range', () => {
+  const ui = seeded(undefined as unknown as (size: number) => number);
+  const value = ui.value('variant')!;
+  expect(Number.isInteger(value) && value >= 1 && value <= 1000).toBe(true);
 });
 
 it('destroy removes the Check handlers', () => {

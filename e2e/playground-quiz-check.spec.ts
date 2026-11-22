@@ -39,3 +39,30 @@ test('a reader checks a quiz, sees the score and per-question feedback, then ret
   await doc.getByRole('button', { name: 'Check' }).click();
   await expect(doc.getByRole('status').filter({ hasText: 'Score' })).toHaveText('Score: 3 of 3');
 });
+
+test('a seeded quiz draws its variant at the start and a new one on Retry (#48)', async ({ page }) => {
+  const seeded = '```calc\ninput variant = 1 in 1..1000\na = randInt(variant, 2, 9)\nb = randInt(variant, 2, 9, 1)\n```\n\n' +
+    'Variant :value[variant]: what is :value[a] × :value[b]?\n\n:::question{type=number}\nYour product:\n\n:answer[a * b]\n:::\n\n::quiz-submit[Check]{seed=variant}\n';
+  await page.goto(url);
+  await expect(page.locator('#source')).not.toHaveValue('');
+  await page.locator('#mode-edit').click();
+  await page.locator('#source').fill(seeded);
+  await expect(page.locator('#problems-title')).toHaveText('No problems');
+  await page.locator('#mode-view').click();
+  const doc = page.locator('#doc');
+  const outputs = doc.locator('output');
+  const read = async () => (await outputs.allTextContents()).map(Number);
+  const [variant, a, b] = await read();
+  expect(variant).toBeGreaterThanOrEqual(1);
+  await doc.getByRole('textbox', { name: 'Your answer' }).fill(String(a! * b!));
+  await doc.getByRole('button', { name: 'Check' }).click();
+  await expect(doc.locator('.active-quiz-status')).toHaveText('Score: 1 of 1');
+  // Check keeps the variant; Retry draws a different one and the expected answer follows it.
+  expect((await read())[0]).toBe(variant);
+  await doc.getByRole('button', { name: 'Retry' }).click();
+  await expect.poll(async () => (await read())[0]).not.toBe(variant);
+  const [, a2, b2] = await read();
+  await doc.getByRole('textbox', { name: 'Your answer' }).fill(String(a2! * b2!));
+  await doc.getByRole('button', { name: 'Check' }).click();
+  await expect(doc.locator('.active-quiz-status')).toHaveText('Score: 1 of 1');
+});

@@ -115,6 +115,22 @@ it('leaves a group inert when a stale manifest describes other controls (#114 re
   expect(root.querySelector<HTMLButtonElement>('[data-active-quiz-group] button')!.disabled).toBe(false);
 });
 
+it('keeps a seeded group inert until the seed lifecycle exists; unseeded groups still work (#114 review)', () => {
+  const seeded = '```calc\ninput variant = 1\nx = randInt(variant, 1, 100)\n```\n\n:::question{type=number}\nQ?\n\n:answer[x]\n:::\n\n::quiz-submit[Check]{seed=variant}\n\n' +
+    ':::question{type=number}\nPlain?\n\n:answer[1]\n:::\n\n::quiz-submit[Check plain]\n';
+  const rendered = renderActive(seeded, { quizManifest: true });
+  expect(rendered.messages).toEqual([]);
+  const root = document.createElement('div');
+  root.innerHTML = rendered.html;
+  document.body.append(root);
+  const live = mount(root, { quiz: rendered.quiz });
+  const [first, second] = [...root.querySelectorAll<HTMLElement>('[data-active-quiz-group]')];
+  expect(first!.querySelector('button')!.disabled).toBe(true);
+  expect(first!.querySelector('.active-quiz-status')!.textContent).toBe('Randomized quizzes cannot be checked here yet.');
+  expect(second!.querySelector('button')!.disabled).toBe(false);
+  expect(live.session.inputValues().get('variant')).toBe(1);
+});
+
 it('destroy removes the Check handlers', () => {
   const ui = setup();
   ui.live.destroy();

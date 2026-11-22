@@ -2,6 +2,10 @@
 
 All three packages share one version.
 
+## Unreleased
+
+- Seeded quiz variants (#48): a group bound to `seed=name` draws that input within its declared range when the attempt starts and again on Retry (always a different value when the range allows), never on Check; dependents and math update. Unbound groups write no input. Optional `mount(…, { quizSeedSource })` for reproducible draws; a range with no integer leaves the group inert.
+
 ## 0.7.0
 
 - Render quizzes with Check / Retry (#48): with `renderActive(…, { quizManifest: true })`, valid question groups render as accessible controls carrying only identities, and `mount(root, { quiz })` grades a group against live values, shows per-question feedback and the score, freezes it, and Retry reopens only that group. The playground opts in. Seeded variants and a host attempt API follow.

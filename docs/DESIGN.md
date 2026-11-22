@@ -311,7 +311,7 @@ before omission; skipped subtree evaluation errors stay lazy and unreported.
 - Transcendental functions use JavaScript Math approximations. Node/V8, Firefox and Safari may differ in the last bit. Displayed formatted values normally agree, but values near rounding boundaries can differ; exact `==` is not a portable tolerance comparison. Prefer `abs(a - b) < 1e-9` when comparing approximate results. This does not weaken the language's exact equality semantics.
 - Implemented seeded calc draws (0.5.0, #48 prerequisite): `rand(seed[, draw])` returns a value in `[0, 1)`; `randInt(seed, min, max[, draw])` returns an integer in inclusive bounds. `seed` and optional `draw` are integers in `0..4294967295`; `draw` defaults to zero. Bounds are safe integers, min <= max, spanning at most 2^32 integers. Invalid arguments report positioned errors. Distinct draw counters give reproducible draws without mutable state (not a guarantee of different outputs).
 - Seeded algorithm v1 applies MurmurHash3 fmix32 to `(seed + imul(draw, 0x9e3779b9)) mod 2^32` and divides the unsigned word by 2^32. Integer draws map with `min + floor(rand * (max-min+1))`. This is a discrete, deterministic educational generator, not cryptography or authoritative grading. Future snapshot compatibility must include algorithm identity if the algorithm changes.
-- Inputs used as seeds remain live dependencies through ordinary session setters and simplification; literal seeds may fold. Calc draws no entropy. Runtime-owned quiz seeds, attempt initialization/retry and question/answer UI are still unimplemented #48 work.
+- Inputs used as seeds remain live dependencies through ordinary session setters and simplification; literal seeds may fold. Calc draws no entropy; the quiz runtime draws attempt seeds (§8, seeded variants).
 
 ## 5. The `@vchernoy/calc` API
 
@@ -701,10 +701,20 @@ shows text feedback per question (`Correct (1 of 1)` / `Not correct (0 of 2)`, w
 reinforcement), the score (`Score: 3 of 4`) and freezes that group. Retry clears and reopens only
 that group and focuses its first control; other groups and calculator controls are untouched.
 Text that is not a number is reported, not graded. A missing or incompatible manifest (including
-one whose ids match but whose controls differ) leaves the controls inert with a notice. Groups bound
-to a `seed` stay inert ("Randomized quizzes cannot be checked here yet.") until the seed lifecycle
-ships, so no Retry pretends to draw a new variant. Seeded variants (initializing and redrawing the bound input),
-choice shuffling and a host attempt snapshot/event API are the next slices.
+one whose ids match but whose controls differ) leaves the controls inert with a notice.
+
+**Seeded variants (unreleased).** A group closed by `::quiz-submit[...]{seed=name}` owns that declared
+calc input. When the attempt starts (mount) the runtime draws a uniform integer within the input's
+declared range, clamped to calc's seed domain `0..4294967295` (the whole domain without a range), and
+sets it through the session, so `rand`/`randInt` expressions, their indirect dependents, bindings and
+math update. Check never writes the seed. Retry draws again, uniformly among the *other* values when
+the range has more than one, so the variant always changes; it writes only that group's input, and an
+unbound group never writes any. Entropy comes from `crypto.getRandomValues` with rejection sampling
+(at most 64 words, never a biased fallback);
+hosts may pass `mount(root, { quizSeedSource })` (a uniform integer in `[0, size)`) for reproducible
+attempts. A failed draw (exhausted, throwing or out-of-range source) never starts
+an attempt: at mount the group stays inert, and a failed Retry keeps the checked result and asks again. A seed range with no integer leaves the group inert. Choice shuffling and a host attempt
+snapshot/event API are the next slices.
 
 The runtime below beyond that is design intent tracked in #48.
 The source-order/conditional validation prerequisite above is implemented.

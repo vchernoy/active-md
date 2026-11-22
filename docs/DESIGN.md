@@ -701,8 +701,10 @@ mount and enables Check. Check grades one group with `checkQuizGroup` against li
 shows text feedback per question (`Correct (1 of 1)` / `Not correct (0 of 2)`, with colour only as
 reinforcement), the score (`Score: 3 of 4`) and freezes that group. Retry clears and reopens only
 that group and focuses its first control; other groups and calculator controls are untouched.
-Text that is not a number is reported, not graded. A missing or incompatible manifest leaves the
-controls inert with a notice. Seeded variants (initializing and redrawing the bound input),
+Text that is not a number is reported, not graded. A missing or incompatible manifest (including
+one whose ids match but whose controls differ) leaves the controls inert with a notice. Groups bound
+to a `seed` stay inert ("Randomized quizzes cannot be checked here yet.") until the seed lifecycle
+ships, so no Retry pretends to draw a new variant. Seeded variants (initializing and redrawing the bound input),
 choice shuffling and a host attempt snapshot/event API are the next slices.
 
 The runtime below beyond that is design intent tracked in #48.

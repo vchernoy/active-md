@@ -43,6 +43,12 @@ export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Sessi
     const button = submit.querySelector<HTMLButtonElement>('button.active-quiz-check');
     const status = submit.querySelector<HTMLElement>('.active-quiz-status');
     if (!group || !button || !status) continue;
+    // Seeded (randomized) groups need the seed lifecycle, which is not implemented yet: keep
+    // them inert rather than present a Retry that never draws a new variant.
+    if (group.seed !== undefined) {
+      status.textContent = 'Randomized quizzes cannot be checked here yet.';
+      continue;
+    }
     // A stale manifest can share ids with different controls: enable Check only when every
     // question's rendered controls are exactly the kind and choices the manifest describes.
     const fits = group.questions.every(question => {

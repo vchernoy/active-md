@@ -5,6 +5,7 @@ All three packages share one version.
 ## Unreleased
 
 - Seeded quiz variants (#48): a group bound to `seed=name` draws that input within its declared range when the attempt starts and again on Retry (always a different value when the range allows), never on Check; dependents and math update. Unbound groups write no input. Optional `mount(…, { quizSeedSource })` for reproducible draws; a range with no integer leaves the group inert.
+- Seeded groups show each choice question's options in a seed-derived order, reshuffled on Retry and keyed by choice identity (#48). Unseeded groups keep the authored order.
 
 ## 0.7.0
 

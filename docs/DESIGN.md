@@ -703,7 +703,7 @@ that group and focuses its first control; other groups and calculator controls a
 Text that is not a number is reported, not graded. A missing or incompatible manifest (including
 one whose ids match but whose controls differ) leaves the controls inert with a notice.
 
-**Seeded variants (unreleased).** A group closed by `::quiz-submit[...]{seed=name}` owns that declared
+**Seeded variants (0.8.0).** A group closed by `::quiz-submit[...]{seed=name}` owns that declared
 calc input. When the attempt starts (mount) the runtime draws a uniform integer within the input's
 declared range, clamped to calc's seed domain `0..4294967295` (the whole domain without a range), and
 sets it through the session, so `rand`/`randInt` expressions, their indirect dependents, bindings and
@@ -715,7 +715,7 @@ hosts may pass `mount(root, { quizSeedSource })` (a uniform integer in `[0, size
 attempts. A failed draw (exhausted, throwing or out-of-range source) never starts
 an attempt: at mount the group stays inert, and a failed Retry keeps the checked result and asks again. A seed range with no integer leaves the group inert.
 
-**Choice order (unreleased).** In a seeded group, each choice question shows its options in the order
+**Choice order (0.8.0).** In a seeded group, each choice question shows its options in the order
 `shuffleChoiceIds(ids, seed, 2^30 + 4096 × questionIndex)` gives for the attempt's seed. The runtime recomputes
 the order after each successful draw (first attempt and Retry). The shuffle uses high counters
 so it leaves ordinary low-numbered draws available to author formulas. These counters are not

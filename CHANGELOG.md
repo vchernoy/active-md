@@ -2,9 +2,12 @@
 
 All three packages share one version.
 
-## Unreleased
+## 0.7.0
 
 - Render quizzes with Check / Retry (#48): with `renderActive(…, { quizManifest: true })`, valid question groups render as accessible controls carrying only identities, and `mount(root, { quiz })` grades a group against live values, shows per-question feedback and the score, freezes it, and Retry reopens only that group. The playground opts in. Seeded variants and a host attempt API follow.
+- A quiz group whose manifest does not match its rendered controls stays inert; groups bound to `seed=` stay inert ("Randomized quizzes cannot be checked here yet.") until the seed lifecycle ships (#114, #115).
+- Phone-plan example: the break-even sentence appears only when the plans actually cross (#113).
+- Synchronize all three versions/internal/playground pins at exact 0.7.0.
 
 ## 0.6.2
 

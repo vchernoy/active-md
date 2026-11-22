@@ -24,7 +24,7 @@ const { html, messages } = renderActive(markdown, { locale: 'en-US' });
 
 Errors appear inline (`⚠ message`) and as `messages` with document line and column.
 
-## Heading links (unreleased)
+## Heading links (0.6.2)
 
 Use `## Later` with `[Jump](#later)`. Headings get unique GitHub-style slugs, and
 known local fragments are matched to sanitizer-prefixed IDs. Duplicate headings

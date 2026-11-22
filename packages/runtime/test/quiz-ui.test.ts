@@ -93,6 +93,28 @@ it('leaves quizzes inert with a notice when the manifest is missing or does not 
   expect(root.querySelector<HTMLButtonElement>('[data-active-quiz-group] button')!.disabled).toBe(true);
 });
 
+it('leaves a group inert when a stale manifest describes other controls (#114 review)', () => {
+  // The manifest says question-1 is numeric; the rendered HTML makes it single-choice.
+  const numeric = renderActive(':::question{type=number}\nQ?\n\n:answer[1]\n:::\n\n::quiz-submit[Check]\n', { quizManifest: true });
+  const single = renderActive(':::question{type=single}\nQ?\n\n::choice[One]{correct}\n::choice[Two]\n:::\n\n::quiz-submit[Check]\n', { quizManifest: true });
+  const root = document.createElement('div');
+  root.innerHTML = single.html;
+  document.body.append(root);
+  mount(root, { quiz: numeric.quiz });
+  const button = root.querySelector<HTMLButtonElement>('[data-active-quiz-group] button')!;
+  expect(button.disabled).toBe(true);
+  expect(root.querySelector('.active-quiz-status')!.textContent).toBe('This quiz cannot be checked here.');
+  // Same type, different choices: also inert.
+  const fewer = renderActive(':::question{type=single}\nQ?\n\n::choice[One]{correct}\n:::\n\n::quiz-submit[Check]\n', { quizManifest: true });
+  root.innerHTML = single.html;
+  mount(root, { quiz: fewer.quiz });
+  expect(root.querySelector<HTMLButtonElement>('[data-active-quiz-group] button')!.disabled).toBe(true);
+  // A matching manifest enables it.
+  root.innerHTML = single.html;
+  mount(root, { quiz: single.quiz });
+  expect(root.querySelector<HTMLButtonElement>('[data-active-quiz-group] button')!.disabled).toBe(false);
+});
+
 it('destroy removes the Check handlers', () => {
   const ui = setup();
   ui.live.destroy();

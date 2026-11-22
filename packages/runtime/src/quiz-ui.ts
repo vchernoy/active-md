@@ -43,6 +43,22 @@ export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Sessi
     const button = submit.querySelector<HTMLButtonElement>('button.active-quiz-check');
     const status = submit.querySelector<HTMLElement>('.active-quiz-status');
     if (!group || !button || !status) continue;
+    // A stale manifest can share ids with different controls: enable Check only when every
+    // question's rendered controls are exactly the kind and choices the manifest describes.
+    const fits = group.questions.every(question => {
+      if (!questionEl(question.id)) return false;
+      const answerCount = answers.filter(el => el.dataset.activeAnswer === question.id).length;
+      const rendered = choiceEls(question.id);
+      if (question.type === 'number') return answerCount === 1 && rendered.length === 0;
+      const kind = question.type === 'single' ? 'radio' : 'checkbox';
+      const ids = rendered.map(el => el.value);
+      return answerCount === 0 && rendered.every(el => el.type === kind) && ids.length === question.choices.length
+        && new Set(ids).size === ids.length && question.choices.every(choice => ids.includes(choice.id));
+    });
+    if (!fits) {
+      status.textContent = 'This quiz cannot be checked here.';
+      continue;
+    }
     const checkLabel = button.dataset.activeQuizLabel || button.textContent || 'Check';
     const controls = () => group.questions.flatMap(question => question.type === 'number' ? [answerEl(question.id)].filter((el): el is HTMLInputElement => !!el) : choiceEls(question.id));
     let checked = false;

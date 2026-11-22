@@ -4,7 +4,7 @@ Markdown + LaTeX with **live calculations and form controls**: inputs the reader
 
 It's built for authors writing prose, and it's safe for documents that anyone may have written: no JavaScript in documents, no `eval`, no network.
 
-**Status:** 0.6.2 release documentation (publication is verified through the release workflow). Try it in the **[playground](https://vchernoy.xyz/active-md/)**: one editor, one Edit/View switch, share links that keep the document in the URL. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
+**Status:** 0.7.0 release documentation (publication is verified through the release workflow). Try it in the **[playground](https://vchernoy.xyz/active-md/)**: one editor, one Edit/View switch, share links that keep the document in the URL. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
 
 ## Example
 
@@ -95,7 +95,7 @@ Publishing uses **npm trusted publishing** (OIDC). No npm token or secret is sto
 - [TypeBridge](https://github.com/vchernoy/typebridge): pins ActiveMD **0.5.0** packages for rendered Markdown documents and shareable pages with live calculations and controls. See its [verified dependency snapshot](https://github.com/vchernoy/typebridge/blob/089a6218995bc1709a7102aea2ad349ae3e1d01d/package.json).
 - [course-platform](https://github.com/vchernoy/course-platform): integration for websites, blogs, lessons and tests remains planned; tracked in [#1](https://github.com/vchernoy/active-md/issues/1).
 
-Version 0.6.0 includes additional quiz authoring checks and pure quiz helpers. Rendered quizzes with Check / Retry (opt-in `quizManifest`, no seeded variants yet) are on `main` and not released; attempt APIs remain planned in [#48](https://github.com/vchernoy/active-md/issues/48).
+Version 0.6.0 includes additional quiz authoring checks and pure quiz helpers. Version 0.7.0 renders quizzes with Check / Retry (opt-in `quizManifest`; seeded groups stay inert for now); seeded variants and attempt APIs remain planned in [#48](https://github.com/vchernoy/active-md/issues/48).
 
 ## License
 

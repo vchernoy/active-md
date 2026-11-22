@@ -71,7 +71,7 @@ host-parsed numeric responses or choice-ID arrays. It returns `hidden`, `invalid
 expected answers without changing inputs or enabling quiz UI. This self-check
 helper does not manage attempts, Retry, persistence or authoritative grading.
 
-## Quizzes with Check / Retry (unreleased, #48)
+## Quizzes with Check / Retry (0.7.0, #48)
 
 Render with `renderActive(source, { quizManifest: true })` and pass the returned `quiz` to
 `mount(root, { quiz })`. Each `::quiz-submit` group gets a working Check button: it grades the

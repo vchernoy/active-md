@@ -375,7 +375,7 @@ $$ \frac{ {{stay}} }{ {{people}} } = {{share}}\,₽ $$   <!-- hand-written LaTeX
 :::
 ````
 
-### Heading anchors (#106, unreleased)
+### Heading anchors (#106, 0.6.2)
 
 Headings receive document-scoped GitHub-style IDs from their initial rendered text:
 `## Later` becomes `user-content-later` after sanitizing. Repeated slugs use `-1`,
@@ -387,8 +387,7 @@ Write `[Jump](#later)` or an encoded Unicode fragment. Only fragments matching a
 heading are rewritten to the matching sanitized ID. Unknown fragments, malformed
 percent escapes and external URLs are preserved. Sanitizer clobber protection is
 unchanged; raw HTML cannot supply authored IDs. Footnote links keep their separate
-forward/back target handling. This is unreleased source behavior; hosts using a
-published earlier version require a separately authorized release/adoption.
+forward/back target handling. Released in 0.6.2.
 
 ### Directives
 
@@ -682,7 +681,7 @@ Valid quiz directives render as literal source unless the host opts in with
 
 ## 8. Quizzes and tests (course-platform)
 
-### Rendered quizzes with Check / Retry (implemented, unreleased, #48)
+### Rendered quizzes with Check / Retry (0.7.0, #48)
 
 With `renderActive(source, { quizManifest: true })` and an error-free manifest:
 - `:::question` renders as `<fieldset class="active-question" data-active-question="question-N"

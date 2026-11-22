@@ -3,14 +3,16 @@ import { renderActive } from '../src/index.js';
 const number = (attributes = '', answer = ':answer[2*3*4]') => `:::question{type=number${attributes}}\n${answer}\n:::`;
 const submit = '::quiz-submit[Check]';
 const manifest = (source: string) => renderActive(source, { quizManifest: true });
-it('requires explicit opt-in and leaves sanitized HTML and program unchanged', () => {
+it('requires explicit opt-in; the opt-in renders controls but keeps answers out of the HTML (#48)', () => {
   const source = number() + '\n\n' + submit;
   const plain = renderActive(source), prepared = manifest(source);
   expect(plain).not.toHaveProperty('quiz');
-  expect(prepared.html).toBe(plain.html);
+  expect(plain.html).not.toContain('data-active-quiz');
   expect(prepared.messages).toEqual([]);
   expect(prepared.quiz).toMatchObject({ version: 1, groups: [{ id: 'quiz-1', conditions: [], questions: [{ id: 'question-1', type: 'number', points: 1, expected: '2*3*4', tolerance: 0, relative: false }] }] });
-  expect(prepared.html).not.toContain('data-active-quiz');
+  expect(prepared.html).toContain('data-active-quiz-group="quiz-1"');
+  expect(prepared.html).toContain('data-active-answer="question-1"');
+  expect(prepared.html).not.toContain('2*3*4');
 });
 it('normalizes numeric options and the earlier points alias without evaluating answers', () => {
   const source = '```calc\ninput x = 0\n```\n\n' + number('', ':answer[1/x]{points=2 tolerance=0.01 relative}') + '\n\n' + submit;

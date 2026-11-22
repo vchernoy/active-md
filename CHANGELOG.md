@@ -2,6 +2,10 @@
 
 All three packages share one version.
 
+## Unreleased
+
+- Render quizzes with Check / Retry (#48): with `renderActive(…, { quizManifest: true })`, valid question groups render as accessible controls carrying only identities, and `mount(root, { quiz })` grades a group against live values, shows per-question feedback and the score, freezes it, and Retry reopens only that group. The playground opts in. Seeded variants and a host attempt API follow.
+
 ## 0.6.2
 
 - Generated footnote links now point at their sanitized ids, so footnote references and back-links scroll to their targets (#106, #110).

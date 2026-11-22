@@ -676,14 +676,36 @@ declare the weight in only one place, even if duplicate values agree. Individual
 `::choice` weights are rejected. Validate these attributes before hidden pruning and
 report at their original source positions.
 
-This is authoring validation only: rendering, runtime grading and attempt state
-are still unimplemented. Valid quiz
-directives continue to render as literal source until that integration ships; opt-in normalized metadata is available as described above, but no attempt
-snapshot API is implemented.
+Valid quiz directives render as literal source unless the host opts in with
+`quizManifest: true` and the document has no errors; then they render as controls
+(below). No attempt snapshot API is implemented yet.
 
 ## 8. Quizzes and tests (course-platform)
 
-The runtime below is design intent tracked in #48, not implemented UI or APIs.
+### Rendered quizzes with Check / Retry (implemented, unreleased, #48)
+
+With `renderActive(source, { quizManifest: true })` and an error-free manifest:
+- `:::question` renders as `<fieldset class="active-question" data-active-question="question-N"
+  aria-label="Question N">`;
+- `:answer[...]` renders as an empty text input (`inputmode=decimal`, accessible name "Your answer");
+- `::choice[...]` renders as a radio (single) or checkbox (multiple) inside a `<label>` that keeps
+  its rich label;
+- `::quiz-submit[label]` renders as a disabled Check button plus a polite status region, keyed
+  `data-active-quiz-group="quiz-N"`.
+
+Capture records each directive node's manifest id, so HTML and manifest identities cannot drift.
+**Only identities enter the HTML:** expected answers, tolerances and correct flags stay in the
+separately returned manifest. The host passes it to `mount(root, { quiz })`, which compiles it
+against the mounted session (`compileQuizManifest`), names each single-choice question's radios per
+mount and enables Check. Check grades one group with `checkQuizGroup` against live calc values,
+shows text feedback per question (`Correct (1 of 1)` / `Not correct (0 of 2)`, with colour only as
+reinforcement), the score (`Score: 3 of 4`) and freezes that group. Retry clears and reopens only
+that group and focuses its first control; other groups and calculator controls are untouched.
+Text that is not a number is reported, not graded. A missing or incompatible manifest leaves the
+controls inert with a notice. Seeded variants (initializing and redrawing the bound input),
+choice shuffling and a host attempt snapshot/event API are the next slices.
+
+The runtime below beyond that is design intent tracked in #48.
 The source-order/conditional validation prerequisite above is implemented.
 
 ````markdown

@@ -66,7 +66,7 @@ function goTo(line = 1, column = 1): void {
 }
 
 function check(): void {
-  showProblems(renderActive(source.value, { locale, output }).messages);
+  showProblems(renderActive(source.value, { locale, output, quizManifest: true }).messages);
 }
 
 function stopView(preserve = true): void {
@@ -80,9 +80,10 @@ function stopView(preserve = true): void {
 
 function showView(): void {
   stopView();
-  const { html } = renderActive(source.value, { locale, output });
+  // Quizzes (#48): the manifest goes to the runtime directly; answers never enter the HTML.
+  const { html, quiz } = renderActive(source.value, { locale, output, quizManifest: true });
   doc.innerHTML = html; // sanitized by the renderer: raw HTML dropped, rehype-sanitize, KaTeX with trust: false
-  live = mount(doc, { locale, output, ...(readerInputs ? { initialInputs: readerInputs } : {}), loadKatex: async () => katex });
+  live = mount(doc, { locale, output, ...(readerInputs ? { initialInputs: readerInputs } : {}), ...(quiz ? { quiz } : {}), loadKatex: async () => katex });
   stopMathScroll = watchMathScroll(doc, $('math-scroll-hint'));
 }
 

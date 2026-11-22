@@ -1,4 +1,5 @@
 import { inputWidth } from './input-width.js';
+import { mountQuizzes } from './quiz-ui.js';
 import { createSession, formatNumber, parse, parseFormat, type Format, type Limits, type Program, type Result, type Session } from '@vchernoy/calc';
 import { katexSettings, placeholders, substitute, type MathOutput } from '@vchernoy/remark-active/tex';
 import type katex from 'katex';
@@ -18,6 +19,11 @@ export type MountOptions = {
   initialInputs?: ReadonlyMap<string, number>;
   /** How to load KaTeX, which is needed only when a formula's values change. Default: `import('katex')`. */
   loadKatex?: () => Promise<Katex>;
+  /**
+   * The `quiz` manifest from `renderActive(source, { quizManifest: true })` (#48). With it, rendered
+   * quiz groups get Check / Retry; without it (or if it does not fit this document) they stay inert.
+   */
+  quiz?: unknown;
 };
 
 export type Mounted = {
@@ -278,6 +284,8 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
   for (const { name, input, apply } of restorable) {
     if (!initialAccepted.has(name) && !adopted.has(name) && Number.isNaN(controlValue(input))) apply();
   }
+
+  if (options.quiz !== undefined) cleanups.push(mountQuizzes(doc, options.quiz, session));
 
   return {
     session,

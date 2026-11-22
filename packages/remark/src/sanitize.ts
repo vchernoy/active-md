@@ -3,7 +3,9 @@ import { defaultSchema } from 'rehype-sanitize';
 import type { Options as Schema } from 'rehype-sanitize';
 import { visit } from 'unist-util-visit';
 
-const ACTIVE = ['dataActiveWhenConstant', 'dataActiveWhen', 'dataActiveWhenId', 'dataActiveWhenDisabled', 'dataActiveWhenError', 'dataActiveInput', 'dataActiveValue', 'dataActiveFormat', 'dataActiveTex', 'dataActiveDisplay', 'dataActiveCalc', 'dataActiveFor', 'dataActiveWidget', 'dataActiveError'];
+const ACTIVE = ['dataActiveWhenConstant', 'dataActiveWhen', 'dataActiveWhenId', 'dataActiveWhenDisabled', 'dataActiveWhenError', 'dataActiveInput', 'dataActiveValue', 'dataActiveFormat', 'dataActiveTex', 'dataActiveDisplay', 'dataActiveCalc', 'dataActiveFor', 'dataActiveWidget', 'dataActiveError',
+  // Quiz controls (#48): identities only; answers stay in the manifest.
+  'dataActiveQuestion', 'dataActiveAnswer', 'dataActiveChoice', 'dataActiveQuizGroup', 'dataActiveQuizLabel'];
 
 /**
  * GitHub's sanitize schema plus the elements and attributes active-md emits.
@@ -12,7 +14,7 @@ const ACTIVE = ['dataActiveWhenConstant', 'dataActiveWhen', 'dataActiveWhenId', 
 export const activeSchema: Schema = {
   ...defaultSchema,
   // <picture>/<source> would fetch images on display; images become links instead (rehypeActiveImages).
-  tagNames: [...(defaultSchema.tagNames ?? []).filter(t => t !== 'picture' && t !== 'source'), 'input', 'output', 'aside', 'label', 'select', 'option', 'fieldset', 'legend'],
+  tagNames: [...(defaultSchema.tagNames ?? []).filter(t => t !== 'picture' && t !== 'source'), 'input', 'output', 'aside', 'label', 'select', 'option', 'fieldset', 'legend', 'button'],
   attributes: {
     ...defaultSchema.attributes,
     '*': [...(defaultSchema.attributes?.['*'] ?? []), ...ACTIVE, 'hidden', 'className', 'role', 'ariaLive', 'ariaLabel', 'title'],
@@ -25,7 +27,9 @@ export const activeSchema: Schema = {
     // Task-list checkboxes keep GitHub's rule (disabled checkbox) through remark-gfm; our inputs are number/range/radio.
     select: [],
     option: ['value', 'selected'],
-    input: [['disabled', true], ['type', 'checkbox', 'number', 'range', 'radio'], 'checked', 'value', 'min', 'max', 'step', 'inputMode'],
+    input: [['disabled', true], ['type', 'checkbox', 'number', 'range', 'radio', 'text'], 'checked', 'value', 'min', 'max', 'step', 'inputMode'],
+    // Quiz Check buttons (#48): plain buttons, disabled until the runtime mounts.
+    button: [['type', 'button'], ['disabled', true]],
   },
   // GitHub's schema forces every <input> to be a disabled checkbox; ours are live numeric controls.
   required: Object.fromEntries(Object.entries(defaultSchema.required ?? {}).filter(([tag]) => tag !== 'input')),

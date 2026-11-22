@@ -6,18 +6,30 @@ let nextQuizRadioName = 0;
 
 const points = (value: number): string => String(Number(value.toFixed(6)));
 
-/** A uniform integer in `[0, size)` for `size <= 2^32`, from the platform's CSPRNG. */
-export type QuizSeedSource = (size: number) => number;
+/**
+ * A uniform integer in `[0, size)` for `size <= 2^32`. Anything else (a non-integer, out of range,
+ * `undefined` or a throw) counts as a failed draw: the attempt does not start.
+ */
+export type QuizSeedSource = (size: number) => number | undefined;
 const SEED_MAX = 4294967295;
+/** Each rejection-sampling attempt succeeds with probability > 1/2, so 64 bound the work. */
+const MAX_DRAW_ATTEMPTS = 64;
 const cryptoSource: QuizSeedSource = size => {
-  // Rejection sampling keeps the draw uniform for sizes that do not divide 2^32.
+  // Rejection sampling keeps the draw uniform for sizes that do not divide 2^32; never bias on exhaustion.
   const limit = Math.floor(2 ** 32 / size) * size;
   const word = new Uint32Array(1);
-  for (;;) {
+  for (let attempt = 0; attempt < MAX_DRAW_ATTEMPTS; attempt++) {
     crypto.getRandomValues(word);
     if (word[0]! < limit) return word[0]! % size;
   }
+  return undefined;
 };
+/** Ask the source for a uniform integer in `[0, size)`; undefined when it fails or misbehaves. */
+function draw(source: QuizSeedSource, size: number): number | undefined {
+  let value: number | undefined;
+  try { value = source(size); } catch { return undefined; }
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < size ? value : undefined;
+}
 
 /** The integers a seed input may take: its declared range (clamped to calc's seed domain) or all seeds. */
 function seedBounds(session: Session, name: string): { min: number; size: number } | undefined {
@@ -96,9 +108,15 @@ export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Sessi
       if (seed === undefined || !bounds) return true;
       let value: number;
       if (differFrom !== undefined && bounds.size > 1 && differFrom >= bounds.min && differFrom < bounds.min + bounds.size) {
-        value = bounds.min + source(bounds.size - 1);
+        const offset = draw(source, bounds.size - 1);
+        if (offset === undefined) return false;
+        value = bounds.min + offset;
         if (value >= differFrom) value += 1;
-      } else value = bounds.min + source(bounds.size);
+      } else {
+        const offset = draw(source, bounds.size);
+        if (offset === undefined) return false;
+        value = bounds.min + offset;
+      }
       return session.set(seed, value) === undefined;
     };
     if (!drawVariant()) {
@@ -160,7 +178,11 @@ export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Sessi
       button.textContent = 'Retry';
     };
     const retry = (): void => {
-      drawVariant(seed === undefined ? undefined : session.inputValues().get(seed));
+      // A failed draw keeps the checked attempt as it is: never reopen on a stale or biased variant.
+      if (!drawVariant(seed === undefined ? undefined : session.inputValues().get(seed))) {
+        status.textContent = 'Could not start a new attempt. Try Retry again.';
+        return;
+      }
       clearFeedback();
       for (const control of controls()) {
         control.disabled = false;

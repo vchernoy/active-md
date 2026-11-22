@@ -709,9 +709,11 @@ declared range, clamped to calc's seed domain `0..4294967295` (the whole domain 
 sets it through the session, so `rand`/`randInt` expressions, their indirect dependents, bindings and
 math update. Check never writes the seed. Retry draws again, uniformly among the *other* values when
 the range has more than one, so the variant always changes; it writes only that group's input, and an
-unbound group never writes any. Entropy comes from `crypto.getRandomValues` with rejection sampling;
+unbound group never writes any. Entropy comes from `crypto.getRandomValues` with rejection sampling
+(at most 64 words, never a biased fallback);
 hosts may pass `mount(root, { quizSeedSource })` (a uniform integer in `[0, size)`) for reproducible
-attempts. A seed range with no integer leaves the group inert. Choice shuffling and a host attempt
+attempts. A failed draw (exhausted, throwing or out-of-range source) never starts
+an attempt: at mount the group stays inert, and a failed Retry keeps the checked result and asks again. A seed range with no integer leaves the group inert. Choice shuffling and a host attempt
 snapshot/event API are the next slices.
 
 The runtime below beyond that is design intent tracked in #48.

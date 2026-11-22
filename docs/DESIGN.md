@@ -716,10 +716,11 @@ attempts. A failed draw (exhausted, throwing or out-of-range source) never start
 an attempt: at mount the group stays inert, and a failed Retry keeps the checked result and asks again. A seed range with no integer leaves the group inert.
 
 **Choice order (unreleased).** In a seeded group, each choice question shows its options in the order
-`shuffleChoiceIds(ids, seed, 2^30 + 4096 × questionIndex)` gives for the attempt's seed: reproducible,
-re-derived after every draw (first attempt and Retry), and drawn from a counter range far above the
-small counters authors pass to `rand`/`randInt`, so order and generated numbers are independent. The
-options move as a block to where the question's first choice was; grading is keyed by choice identity,
+`shuffleChoiceIds(ids, seed, 2^30 + 4096 × questionIndex)` gives for the attempt's seed. The runtime recomputes
+the order after each successful draw (first attempt and Retry). The shuffle uses high counters
+so it leaves ordinary low-numbered draws available to author formulas. These counters are not
+reserved: `rand` and `randInt` can use them too and draw from the same sequence for the same seed.
+The options move as a block to where the question's first choice was; grading is keyed by choice identity,
 so it is unaffected. A repeated permutation on Retry is allowed. Unseeded groups keep the authored
 order. A host attempt snapshot/event API is the next slice.
 

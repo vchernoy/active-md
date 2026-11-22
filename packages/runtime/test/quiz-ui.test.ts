@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
 import { renderActive } from '@vchernoy/remark-active';
+import { shuffleChoiceIds } from '@vchernoy/calc';
 import { mount } from '../src/index.js';
 
 // #48: Check / Retry for rendered quiz groups; the manifest comes from the host.
@@ -231,6 +232,52 @@ it('the default seed source is the platform CSPRNG, within range', () => {
   const ui = seeded(undefined as unknown as (size: number) => number);
   const value = ui.value('variant')!;
   expect(Number.isInteger(value) && value >= 1 && value <= 1000).toBe(true);
+});
+
+const shuffleSource = '```calc\ninput variant = 1 in 1..1000\n```\n\nIntro\n\n' +
+  ':::question{type=single}\nPick the prime:\n\n::choice[4]\n::choice[6]\n::choice[7]{correct}\n::choice[8]\n::choice[9]\n:::\n\n::quiz-submit[Check]{seed=variant}\n\n' +
+  ':::question{type=single}\nUnseeded order:\n\n::choice[A]{correct}\n::choice[B]\n::choice[C]\n:::\n\n::quiz-submit[Check plain]\n';
+const SHUFFLE_BASE = 0x40000000;
+
+function shuffleFixture(source: (size: number) => number | undefined) {
+  const rendered = renderActive(shuffleSource, { quizManifest: true });
+  expect(rendered.messages).toEqual([]);
+  const root = document.createElement('div');
+  root.innerHTML = rendered.html;
+  document.body.append(root);
+  const live = mount(root, { quiz: rendered.quiz, quizSeedSource: source });
+  const order = (q: string) => [...root.querySelectorAll<HTMLInputElement>(`[data-active-question="${q}"] input[data-active-choice]`)].map(el => el.value);
+  const button = (n: number) => root.querySelectorAll<HTMLButtonElement>('[data-active-quiz-group] button')[n]!;
+  return { root, live, order, button };
+}
+const ids = ['choice-1', 'choice-2', 'choice-3', 'choice-4', 'choice-5'];
+const expected = (seed: number) => { const r = shuffleChoiceIds(ids, seed, SHUFFLE_BASE); if (r.kind !== 'shuffled') throw new Error(r.message); return r.ids; };
+
+it('shows a seeded question\'s choices in the order derived from the attempt seed, and reshuffles on Retry (#48)', () => {
+  const ui = shuffleFixture(scripted(6, 41));
+  expect(ui.live.session.inputValues().get('variant')).toBe(7);
+  expect(ui.order('question-1')).toEqual(expected(7));
+  // Grading follows identity, not position: the prime (choice-3) is correct wherever it sits.
+  ui.root.querySelector<HTMLInputElement>('input[data-active-choice="question-1"][value="choice-3"]')!.checked = true;
+  ui.button(0).click();
+  expect(ui.root.querySelector('[data-active-question="question-1"] .active-question-feedback')!.textContent).toBe('Correct (1 of 1)');
+  ui.button(0).click();
+  expect(ui.live.session.inputValues().get('variant')).toBe(43);
+  expect(ui.order('question-1')).toEqual(expected(43));
+  // Retry focuses the first choice as shown.
+  expect((document.activeElement as HTMLInputElement).value).toBe(expected(43)[0]);
+  // Choices stay together, after the question text.
+  const question = ui.root.querySelector('[data-active-question="question-1"]')!;
+  expect([...question.children].map(el => el.tagName)).toEqual(['P', 'LABEL', 'LABEL', 'LABEL', 'LABEL', 'LABEL']);
+});
+
+it('keeps the authored order in unseeded groups, and the same seed gives the same order', () => {
+  const first = shuffleFixture(scripted(6));
+  expect(first.order('question-2')).toEqual(['choice-1', 'choice-2', 'choice-3']);
+  const firstOrder = first.order('question-1');
+  document.body.innerHTML = '';
+  const again = shuffleFixture(scripted(6));
+  expect(again.order('question-1')).toEqual(firstOrder);
 });
 
 it('destroy removes the Check handlers', () => {

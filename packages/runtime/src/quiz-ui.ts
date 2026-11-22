@@ -1,4 +1,4 @@
-import type { Session } from '@vchernoy/calc';
+import { shuffleChoiceIds, type Session } from '@vchernoy/calc';
 import { checkQuizGroup, type QuizGroupCheck } from './quiz-check.js';
 import { compileQuizManifest } from './quiz-compile.js';
 
@@ -12,6 +12,12 @@ const points = (value: number): string => String(Number(value.toFixed(6)));
  */
 export type QuizSeedSource = (size: number) => number | undefined;
 const SEED_MAX = 4294967295;
+/**
+ * Choice shuffles draw from a counter range far above the small counters authors pass to
+ * `rand`/`randInt`, so a question's order is independent of its generated numbers.
+ */
+const SHUFFLE_DRAW_BASE = 0x40000000;
+const SHUFFLE_DRAW_STRIDE = 4096;
 /** Each rejection-sampling attempt succeeds with probability > 1/2, so 64 bound the work. */
 const MAX_DRAW_ATTEMPTS = 64;
 const cryptoSource: QuizSeedSource = size => {
@@ -119,12 +125,41 @@ export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Sessi
       }
       return session.set(seed, value) === undefined;
     };
+    /**
+     * A seeded group shows each choice question's options in an order derived from the attempt
+     * seed (reproducible, keyed by choice identity, so grading is unaffected). Labels move as a
+     * block to where the question's first choice was. Unseeded groups keep the authored order.
+     */
+    const orderChoices = (): void => {
+      if (seed === undefined) return;
+      const seedValue = session.inputValues().get(seed);
+      if (seedValue === undefined) return;
+      group.questions.forEach((question, index) => {
+        if (question.type === 'number' || question.choices.length < 2) return;
+        const shuffled = shuffleChoiceIds(question.choices.map(choice => choice.id), seedValue, SHUFFLE_DRAW_BASE + index * SHUFFLE_DRAW_STRIDE);
+        const container = questionEl(question.id);
+        if (shuffled.kind !== 'shuffled' || !container) return;
+        const labelOf = (id: string) => choiceEls(question.id).find(el => el.value === id)?.closest('label') ?? undefined;
+        const labels = shuffled.ids.map(labelOf);
+        if (labels.some(label => !label)) return;
+        const first = [...container.querySelectorAll('label')].find(label => labels.includes(label));
+        if (!first) return;
+        const marker = first.ownerDocument.createComment('');
+        first.before(marker);
+        for (const label of labels) marker.before(label!);
+        marker.remove();
+      });
+    };
     if (!drawVariant()) {
       status.textContent = 'This quiz cannot be checked here.';
       continue;
     }
+    orderChoices();
     const checkLabel = button.dataset.activeQuizLabel || button.textContent || 'Check';
-    const controls = () => group.questions.flatMap(question => question.type === 'number' ? [answerEl(question.id)].filter((el): el is HTMLInputElement => !!el) : choiceEls(question.id));
+    // Controls in on-screen order (a shuffle reorders choices), so Retry focuses the first one shown.
+    const controls = () => group.questions.flatMap(question => question.type === 'number'
+      ? [answerEl(question.id)].filter((el): el is HTMLInputElement => !!el)
+      : [...(questionEl(question.id)?.querySelectorAll<HTMLInputElement>('input[data-active-choice]') ?? [])].filter(el => el.dataset.activeChoice === question.id));
     let checked = false;
 
     const clearFeedback = (): void => {
@@ -183,6 +218,7 @@ export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Sessi
         status.textContent = 'Could not start a new attempt. Try Retry again.';
         return;
       }
+      orderChoices();
       clearFeedback();
       for (const control of controls()) {
         control.disabled = false;

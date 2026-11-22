@@ -79,7 +79,8 @@ group against live calc values, shows per-question feedback and the score, and f
 Retry reopens only that group. The HTML carries only identities; answers stay in the manifest.
 Without the option or with an incompatible manifest, quiz controls stay inert. A group bound to
 `seed=name` draws `name` within its declared range when the attempt starts and again on Retry (never
-on Check), so `rand`/`randInt` questions get a fresh variant; pass `quizSeedSource` for reproducible
+on Check), so `rand`/`randInt` questions get a fresh variant and choice questions show their options
+in a seed-derived order (grading is by choice identity); pass `quizSeedSource` for reproducible
 draws. A host attempt API is not implemented yet.
 
 

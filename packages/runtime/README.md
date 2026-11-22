@@ -77,8 +77,8 @@ Render with `renderActive(source, { quizManifest: true })` and pass the returned
 `mount(root, { quiz })`. Each `::quiz-submit` group gets a working Check button: it grades the
 group against live calc values, shows per-question feedback and the score, and freezes the group;
 Retry reopens only that group. The HTML carries only identities; answers stay in the manifest.
-Without the option or with an incompatible manifest, quiz controls stay inert. Seeded variants
-and a host attempt API are not implemented yet.
+Without the option or with an incompatible manifest, quiz controls stay inert. Groups bound to a
+`seed` stay inert until seeded variants ship; a host attempt API is not implemented yet.
 
 
 ## Numeric choice controls (0.6.0)

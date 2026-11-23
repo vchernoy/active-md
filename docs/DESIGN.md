@@ -677,7 +677,7 @@ report at their original source positions.
 
 Valid quiz directives render as literal source unless the host opts in with
 `quizManifest: true` and the document has no errors; then they render as controls
-(below). No attempt snapshot API is implemented yet.
+(below). Completed-attempt notification is implemented on main (unreleased); restore is not.
 
 ## 8. Quizzes and tests (course-platform)
 
@@ -722,7 +722,24 @@ so it leaves ordinary low-numbered draws available to author formulas. These cou
 reserved: `rand` and `randInt` can use them too and draw from the same sequence for the same seed.
 The options move as a block to where the question's first choice was; grading is keyed by choice identity,
 so it is unaffected. A repeated permutation on Retry is allowed. Unseeded groups keep the authored
-order. A host attempt snapshot/event API is the next slice.
+order.
+
+**Completed-attempt notification (implemented on main, unreleased).** Hosts may supply
+`mount(root, { quiz, onQuizAttempt })`. After successful Check has shown feedback, frozen the
+controls and entered Retry state, the synchronous callback receives one detached, deeply frozen
+`CompletedQuizAttempt`: schema `version: 1`, `manifestVersion: 1`, group identity, actual bound
+seed (`{ input, value }` or null), accepted responses by question identity/type, earned/max score,
+and per-question correct/points/earned rows. Numeric unanswered is null; choice unanswered is an
+empty identity array. It contains no raw text, answer key, source or DOM. Initialization,
+invalid/hidden checks, Retry (including failed draws) and destroy emit nothing. Later inputs,
+responses or Retry cannot mutate an earlier completion. Callback exceptions cannot break the
+checked UI; asynchronous host work handles its own errors.
+
+The callback reports self-check output, not authoritative grading. Version and positional IDs
+are not proof of compatibility with changed source. Seed alone cannot reproduce grading that
+depends on other live inputs. No draft/checked-attempt restore, getter, persistence or consumer
+integration is implied; those need a separate compatibility/restore design under #48 and
+TypeBridge #327. Runtime notification performs no storage or network work.
 
 The runtime below beyond that is design intent tracked in #48.
 The source-order/conditional validation prerequisite above is implemented.

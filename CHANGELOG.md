@@ -2,6 +2,10 @@
 
 All three packages share one version.
 
+## Unreleased
+
+- Optional `mount(…, { onQuizAttempt })` notifies hosts after successful Check with a detached, deeply frozen, versioned self-check snapshot (accepted responses, actual seed and score rows). No answer key, source, DOM, restore or persistence is included (#48).
+
 ## 0.8.0
 
 - Seeded quiz variants (#48): a group bound to `seed=name` draws that input within its declared range when the attempt starts and again on Retry (always a different value when the range allows), never on Check; dependents and math update. Unbound groups write no input. Optional `mount(…, { quizSeedSource })` for reproducible draws; a range with no integer leaves the group inert.

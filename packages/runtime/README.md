@@ -81,7 +81,43 @@ Without the option or with an incompatible manifest, quiz controls stay inert. A
 `seed=name` draws `name` within its declared range when the attempt starts and again on Retry (never
 on Check), so `rand`/`randInt` questions get a fresh variant and choice questions show their options
 in a seed-derived order (grading is by choice identity); pass `quizSeedSource` for reproducible
-draws. A host attempt API is not implemented yet.
+draws. Completed-attempt notification is implemented on main (unreleased), as below;
+draft/checked-attempt restore is not implemented.
+
+### Completed-attempt notification (unreleased)
+
+```ts
+const rendered = renderActive(markdown, { quizManifest: true });
+root.innerHTML = rendered.html;
+const live = mount(root, {
+  quiz: rendered.quiz,
+  onQuizAttempt(attempt) {
+    // Your own opt-in handling; the runtime performs no storage or network work.
+    showCompletedScore(attempt.groupId, attempt.earned, attempt.max);
+  },
+});
+```
+
+`onQuizAttempt` is synchronous and runs once after each successful Check, after feedback,
+control freezing and the Retry state are installed. Initialization, invalid/hidden checks,
+Retry (successful or failed) and destroy emit nothing. A later successful Check after Retry
+produces a new snapshot. Synchronous callback exceptions are contained so checking still works;
+hosts must handle failures of their own asynchronous work.
+
+The exported `CompletedQuizAttempt` is a detached, deeply frozen JSON-compatible object:
+`version: 1`, `manifestVersion: 1`, `groupId`, `seed` (null or `{ input, value }`),
+`responses`, `earned`, `max`, and `results`. Responses carry question identity/type plus a
+finite numeric `value` (null when unanswered) or an array of selected choice identities
+(empty when unanswered). Result rows carry `questionId`, `correct`, `points`, and `earned`.
+No raw input text, expected answer/expression, tolerance, label, source or DOM enters it.
+Later calc changes, DOM edits, Retry and other groups cannot mutate an earlier snapshot.
+
+This is client-side self-check output, not authoritative grading. Schema versions and positional
+identities describe the data; they do not prove source compatibility or provide a restore token.
+In particular a seed alone does not reconstruct grading against other live inputs. There is no
+attempt getter, draft notification, restore API or persistence in this slice. Hosts decide
+consent, compatibility, identifiers and storage themselves; TypeBridge attempt persistence remains
+deferred until a separately designed restore contract exists.
 
 
 ## Numeric choice controls (0.6.0)

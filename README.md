@@ -95,7 +95,7 @@ Publishing uses **npm trusted publishing** (OIDC). No npm token or secret is sto
 - [TypeBridge](https://github.com/vchernoy/typebridge): uses ActiveMD for rendered Markdown documents and shareable pages with live calculations and controls. See its [current package pins](https://github.com/vchernoy/typebridge/blob/main/package.json).
 - [course-platform](https://github.com/vchernoy/course-platform): integration for websites, blogs, lessons and tests remains planned; tracked in [#1](https://github.com/vchernoy/active-md/issues/1).
 
-Version 0.6.0 includes additional quiz authoring checks and pure quiz helpers. Version 0.7.0 renders quizzes with Check / Retry (opt-in `quizManifest`), and 0.8.0 adds seeded variants drawn on each attempt with seed-ordered choices; a host attempt API remains planned in [#48](https://github.com/vchernoy/active-md/issues/48).
+Version 0.6.0 includes additional quiz authoring checks and pure quiz helpers. Version 0.7.0 renders quizzes with Check / Retry (opt-in `quizManifest`), and 0.8.0 adds seeded variants drawn on each attempt with seed-ordered choices. Main additionally implements an unreleased `onQuizAttempt` completed self-check notification; draft/checked-attempt restore remains planned in [#48](https://github.com/vchernoy/active-md/issues/48).
 
 ## License
 

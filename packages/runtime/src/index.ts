@@ -1,5 +1,6 @@
 import { inputWidth } from './input-width.js';
 import { mountQuizzes, type QuizSeedSource } from './quiz-ui.js';
+import type { CompletedQuizAttempt } from './quiz-attempt.js';
 import { createSession, formatNumber, parse, parseFormat, type Format, type Limits, type Program, type Result, type Session } from '@vchernoy/calc';
 import { katexSettings, placeholders, substitute, type MathOutput } from '@vchernoy/remark-active/tex';
 import type katex from 'katex';
@@ -29,6 +30,8 @@ export type MountOptions = {
    * CSPRNG. Supply your own for reproducible attempts (tests, proctored hosts).
    */
   quizSeedSource?: QuizSeedSource;
+  /** Synchronous completed self-check notification; detached/frozen, no answer key or restore. */
+  onQuizAttempt?: (attempt: CompletedQuizAttempt) => void;
 };
 
 export type Mounted = {
@@ -290,7 +293,7 @@ export function mount(root: HTMLElement, options: MountOptions = {}): Mounted {
     if (!initialAccepted.has(name) && !adopted.has(name) && Number.isNaN(controlValue(input))) apply();
   }
 
-  if (options.quiz !== undefined) cleanups.push(mountQuizzes(doc, options.quiz, session, options.quizSeedSource));
+  if (options.quiz !== undefined) cleanups.push(mountQuizzes(doc, options.quiz, session, options.quizSeedSource, options.onQuizAttempt));
 
   return {
     session,
@@ -330,4 +333,5 @@ function showResult(el: HTMLElement, result: Result, format: Format, locale: str
 export { inspectQuizManifest, type QuizManifestInspection } from './quiz-manifest.js';
 export { compileQuizManifest, type QuizCompilation } from './quiz-compile.js';
 export { checkQuizGroup, type QuizResponses, type QuizGroupCheck } from './quiz-check.js';
+export type { CompletedQuizAttempt, CompletedQuizResponse } from './quiz-attempt.js';
 export type { QuizSeedSource } from './quiz-ui.js';

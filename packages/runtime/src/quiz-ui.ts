@@ -1,6 +1,7 @@
 import { shuffleChoiceIds, type Session } from '@vchernoy/calc';
 import { checkQuizGroup, type QuizGroupCheck } from './quiz-check.js';
 import { compileQuizManifest } from './quiz-compile.js';
+import { completedQuizAttempt, type CompletedQuizAttempt } from './quiz-attempt.js';
 
 let nextQuizRadioName = 0;
 
@@ -51,9 +52,10 @@ function seedBounds(session: Session, name: string): { min: number; size: number
  * The manifest comes from the host, never from the HTML. Draft answers reveal nothing; Check
  * grades and freezes one group; Retry clears and reopens only that group. A group bound to
  * `seed=` draws its input when the attempt starts (mount) and again on Retry, never on Check.
- * Returns a cleanup. Host attempt snapshots are a later slice.
+ * Returns a cleanup. Optional completed-attempt notification never restores or persists state.
  */
-export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Session, source: QuizSeedSource = cryptoSource): () => void {
+export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Session, source: QuizSeedSource = cryptoSource,
+  onAttempt?: (attempt: CompletedQuizAttempt) => void): () => void {
   const submits = [...doc.querySelectorAll<HTMLElement>('[data-active-quiz-group]')];
   if (!submits.length) return () => undefined;
   const compiled = compileQuizManifest(manifest, session);
@@ -84,8 +86,6 @@ export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Sessi
     const button = submit.querySelector<HTMLButtonElement>('button.active-quiz-check');
     const status = submit.querySelector<HTMLElement>('.active-quiz-status');
     if (!group || !button || !status) continue;
-    // Seeded (randomized) groups need the seed lifecycle, which is not implemented yet: keep
-    // them inert rather than present a Retry that never draws a new variant.
     // A seeded group owns its bound input: draw it now (the first attempt) and on each Retry.
     const seed = group.seed;
     const bounds = seed === undefined ? undefined : seedBounds(session, seed);
@@ -211,6 +211,12 @@ export function mountQuizzes(doc: HTMLElement, manifest: unknown, session: Sessi
       for (const control of controls()) control.disabled = true;
       checked = true;
       button.textContent = 'Retry';
+      // Notify last: even a throwing/reentrant host sees a fully checked UI and detached data.
+      if (onAttempt) {
+        const attempt = completedQuizAttempt(group, compiled.manifest.version, responses, result,
+          seed === undefined ? undefined : session.inputValues().get(seed));
+        try { onAttempt(attempt); } catch { /* Host notification failure must not break checking. */ }
+      }
     };
     const retry = (): void => {
       // A failed draw keeps the checked attempt as it is: never reopen on a stale or biased variant.

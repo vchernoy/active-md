@@ -2,6 +2,11 @@
 
 All three packages share one version.
 
+## 0.10.0
+
+- Standalone edit and slider controls display their explicit bracket labels. Inline labels continue to supply accessible names (#127, #129).
+- Numeric control and radio/select labels interpolate finite Calc constants. Each option label can use its own declared number as `value` (#128, #130).
+
 ## 0.9.0
 
 - Optional `mount(…, { onQuizAttempt })` notifies hosts after successful Check with a detached, deeply frozen, versioned self-check snapshot (accepted responses, actual seed and score rows). No answer key, source, DOM, restore or persistence is included (#48).

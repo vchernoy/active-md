@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vchernoy/active-runtime": "0.9.0",
-    "@vchernoy/remark-active": "0.9.0",
+    "@vchernoy/active-runtime": "0.10.0",
+    "@vchernoy/remark-active": "0.10.0",
     "katex": "0.19.1"
   },
   "devDependencies": {

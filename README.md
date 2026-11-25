@@ -4,7 +4,7 @@ Markdown + LaTeX with **live calculations and form controls**: inputs the reader
 
 It's built for authors writing prose, and it's safe for documents that anyone may have written: no JavaScript in documents, no `eval`, no network.
 
-**Status:** 0.9.0 release documentation (publication is verified through the release workflow). Try it in the **[playground](https://vchernoy.xyz/active-md/)**: one editor, one Edit/View switch, share links that keep the document in the URL. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
+**Status:** 0.10.0 release documentation (publication is verified through the release workflow). Try it in the **[playground](https://vchernoy.xyz/active-md/)**: one editor, one Edit/View switch, share links that keep the document in the URL. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
 
 ## Example
 
@@ -29,7 +29,8 @@ More: **[examples/](examples/)** contains complete calculators using readable co
 For new documents, use `:edit{input=principal}` and
 `:slider[Annual interest rate]{input=rate step=0.5}`. Both inline (`:`) and
 standalone (`::`) forms work. Optional bracket text supplies an accessible name,
-without inserting a visible label into prose; omission uses the input name.
+without inserting a visible label into prose. Standalone `::edit` and
+`::slider` display their explicit bracket labels. Omission uses the input name.
 Defaults remain in calc. Use package version 0.6.0 or later for these forms.
 
 Existing `:input[principal]` and `:input[rate]{widget=slider}` remain supported
@@ -135,7 +136,7 @@ calc. Keep `:value[expression]` for outputs. Existing `:input[name]` and its vis
 
 Use `:::radio[Delivery]{input=delivery}` with the same options for native radio
 buttons under a visible legend. Both choice controls use calc defaults for reset
-and for saved values no longer offered. Version 0.9.0 accepts proven constant expressions in input defaults, range endpoints, option values and numeric control attributes. See the [radio example](examples/radio-control.md) and [trip budget](examples/trip-budget.md).
+and for saved values no longer offered. Version 0.9.0 accepts proven constant expressions in input defaults, range endpoints, option values and numeric control attributes. Version 0.10.0 also accepts constant `{{expression}}` in bracket labels. Inside an option label, `{{value}}` refers to that option’s declared number. See the [radio example](examples/radio-control.md) and [trip budget](examples/trip-budget.md).
 
 Checkbox collections and button assignment actions remain proposals. Complete quiz submission/Retry
 UI also remains future work (#48); pure self-check helpers do not provide it.

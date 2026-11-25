@@ -1,16 +1,19 @@
 # Delivery calculator
 
-Radio controls are available in ActiveMD 0.6.0 and later.
+This example uses named constants for the input default, range endpoints and radio options (ActiveMD 0.9.0).
 
 ```calc
-input delivery = 10 in 0..25
+pickup = 0
+standard = 10
+express = standard + 15
+input delivery = standard in pickup..express
 total = 100 + delivery
 ```
 
 :::radio[Delivery]{input=delivery}
-::option[Standard]{value=10}
-::option[Express]{value=25}
-::option[Pickup]{value=0}
+::option[Standard]{value=standard}
+::option[Express]{value=express}
+::option[Pickup]{value=pickup}
 :::
 
 Total: **:value[total]**.

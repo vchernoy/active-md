@@ -4,7 +4,7 @@ Markdown + LaTeX with **live calculations and form controls**: inputs the reader
 
 It's built for authors writing prose, and it's safe for documents that anyone may have written: no JavaScript in documents, no `eval`, no network.
 
-**Status:** 0.8.0 release documentation (publication is verified through the release workflow). Try it in the **[playground](https://vchernoy.xyz/active-md/)**: one editor, one Edit/View switch, share links that keep the document in the URL. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
+**Status:** 0.9.0 release documentation (publication is verified through the release workflow). Try it in the **[playground](https://vchernoy.xyz/active-md/)**: one editor, one Edit/View switch, share links that keep the document in the URL. See [docs/DESIGN.md](docs/DESIGN.md), especially §0 (Version 0).
 
 ## Example
 
@@ -95,7 +95,7 @@ Publishing uses **npm trusted publishing** (OIDC). No npm token or secret is sto
 - [TypeBridge](https://github.com/vchernoy/typebridge): uses ActiveMD for rendered Markdown documents and shareable pages with live calculations and controls. See its [current package pins](https://github.com/vchernoy/typebridge/blob/main/package.json).
 - [course-platform](https://github.com/vchernoy/course-platform): integration for websites, blogs, lessons and tests remains planned; tracked in [#1](https://github.com/vchernoy/active-md/issues/1).
 
-Version 0.6.0 includes additional quiz authoring checks and pure quiz helpers. Version 0.7.0 renders quizzes with Check / Retry (opt-in `quizManifest`), and 0.8.0 adds seeded variants drawn on each attempt with seed-ordered choices. Main additionally implements an unreleased `onQuizAttempt` completed self-check notification; draft/checked-attempt restore remains planned in [#48](https://github.com/vchernoy/active-md/issues/48).
+Version 0.6.0 includes additional quiz authoring checks and pure quiz helpers. Version 0.7.0 renders quizzes with Check / Retry (opt-in `quizManifest`), and 0.8.0 adds seeded variants drawn on each attempt with seed-ordered choices. Version 0.9.0 adds an `onQuizAttempt` completed self-check notification; draft/checked-attempt restore remains planned in [#48](https://github.com/vchernoy/active-md/issues/48).
 
 ## License
 
@@ -135,7 +135,7 @@ calc. Keep `:value[expression]` for outputs. Existing `:input[name]` and its vis
 
 Use `:::radio[Delivery]{input=delivery}` with the same options for native radio
 buttons under a visible legend. Both choice controls use calc defaults for reset
-and for saved values no longer offered. See the [radio example](examples/radio-control.md) and [trip budget](examples/trip-budget.md).
+and for saved values no longer offered. Version 0.9.0 accepts proven constant expressions in input defaults, range endpoints, option values and numeric control attributes. See the [radio example](examples/radio-control.md) and [trip budget](examples/trip-budget.md).
 
 Checkbox collections and button assignment actions remain proposals. Complete quiz submission/Retry
 UI also remains future work (#48); pure self-check helpers do not provide it.

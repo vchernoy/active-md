@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { JSDOM } from 'jsdom';
+import { DEFAULT_LIMITS } from '@vchernoy/calc';
 import { renderActive } from '../src/index.js';
 const calc = '```calc\ninput x = 2 in 0..10\ny = x * 3\n```\n\n';
 it.each([':edit{input=x}', '::edit{input=x}', ':slider{input=x}', '::slider{input=x}'])('supports omitted labels in %s', directive => {
@@ -46,4 +47,38 @@ it('escapes label text and rejects ranges missing from slider controls', () => {
   expect(dom.window.document.querySelector('input')?.getAttribute('aria-label')).toBe('<img src=x onerror=alert(1)>');
   dom.window.close();
   expect(renderActive('```calc\ninput x = 2\n```\n\n:slider{input=x}').messages.some(message => message.message.includes('needs a range'))).toBe(true);
+});
+
+it('uses proven Calc constants for control ranges, step and choice values', () => {
+  const source = [
+    '```calc', 'limit = 10', 'increment = sqrt(limit - 6)', 'input x = 2 in -10..10', 'input choice = 2', '```', '',
+    ':slider[Amount]{input=x min="-limit" max=limit step=increment}', '',
+    ':::radio[Radio]{input=choice}', '::option[First]{value=increment}', '::option[Second]{value="increment * 2"}', ':::', '',
+    ':::select[Select]{input=choice}', '::option[First]{value=increment}', '::option[Second]{value="increment * 2"}', ':::',
+  ].join('\n');
+  const result = renderActive(source);
+  expect(result.messages).toEqual([]);
+  const document = new JSDOM(result.html).window.document;
+  const slider = document.querySelector<HTMLInputElement>('input[type=range]');
+  expect([slider?.min, slider?.max, slider?.step]).toEqual(['-10', '10', '2']);
+  expect([...document.querySelectorAll<HTMLInputElement>('input[type=radio]')].map(input => input.value)).toEqual(['2', '4']);
+  expect([...document.querySelectorAll<HTMLOptionElement>('select option')].map(option => option.value)).toEqual(['2', '4']);
+});
+
+it.each([
+  [':slider[Amount]{input=x min=0 max=dynamic}', 'finite numeric constant'],
+  [':slider[Amount]{input=x min=0 max=unknown}', 'unknown name'],
+  [':slider[Amount]{input=x min=0 max="1 / 0"}', 'division by zero'],
+  [':slider[Amount]{input=x min=0 max=10 step="-limit"}', 'positive'],
+  [':::radio[Choice]{input=x}\n::option[First]{value=2}\n::option[Second]{value="limit / 5"}\n:::', 'unique'],
+])('reports invalid resolved control metadata at its directive', (control, message) => {
+  const result = renderActive('```calc\ninput x = 2 in 0..10\ndynamic = x * 2\nlimit = 10\n```\n\n' + control);
+  expect(result.messages).toEqual([expect.objectContaining({ line: 7, column: 1, message: expect.stringContaining(message) })]);
+});
+
+it('rejects a closed control expression when its step budget is exhausted', () => {
+  const source = '```calc\ninput x = 2 in 0..10\n```\n\n:slider[Amount]{input=x max="2 + 8"}';
+  const result = renderActive(source, { limits: { ...DEFAULT_LIMITS, maxSteps: 1 } });
+  expect(result.messages).toContainEqual(expect.objectContaining({ line: 5, message: expect.stringContaining('finite numeric constant') }));
+  expect(result.html).not.toContain('type="range"');
 });

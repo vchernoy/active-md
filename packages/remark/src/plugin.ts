@@ -3,7 +3,7 @@ import { validateQuizGroups } from './quiz-groups.js';
 import { renderQuizNode } from './quiz-render.js';
 import { warnStrayFences } from './stray-fences.js';
 import { checkWhenControls } from './when-check.js';
-import { createSession, scoreQuizGroup, formatNumber, parse, parseFormat, type Diagnostic, type Format, type Limits, type Program, type Result } from '@vchernoy/calc';
+import { DEFAULT_LIMITS, createSession, scoreQuizGroup, formatNumber, parse, parseFormat, type Diagnostic, type Format, type Limits, type Program, type Result } from '@vchernoy/calc';
 import type { ElementContent } from 'hast';
 import type { Code, Paragraph, Parent, Root, RootContent } from 'mdast';
 import type { ContainerDirective, LeafDirective, TextDirective } from 'mdast-util-directive';
@@ -308,8 +308,9 @@ export function remarkActive(options: ActiveOptions = {}) {
       for (const option of options) {
         if (option.type !== 'leafDirective' || option.name !== 'option') return fail(`${node.name} children must be ::option[label]{value=number}`);
         const raw = option.attributes?.value;
-        const value = typeof raw === 'string' && raw.trim() ? Number(raw) : NaN;
-        if (Object.keys(option.attributes ?? {}).some(key => key !== 'value') || !Number.isFinite(value) || !labelText(option, file).trim()) return fail('each option needs a nonempty label and finite numeric value only');
+        if (!raw?.trim() || Object.keys(option.attributes ?? {}).some(key => key !== 'value') || !labelText(option, file).trim()) return fail('each option needs a nonempty label and finite numeric value only');
+        const value = constantControlValue(raw, 'option value');
+        if (typeof value === 'string') return fail(value);
         if (domain.has(value)) return fail(`${node.name} option values must be unique`);
         if (def.range && (value < def.range.min || value > def.range.max)) return fail(`${node.name} option is outside the calc input range`);
         domain.add(value);
@@ -341,6 +342,22 @@ export function remarkActive(options: ActiveOptions = {}) {
       ] };
     }
 
+    function constantControlValue(raw: string, field: string): number | string {
+      // Preserve the directive grammar's existing finite literal spellings.
+      const literal = Number(raw);
+      if (Number.isFinite(literal)) return literal;
+      if (raw.length > (options.limits ?? DEFAULT_LIMITS).maxSourceLength) return `${field} expression exceeds the calc source limit`;
+      const compiled = session.compile(raw, 'control-attribute');
+      const diagnostic = compiled.diagnostics[0];
+      if (diagnostic) return `${field} needs a finite numeric constant (${diagnostic.message})`;
+      if (compiled.constant !== undefined) return compiled.constant;
+      if (!compiled.deps.size) {
+        const result = compiled.evaluate();
+        if (result.kind === 'error') return `${field} needs a finite numeric constant (${result.message})`;
+      }
+      return `${field} needs a finite numeric constant proven within calc limits`;
+    }
+
     function controlName(node: ControlDirective): string {
       return node.name === 'input' ? labelSource(node, file).trim() : (node.attributes?.input ?? '').trim();
     }
@@ -355,8 +372,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       const num = (key: string): number | undefined | string => {
         const raw = attrs[key];
         if (raw === undefined || raw === null || raw === '') return undefined;
-        const n = Number(raw);
-        return Number.isFinite(n) ? n : `${key}="${raw}" is not a number`;
+        return constantControlValue(raw, key);
       };
       const min = num('min'), max = num('max'), step = num('step');
       for (const v of [min, max, step]) if (typeof v === 'string') return fail(v);

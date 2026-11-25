@@ -969,3 +969,29 @@ The calc default determines the initially checked option and the reset value.
 A saved value that is no longer offered falls back to the calc default. On mount,
 each group gets a distinct native name for keyboard navigation and independent
 mounts. Accepted changes synchronize other controls through the session.
+
+### Compile-time numeric control attributes (#123)
+
+Radio and select option `value`, and the `min`, `max` and `step` attributes
+of numeric controls, accept finite literals or expressions that Calc proves
+constant under its limits. Quote expressions containing spaces. A live input,
+or a definition that still depends on one, cannot determine these attributes.
+The resolved numbers follow the same range, default, positive-step and
+unique-option rules as literals. Calc input declarations and quiz metadata
+retain their existing grammar in this slice.
+
+````markdown
+```calc
+limit = 10
+increment = limit / 5
+input amount = 2 in 0..10
+input plan = 2
+```
+
+:slider[Amount]{input=amount min=0 max=limit step=increment}
+
+:::radio[Plan]{input=plan}
+::option[Standard]{value=increment}
+::option[Plus]{value="increment * 2"}
+:::
+````

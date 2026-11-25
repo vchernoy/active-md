@@ -2,9 +2,12 @@
 
 All three packages share one version.
 
-## Unreleased
+## 0.9.0
 
 - Optional `mount(…, { onQuizAttempt })` notifies hosts after successful Check with a detached, deeply frozen, versioned self-check snapshot (accepted responses, actual seed and score rows). No answer key, source, DOM, restore or persistence is included (#48).
+
+- Calc input defaults and range endpoints accept proven finite constants from earlier definitions (#123, #125).
+- Radio/select values and numeric control bounds and steps accept constant Calc expressions (#123, #124).
 
 ## 0.8.0
 

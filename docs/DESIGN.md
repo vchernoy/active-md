@@ -677,7 +677,7 @@ report at their original source positions.
 
 Valid quiz directives render as literal source unless the host opts in with
 `quizManifest: true` and the document has no errors; then they render as controls
-(below). Completed-attempt notification is implemented on main (unreleased); restore is not.
+(below). Completed-attempt notification is available in 0.9.0; restore is not.
 
 ## 8. Quizzes and tests (course-platform)
 
@@ -724,7 +724,7 @@ The options move as a block to where the question's first choice was; grading is
 so it is unaffected. A repeated permutation on Retry is allowed. Unseeded groups keep the authored
 order.
 
-**Completed-attempt notification (implemented on main, unreleased).** Hosts may supply
+**Completed-attempt notification (0.9.0).** Hosts may supply
 `mount(root, { quiz, onQuizAttempt })`. After successful Check has shown feedback, frozen the
 controls and entered Retry state, the synchronous callback receives one detached, deeply frozen
 `CompletedQuizAttempt`: schema `version: 1`, `manifestVersion: 1`, group identity, actual bound

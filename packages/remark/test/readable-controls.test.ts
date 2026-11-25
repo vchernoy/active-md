@@ -8,7 +8,7 @@ it.each([':edit{input=x}', '::edit{input=x}', ':slider{input=x}', '::slider{inpu
   expect(result.messages).toEqual([]); expect(result.html).toContain('data-active-input="x"'); expect(result.html).toContain('aria-label="x"');
   expect(result.html).not.toContain('active-input-label');
 });
-it.each([':edit[Investment]{input=x}', '::edit[Investment]{input=x}', ':slider[Investment]{input=x}', '::slider[Investment]{input=x}'])('keeps brackets accessible-only in %s', directive => {
+it.each([':edit[Investment]{input=x}', ':slider[Investment]{input=x}'])('keeps brackets accessible-only in %s', directive => {
   const result = renderActive(calc + directive);
   expect(result.messages).toEqual([]); expect(result.html).toContain('aria-label="Investment"');
   expect(result.html).not.toContain('>Investment<'); expect(result.html).not.toContain('active-input-label');
@@ -81,4 +81,14 @@ it('rejects a closed control expression when its step budget is exhausted', () =
   const result = renderActive(source, { limits: { ...DEFAULT_LIMITS, maxSteps: 1 } });
   expect(result.messages).toContainEqual(expect.objectContaining({ line: 5, message: expect.stringContaining('finite numeric constant') }));
   expect(result.html).not.toContain('type="range"');
+});
+
+it.each(['::edit[**Investment**]{input=x}', '::slider[**Investment**]{input=x}'])('makes explicit leaf labels visible, semantic and text-only: %s', directive => {
+  const result = renderActive(calc + directive);
+  expect(result.messages).toEqual([]);
+  const document = new JSDOM(result.html).window.document;
+  const control = document.querySelector('input')!;
+  expect(control.closest('label')?.querySelector('.active-input-label')?.textContent).toBe('Investment');
+  expect(control.getAttribute('aria-label')).toBe('Investment');
+  expect(document.querySelector('strong')).toBeNull();
 });

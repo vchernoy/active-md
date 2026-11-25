@@ -6,6 +6,8 @@
   vertical-align: middle;
   flex-wrap: wrap;
 }
+.active-doc .active-input:has(> .active-input-label) { max-width: 100%; }
+.active-doc .active-input > .active-input-label { min-width: 0; overflow-wrap: anywhere; }
 .active-doc .active-input input[type="number"] {
   box-sizing: border-box;
   width: calc(var(--active-input-ch, 8) * 1ch + 2em);

@@ -20,7 +20,7 @@ class ExprParser {
   private p = 0;
   /** Height of every node built so far. Left-associative chains grow the tree without recursing, so recursion depth alone doesn't bound it. */
   private heights = new WeakMap<Expr, number>();
-  constructor(private tokens: Token[], private maxDepth: number) {}
+  constructor(private tokens: Token[], private maxDepth: number, private constants?: ReadonlyMap<string, number>) {}
   peek(): Token { return this.tokens[this.p]!; }
   next(): Token { return this.tokens[this.p++]!; }
   /** Record a new node's height and reject trees deeper than the limit, so later recursive walks stay bounded. */
@@ -102,7 +102,10 @@ class ExprParser {
         return this.node({ kind: 'call', fn: t.value, args, span: join(t.span, close.span) }, ...args);
       }
       if (RESERVED.has(t.value)) throw new ParseError(`"${t.value}" is a reserved word`, t.span);
-      return { kind: 'ref', name: t.value, span: t.span };
+      const value = this.constants?.get(t.value);
+      if (value === undefined) return { kind: 'ref', name: t.value, span: t.span };
+      if (!Number.isFinite(value)) throw new ParseError('scoped constant must be finite', t.span);
+      return { kind: 'num', value, span: t.span };
     }
     if (t.t === 'nl' || t.t === 'eof') throw new ParseError('the expression is incomplete', t.span);
     throw new ParseError(`unexpected "${t.value}"`, t.span);
@@ -317,24 +320,25 @@ export function parse(blocks: readonly { id: string; text: string }[], limits: L
 }
 
 /** Parse a single expression (for bindings such as :value[expr] or {{expr}}) against a program's names. */
-export function parseExpression(program: Program, text: string, id = 'expression', limits: Limits = DEFAULT_LIMITS):
-  { expr?: Expr; deps: ReadonlySet<string>; diagnostics: Diagnostic[] } {
+export function parseExpression(program: Program, text: string, id = 'expression', limits: Limits = DEFAULT_LIMITS, constants?: ReadonlyMap<string, number>):
+  { expr?: Expr; deps: ReadonlySet<string>; sourceDeps: ReadonlySet<string>; diagnostics: Diagnostic[] } {
   const diagnostics: Diagnostic[] = [];
   const tokens = tokenize(id, text).filter(t => t.t !== 'nl');
-  const p = new ExprParser(tokens, limits.maxDepth);
+  const p = new ExprParser(tokens, limits.maxDepth, constants);
   let expr: Expr;
   try {
     expr = p.expr();
     if (!p.atEnd()) throw new ParseError('unexpected text after the expression', p.peek().span);
   } catch (e) {
     if (!(e instanceof ParseError)) throw e;
-    return { deps: new Set(), diagnostics: [{ severity: 'error', message: e.message, span: e.span }] };
+    return { deps: new Set(), sourceDeps: new Set(), diagnostics: [{ severity: 'error', message: e.message, span: e.span }] };
   }
   const refs = new Map<string, Span>();
   collectRefs(expr, refs, diagnostics);
   for (const [ref] of refs) if (!program.names.has(ref) && constant(ref) !== undefined) refs.delete(ref);
   for (const [ref, span] of refs) if (!program.names.has(ref)) diagnostics.push({ severity: 'error', message: `unknown name "${ref}"`, span });
-  if (diagnostics.length) return { deps: new Set(refs.keys()), diagnostics };
+  const sourceDeps = new Set(refs.keys());
+  if (diagnostics.length) return { deps: sourceDeps, sourceDeps, diagnostics };
   const prepared = simplifyExpression(program, expr);
-  return { expr: prepared.expr, deps: prepared.deps, diagnostics };
+  return { expr: prepared.expr, deps: prepared.deps, sourceDeps, diagnostics };
 }

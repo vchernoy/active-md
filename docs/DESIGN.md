@@ -1029,3 +1029,38 @@ input plan = 2
 ::option[Plus]{value="increment * 2"}
 :::
 ````
+
+### Constant control labels (#128)
+
+Explicit edit and slider bracket labels, radio and select group labels, and
+their option labels accept `{{expression}}`. Calc must prove a finite numeric
+constant. Any direct or transitive reference to an input is rejected even if
+simplification could remove it. Labels use the ordinary localized numeric
+format and are computed before mounting.
+
+In an option label, `value` is that option's declared, validated number. It
+shadows an authored name only inside expressions in that option's label.
+Group and numeric control labels use ordinary Calc names.
+
+```markdown
+~~~calc
+base = 100
+input plan = base in base..(base * 2)
+~~~
+
+:::radio[Plans starting at {{base}}]{input=plan}
+::option[Basic — {{value * 12}} annually]{value=base}
+::option[Plus — {{value * 12}} annually]{value="base * 2"}
+:::
+```
+
+A label using interpolation is plain text. Markdown punctuation in it is
+printed literally. Write `\{{` to display literal opening braces. An invalid
+or unclosed expression leaves the original label text visible and reports
+an error at the label's source position. Each interpolated label is limited
+to 4,096 source characters or the host's smaller Calc limit. The first 256
+interpolations in a document use the normal Calc evaluation limits.
+
+Inline numeric bracket labels still supply only the accessible name.
+Standalone edit and slider bracket labels are visible as well. Selection and
+reset do not change any interpolated label.

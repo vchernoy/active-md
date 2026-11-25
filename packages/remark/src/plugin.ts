@@ -109,6 +109,11 @@ export function remarkActive(options: ActiveOptions = {}) {
     };
     for (const d of structural) report({ message: d.message, severity: 'error' }, at(d.node));
     const inputNames = new Set(program.inputs.map(input => input.name));
+    const inputDependent = new Set(inputNames);
+    for (const def of (program.source ?? program).definitions) {
+      if ([...def.deps].some(name => inputDependent.has(name))) inputDependent.add(def.name);
+    }
+    let labelExpressions = 0;
     const boundSeeds = new Set<string>();
     for (const node of submitNodes) {
       const seed = node.attributes?.seed;
@@ -263,7 +268,11 @@ export function remarkActive(options: ActiveOptions = {}) {
       if ((node.type === 'textDirective' || node.type === 'leafDirective') && (node.name === 'edit' || node.name === 'slider')) {
         if (!attrs.input?.trim()) showError(node, `${node.name} needs input= naming a declared calc input`);
         else if (Object.keys(attrs).some(key => !['input', 'min', 'max', 'step'].includes(key))) showError(node, `${node.name} accepts only input, min, max and step; labels go in brackets and defaults in calc`);
-        else input(node, { ...attrs, widget: node.name === 'slider' ? 'slider' : 'number' }, labelText(node, file).trim() || controlName(node), node.type === 'leafDirective' ? labelText(node, file).trim() || undefined : undefined);
+        else {
+          const label = controlLabel(node).trim();
+          input(node, { ...attrs, widget: node.name === 'slider' ? 'slider' : 'number' }, label || controlName(node),
+            node.type === 'leafDirective' ? label || undefined : undefined);
+        }
         return undefined;
       }
       if (node.type === 'textDirective' && node.name === 'value') { value(node, attrs); return undefined; }
@@ -299,7 +308,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       if (!def) return fail(`${node.name} input= must name a declared calc input`);
       const label = node.children[0];
       const hasLabel = label?.type === 'paragraph' && label.data?.directiveLabel;
-      const title = hasLabel ? labelText(label, file).trim() : '';
+      const title = hasLabel ? controlLabel(label).trim() : '';
       if (!title) return fail(`${node.name} needs a nonempty bracket label`);
       const options = node.children.slice(1);
       if (!options.length || options.length > 256) return fail(`${node.name} needs 1 to 256 options`);
@@ -314,7 +323,7 @@ export function remarkActive(options: ActiveOptions = {}) {
         if (domain.has(value)) return fail(`${node.name} option values must be unique`);
         if (def.range && (value < def.range.min || value > def.range.max)) return fail(`${node.name} option is outside the calc input range`);
         domain.add(value);
-        const text = { type: 'text' as const, value: labelText(option, file) };
+        const text = { type: 'text' as const, value: controlLabel(option, value) };
         if (node.name === 'radio') {
           children.push({ type: 'element', tagName: 'label', properties: {}, children: [
             { type: 'element', tagName: 'input', properties: { type: 'radio', value: String(value), checked: value === def.default }, children: [] },
@@ -340,6 +349,44 @@ export function remarkActive(options: ActiveOptions = {}) {
         { type: 'element', tagName: 'span', properties: { className: ['active-input-label'] }, children: [{ type: 'text', value: title }] },
         { type: 'element', tagName: 'select', properties: { dataActiveInput: name, ariaLabel: title }, children },
       ] };
+    }
+
+    function controlLabel(node: ControlDirective | Paragraph, optionValue?: number): string {
+      const source = labelSource(node, file);
+      if (!source.includes('{{')) return labelText(node, file);
+      const literals = optionValue === undefined ? undefined : new Map([['value', optionValue]]);
+      const limit = Math.min(4096, (options.limits ?? DEFAULT_LIMITS).maxSourceLength);
+      const fail = (message: string) => {
+        report({ message: `control label: ${message}`, severity: 'error' }, at(node));
+        return source;
+      };
+      if (source.length > limit) return fail('interpolated label exceeds the source limit');
+      let rendered = '';
+      let cursor = 0;
+      for (let start = source.indexOf('{{'); start >= 0; start = source.indexOf('{{', cursor)) {
+        if (start > cursor && source[start - 1] === '\\') {
+          rendered += source.slice(cursor, start - 1) + '{{';
+          cursor = start + 2;
+          continue;
+        }
+        rendered += source.slice(cursor, start);
+        const end = source.indexOf('}}', start + 2);
+        if (end < 0) return fail('unclosed interpolation');
+        if (++labelExpressions > 256) return fail('document exceeds 256 label expressions');
+        const expression = source.slice(start + 2, end).trim();
+        if (!expression || expression.includes('{') || expression.includes('}')) return fail('malformed interpolation');
+        const compiled = session.compile(expression, 'control-label', literals);
+        const diagnostic = compiled.diagnostics[0];
+        if (diagnostic) return fail(diagnostic.message);
+        if ([...compiled.sourceDeps].some(name => inputDependent.has(name))) return fail('interpolation depends on a Calc input');
+        if (compiled.constant === undefined || !Number.isFinite(compiled.constant)) {
+          const result = compiled.evaluate();
+          return fail(result.kind === 'error' ? result.message : 'interpolation needs a proven finite numeric constant');
+        }
+        rendered += formatNumber(compiled.constant, undefined, options.locale);
+        cursor = end + 2;
+      }
+      return rendered + source.slice(cursor);
     }
 
     function constantControlValue(raw: string, field: string): number | string {

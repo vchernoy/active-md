@@ -65,7 +65,7 @@ describe('calc blocks and bindings', () => {
     expect(m(':input[x]{widget=dial}')).toEqual(['unknown widget "dial" (use number or slider)']);
     expect(m(':input[y]{widget=slider}')).toEqual(['a slider needs a range: give y "in a..b" or min and max']);
     expect(m(':input[x]{min=-5}')).toEqual(["min/max can only narrow x's range 0..10"]);
-    expect(m(':input[x]{step=abc}')).toEqual(['step="abc" is not a number']);
+    expect(m(':input[x]{step=abc}')).toEqual(['step needs a finite numeric constant (unknown name "abc")']);
     expect(m(':input[x]{step=0}')).toEqual(['step must be positive']);
     expect(m(':value[x]{format=money}')[0]).toMatch(/unknown format "money"/);
   });

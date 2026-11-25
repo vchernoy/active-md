@@ -263,7 +263,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       if ((node.type === 'textDirective' || node.type === 'leafDirective') && (node.name === 'edit' || node.name === 'slider')) {
         if (!attrs.input?.trim()) showError(node, `${node.name} needs input= naming a declared calc input`);
         else if (Object.keys(attrs).some(key => !['input', 'min', 'max', 'step'].includes(key))) showError(node, `${node.name} accepts only input, min, max and step; labels go in brackets and defaults in calc`);
-        else input(node, { ...attrs, widget: node.name === 'slider' ? 'slider' : 'number' }, labelText(node, file).trim() || controlName(node));
+        else input(node, { ...attrs, widget: node.name === 'slider' ? 'slider' : 'number' }, labelText(node, file).trim() || controlName(node), node.type === 'leafDirective' ? labelText(node, file).trim() || undefined : undefined);
         return undefined;
       }
       if (node.type === 'textDirective' && node.name === 'value') { value(node, attrs); return undefined; }
@@ -362,7 +362,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       return node.name === 'input' ? labelSource(node, file).trim() : (node.attributes?.input ?? '').trim();
     }
 
-    function input(node: ControlDirective, attrs: Record<string, string | null | undefined>, accessibleLabel?: string): void {
+    function input(node: ControlDirective, attrs: Record<string, string | null | undefined>, accessibleLabel?: string, visibleLabel?: string): void {
       const name = controlName(node);
       const def = program.inputs.find(i => i.name === name);
       const fail = (message: string) => showError(node, message);
@@ -402,12 +402,13 @@ export function remarkActive(options: ActiveOptions = {}) {
         return fail(`${name} starts at ${shown}, which step ${step} from ${base} can't reach`);
       const inferred = widget === 'slider' ? sliderStep(lo!, hi!) : undefined;
       const controlStep: number | string = (step as number | undefined) ?? (inferred !== undefined && onStep(shown, base, inferred) ? inferred : 'any');
-      const label = accessibleLabel === undefined ? attrs.label ?? undefined : undefined;
+      const label = visibleLabel ?? (accessibleLabel === undefined ? attrs.label ?? undefined : undefined);
       const props: Record<string, string | number> = {
         type: widget === 'slider' ? 'range' : 'number', value: String(shown), dataActiveInput: name,
         ...(lo !== undefined ? { min: lo } : {}), ...(hi !== undefined ? { max: hi } : {}),
         step: controlStep,
-        ...(label ? {} : { ariaLabel: accessibleLabel ?? name }),
+        // A slider's live output must not become part of its accessible name.
+        ...(visibleLabel ? { ariaLabel: visibleLabel } : label ? {} : { ariaLabel: accessibleLabel ?? name }),
       };
       const children: ElementContent[] = [];
       if (label) children.push({ type: 'element', tagName: 'span', properties: { className: ['active-input-label'] }, children: [{ type: 'text', value: label }] });

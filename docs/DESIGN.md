@@ -416,10 +416,23 @@ review, not approved collection syntax, API, implementation or host support.
 
 Inline `:edit{input=name}` and `:slider{input=name}` and standalone leaf forms
 `::edit` / `::slider` reuse the existing number/range control representation.
-Optional bracket text supplies the accessible name only (Markdown phrasing is
-flattened to text); omission or an empty label falls back to the binding name.
-Visible labels belong in surrounding prose. Neither form renders the bracket
-contents as visible prose or HTML. `input=` must name a declared calc input.
+Inline bracket text supplies the accessible name only. Explicit standalone leaf
+labels (`::edit[Investment]{input=x}`, `::slider[Rate]{input=rate}`) are visible
+and use a native wrapping label, so clicking the label focuses its own control.
+Markdown phrasing is flattened to text in both forms; no label HTML is injected.
+Omission or an empty label generates no visible wording and falls back to the
+binding name for accessibility. A slider output is excluded from its accessible
+name. Directive kind, not viewport wrapping, determines visibility. For example:
+
+```markdown
+Investment: :edit{input=investment}
+
+::edit[Investment]{input=investment}
+
+::slider[Rate]{input=rate}
+```
+
+`input=` must name a declared calc input. Label expression interpolation is separate (#128).
 
 Both forms accept only `input`, `min`, `max` and `step`. They share the existing
 range narrowing, matching-control range, default/step alignment and slider-range

@@ -71,7 +71,7 @@ describe('static rules', () => {
   it('checks input ranges and defaults', () => {
     expect(messages('input x = 5 in 10..1')[0]).toMatch(/range 10..1 is empty/);
     expect(messages('input x = 50 in 0..10')[0]).toMatch(/default 50 is outside 0..10/);
-    expect(messages('input x = y')[0]).toMatch(/expected a number/);
+    expect(messages('input x = y')[0]).toMatch(/unknown name/);
     const p = prog('input t = -5 in -10..10');
     expect(p.diagnostics).toEqual([]);
     expect(p.inputs[0]?.range).toEqual({ min: -10, max: 10 });

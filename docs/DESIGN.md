@@ -977,8 +977,29 @@ of numeric controls, accept finite literals or expressions that Calc proves
 constant under its limits. Quote expressions containing spaces. A live input,
 or a definition that still depends on one, cannot determine these attributes.
 The resolved numbers follow the same range, default, positive-step and
-unique-option rules as literals. Calc input declarations and quiz metadata
-retain their existing grammar in this slice.
+unique-option rules as literals. Input declaration defaults and both range endpoints
+also accept proven finite numeric constant expressions. Declaration expressions see
+only preceding definitions, including across blocks; defaults of other inputs never
+prove constancy. The `in` keyword and `..` token delimit the expressions. Existing
+precedence and parenthesized multiline expressions apply, so `-2^2` means `-(2^2)`.
+All references/calls are validated before lazy simplification; missing, forward and
+self references remain errors even in discarded branches. Resolution shares a bounded
+proof budget across declarations and reports positioned errors for dynamic results,
+evaluation failures or exhausted limits. Quiz metadata retains its existing grammar.
+
+For example, define model metadata once and reuse it in controls:
+
+````markdown
+```calc
+limit = 100
+initial = limit / 2
+input amount = initial in -limit..limit
+```
+
+:slider[Amount]{input=amount min="-limit" max=limit step="limit / 100"}
+
+:value[amount]
+````
 
 ````markdown
 ```calc

@@ -88,9 +88,8 @@ function simplify(source: Expr, known: ReadonlyMap<string, Fact>, names: Program
 }
 
 /** Bounded, conservative preparation; exhaustion leaves valid source expressions intact. */
-export function simplifyProgram(program: Program): Program {
+export function simplifyProgram(program: Program, budget = new Budget(DEFAULT_LIMITS.maxSteps)): Program {
   const known = new Map<string, Fact>();
-  const budget = new Budget(DEFAULT_LIMITS.maxSteps);
   const definitions = program.definitions.map(def => {
     if (def.kind === 'input') {
       known.set(def.name, def.range ? { range: def.range } : {});

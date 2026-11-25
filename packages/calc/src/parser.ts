@@ -1,10 +1,11 @@
 import { simplifyExpression, simplifyProgram } from './simplify.js';
+import { Budget, evaluateExpr } from './evaluate.js';
 import { builtin, constant, RESERVED } from './builtins.js';
 import { tokenize, type Token } from './lexer.js';
 import { DEFAULT_LIMITS, type Definition, type Diagnostic, type Expr, type Limits, type NameInfo, type Program, type Span } from './types.js';
 
 type Raw =
-  | { kind: 'input'; name: string; nameSpan: Span; default: number; range?: { min: number; max: number }; span: Span }
+  | { kind: 'input'; name: string; nameSpan: Span; default: Expr; range?: { min: Expr; max: Expr }; span: Span }
   | { kind: 'value'; name: string; nameSpan: Span; expr: Expr; span: Span }
   /** A statement that failed to parse but clearly defines `name`; the name exists, as an error. */
   | { kind: 'broken'; name: string; nameSpan: Span; error: Diagnostic };
@@ -110,13 +111,6 @@ class ExprParser {
 
 function join(a: Span, b: Span): Span { return { ...a, end: b.end }; }
 
-function signedNumber(p: ExprParser): number {
-  const t = p.next();
-  if (t.t === 'op' && t.value === '-') { const n = p.next(); if (n.t === 'num') return -n.value; throw new ParseError('expected a number', n.span); }
-  if (t.t === 'num') return t.value;
-  throw new ParseError('expected a number (inputs take a number as their default in v0)', t.span);
-}
-
 /** Split tokens into statements (one per line) and parse each. Errors are per statement. */
 function parseStatements(block: string, text: string, limits: Limits, diagnostics: Diagnostic[]): Raw[] {
   const tokens = tokenize(block, text);
@@ -159,19 +153,17 @@ function parseStatement(tokens: Token[], limits: Limits): Raw {
     if (name.t !== 'name') throw new ParseError('expected the input\'s name', name.span);
     checkName(name.value, name.span);
     p.expectOp('=');
-    const def = signedNumber(p);
-    let range: { min: number; max: number } | undefined;
+    const def = p.expr();
+    let range: { min: Expr; max: Expr } | undefined;
     const t = p.peek();
     if (t.t === 'name' && t.value === 'in') {
       p.next();
-      const min = signedNumber(p);
+      const min = p.expr();
       p.expectOp('..');
-      const max = signedNumber(p);
-      if (min > max) throw new ParseError(`the range ${min}..${max} is empty`, t.span);
+      const max = p.expr();
       range = { min, max };
     }
     if (!p.atEnd()) throw new ParseError(`unexpected "${(p.peek() as { value?: string }).value ?? ''}" after the input definition`, p.peek().span);
-    if (range && (def < range.min || def > range.max)) throw new ParseError(`the default ${def} is outside ${range.min}..${range.max}`, name.span);
     const end = tokens[tokens.length - 2]!.span;
     return range
       ? { kind: 'input', name: name.value, nameSpan: name.span, default: def, range, span: join(start, end) }
@@ -240,6 +232,7 @@ export function parse(blocks: readonly { id: string; text: string }[], limits: L
   const names = new Map<string, NameInfo>();
   const broken = new Map<string, Diagnostic>();
   const definitions: Definition[] = [];
+  const metadataBudget = new Budget(limits.maxSteps);
   for (const r of raws) {
     const prior = names.get(r.name);
     if (prior) {
@@ -255,10 +248,46 @@ export function parse(blocks: readonly { id: string; text: string }[], limits: L
       continue;
     }
     if (r.kind === 'input') {
+      const problems: Diagnostic[] = [];
+      const expressions = [r.default, ...(r.range ? [r.range.min, r.range.max] : [])];
+      // Validate all source references before simplifying lazy branches. Only
+      // preceding definitions are visible; an input default is never a fact.
+      for (const expr of expressions) {
+        const refs = new Map<string, Span>();
+        collectRefs(expr, refs, problems);
+        for (const [ref, span] of refs) {
+          if (names.has(ref) || (!firstAt.has(ref) && constant(ref) !== undefined)) continue;
+          const later = firstAt.get(ref);
+          problems.push({ severity: 'error', span, message: ref === r.name ? `"${ref}" can't refer to itself`
+            : later ? `"${ref}" is used before it is defined (line ${later.line})` : `unknown name "${ref}"` });
+        }
+      }
+      let prepared: Program | undefined;
+      const resolve = (expr: Expr): number | undefined => {
+        // Preserve literal metadata even under a restrictive evaluation budget.
+        if (expr.kind === 'num') return expr.value;
+        if (expr.kind === 'neg' && expr.arg.kind === 'num') return -expr.arg.value;
+        prepared ??= simplifyProgram({ definitions, inputs: definitions.filter((d): d is Extract<Definition, { kind: 'input' }> => d.kind === 'input'), names, broken, diagnostics }, metadataBudget);
+        const result = simplifyExpression(prepared, expr, metadataBudget);
+        if (result.constant !== undefined && metadataBudget.remaining() >= 0) return result.constant;
+        const evaluated = !result.deps.size ? evaluateExpr(result.expr, () => undefined, metadataBudget) : undefined;
+        problems.push({ severity: 'error', span: evaluated?.kind === 'error' ? evaluated.span ?? expr.span : expr.span,
+          message: evaluated?.kind === 'error' ? evaluated.message : 'input metadata needs a finite numeric constant proven within calc limits' });
+        return undefined;
+      };
+      const values = problems.length ? [] : expressions.map(resolve);
+      const def = values[0];
+      const range = r.range && values[1] !== undefined && values[2] !== undefined ? { min: values[1], max: values[2] } : undefined;
+      if (range && range.min > range.max) problems.push({ severity: 'error', span: r.range!.min.span, message: `the range ${range.min}..${range.max} is empty` });
+      if (def !== undefined && range && (def < range.min || def > range.max)) problems.push({ severity: 'error', span: r.nameSpan, message: `the default ${def} is outside ${range.min}..${range.max}` });
+      if (problems.length || def === undefined) {
+        names.set(r.name, { kind: 'input', span: r.nameSpan, index: -1 });
+        for (const d of problems) diagnostics.push({ ...d, name: r.name });
+        broken.set(r.name, { ...problems[0]!, name: r.name });
+        continue;
+      }
       names.set(r.name, { kind: 'input', span: r.nameSpan, index: definitions.length });
-      definitions.push(r.range
-        ? { kind: 'input', name: r.name, default: r.default, range: r.range, span: r.span, deps: new Set() }
-        : { kind: 'input', name: r.name, default: r.default, span: r.span, deps: new Set() });
+      definitions.push({ kind: 'input', name: r.name, default: def, ...(range ? { range } : {}), span: r.span, deps: new Set() });
       continue;
     }
     const refs = new Map<string, Span>();

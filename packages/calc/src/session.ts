@@ -15,12 +15,14 @@ export type Session = {
   reset(): void;
   /** Called with the names whose result changed, after each set/reset. Returns an unsubscribe function. */
   subscribe(listener: (changed: ReadonlySet<string>) => void): () => void;
-  /** Compile an expression against this program (for bindings such as :value[expr]). */
-  compile(text: string, id?: string): CompiledExpression;
+  /** Compile a binding expression. Scoped constants shadow program names in this expression only. */
+  compile(text: string, id?: string, constants?: ReadonlyMap<string, number>): CompiledExpression;
 };
 
 export type CompiledExpression = {
   readonly deps: ReadonlySet<string>;
+  /** Names used before simplification, excluding scoped and built-in constants. */
+  readonly sourceDeps: ReadonlySet<string>;
   /** Proven successful value for every supported input, not merely the default. */
   readonly constant?: number;
   readonly diagnostics: readonly Diagnostic[];
@@ -76,11 +78,12 @@ export function createSession(program: Program, limits: Limits = DEFAULT_LIMITS)
       if (dirty.size) recompute(dirty);
     },
     subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
-    compile(text, id) {
-      const c = parseExpression(program, text, id, limits);
+    compile(text, id, constants) {
+      const c = parseExpression(program, text, id, limits, constants);
       const original = c.expr?.source ?? c.expr;
       return {
         deps: c.deps,
+        sourceDeps: c.sourceDeps,
         ...(c.expr?.kind === 'num' && (c.expr.sourceCost ?? 1) <= limits.maxSteps
           && !c.expr.guards?.some(name => lookup(name)?.kind === 'error') ? { constant: c.expr.value } : {}),
         diagnostics: c.diagnostics,

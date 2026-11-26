@@ -27,14 +27,17 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./style.css": "./style.css"
+    "./style.css": "./style.css",
+    "./sketch.css": "./sketch.css"
   },
   "files": [
     "dist",
-    "style.css"
+    "style.css",
+    "sketch.css"
   ],
   "sideEffects": [
-    "./style.css"
+    "./style.css",
+    "./sketch.css"
   ],
   "engines": {
     "node": ">=18"

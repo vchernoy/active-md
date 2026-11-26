@@ -67,6 +67,8 @@
   margin: 0;
   border: 2px solid var(--active-sketch-ink);
   background: var(--active-sketch-paper);
+  /* Controls default to FieldText; the ink must follow the document text color. */
+  color: inherit;
   display: inline-grid;
   place-content: center;
   vertical-align: -0.2em;

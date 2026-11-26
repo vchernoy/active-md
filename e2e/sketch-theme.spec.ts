@@ -54,6 +54,16 @@ test('forced colors fall back to native radios and checkboxes so checked states 
   }
 });
 
+test('drawn radios and checkboxes follow the document text color, not FieldText', async ({ page }) => {
+  // A light-on-dark host that sets no color-scheme.
+  await page.setContent(`<div class="active-sketch" style="color: rgb(240, 240, 240); background: rgb(20, 20, 20)">${renderActive(markdown, { quizManifest: true }).html}</div>`);
+  await page.addStyleTag({ content: base });
+  await page.addStyleTag({ content: sketch });
+  for (const kind of ['radio', 'checkbox']) {
+    await expect(page.locator(`input[type="${kind}"]`).first()).toHaveCSS('border-top-color', 'rgb(240, 240, 240)');
+  }
+});
+
 test.describe('playground', () => {
   let server: ViteDevServer;
   let url: string;

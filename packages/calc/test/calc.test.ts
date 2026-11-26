@@ -184,6 +184,7 @@ describe('format', () => {
   });
 
   it('parses format specs', () => {
+    expect(parseFormat('fixed')).toEqual(parseFormat('fixed:0'));
     expect(parseFormat('fixed:2')).toEqual({ kind: 'fixed', digits: 2 });
     expect(parseFormat(undefined)).toEqual({ kind: 'auto' });
     expect(parseFormat('money')).toMatch(/unknown format/);

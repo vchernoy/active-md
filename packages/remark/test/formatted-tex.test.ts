@@ -12,6 +12,12 @@ describe('formatted math placeholders', () => {
     expect(substitute('{{final | fixed:2}}', value(43178.5), 'ru-RU')).toBe('{43\\,178{,}50}');
     expect(placeholders('{{final | fixed:2}} + {{round(final, 2)}}')).toEqual(['final', 'round(final, 2)']);
   });
+  it('formats fixed exactly like fixed:0 in math and prose', () => {
+    expect(substitute('{{final | fixed}}', value(43178.5), 'en-US')).toBe('{43{,}179}');
+    const result = renderActive(doc('{{final | fixed}}') + '\n\n:value[final]{format=fixed}', { locale: 'en-US' });
+    expect(result.messages).toEqual([]);
+    expect(result.html).toContain('>43,179</output>');
+  });
   it.each(['auto', 'int', 'fixed:0', 'fixed:2', 'percent:1'])('accepts the same %s format as value bindings', spec => {
     const result = substitute(`{{final | ${spec}}}`, value(43178.5), 'en-US');
     expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();

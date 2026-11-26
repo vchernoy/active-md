@@ -7,17 +7,17 @@ const calc = '```calc\nbase = 100\nvalue = 7\ninput plan = base in 100..200\ninp
 it('renders static numeric labels with a scoped option value and normal group and inline scope', () => {
   const source = calc + [
     ':edit[Base {{base}} and {{value}}]{input=test}',
-    '::slider[Rate {{sqrt(base)}}]{input=plan}',
-    ':::select[Plan {{value}}]{input=plan}\n::option[Monthly {{value}}]{value=base}\n::option[Monthly {{value}}]{value="base * 2"}\n:::',
-    ':::radio[Plan {{base}}]{input=plan}\n::option[Annual {{value*12*1}}]{value=base}\n::option[Annual {{value * 12 + base}}]{value=200}\n:::',
+    '::slider[Rate {{sqrt(base) | fixed:2}}]{input=plan}',
+    ':::select[Plan {{value}}]{input=plan}\n::option[Monthly {{value | fixed:2}}]{value=base}\n::option[Monthly {{value | fixed:2}}]{value="base * 2"}\n:::',
+    ':::radio[Plan {{base | fixed}}]{input=plan}\n::option[Annual {{value*12*1}}]{value=base}\n::option[Annual {{value * 12 + base}}]{value=200}\n:::',
   ].join('\n\n');
   const result = renderActive(source, { locale: 'en-US' });
   expect(result.messages).toEqual([]);
   const doc = new JSDOM(result.html).window.document;
   expect(doc.querySelector('input[type=number]')?.getAttribute('aria-label')).toBe('Base 100 and 7');
-  expect(doc.querySelector('.active-input-label')?.textContent).toBe('Rate 10');
+  expect(doc.querySelector('.active-input-label')?.textContent).toBe('Rate 10.00');
   expect(doc.querySelector('select')?.getAttribute('aria-label')).toBe('Plan 7');
-  expect([...doc.querySelectorAll('option')].map(node => node.textContent)).toEqual(['Monthly 100', 'Monthly 200']);
+  expect([...doc.querySelectorAll('option')].map(node => node.textContent)).toEqual(['Monthly 100.00', 'Monthly 200.00']);
   expect(doc.querySelector('legend')?.textContent).toBe('Plan 100');
   expect([...doc.querySelectorAll('fieldset label')].map(node => node.textContent)).toEqual(['Annual 1,200', 'Annual 2,500']);
 });
@@ -28,6 +28,11 @@ it.each([
   ['{{if(0, test, 5)}}', 'depends on a Calc input'],
   ['{{unknown}}', 'unknown name'],
   ['{{1/0}}', 'zero'],
+  ['{{base | money}}', 'use auto, int, fixed, fixed:N or percent:N'],
+  ['{{base | fixed:16}}', 'N from 0 to 15'],
+  ['{{base | }}', 'expected expression | format'],
+  ['{{base | fixed | auto}}', 'use one | format separator'],
+  ['{{test | fixed:2}}', 'Use :value beside the control'],
   ['{{', 'unclosed interpolation'],
   ['{{}}', 'malformed interpolation'],
   ['{{{{base}}}}', 'malformed interpolation'],

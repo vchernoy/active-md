@@ -102,7 +102,7 @@ Version 0.6.0 includes additional quiz authoring checks and pure quiz helpers. V
 
 MIT
 
-In math, `{{expr}}` retains its original numeric TeX output; `{{expr | fixed:2}}` uses locale-aware formatting, like `:value[expr]{format=fixed:2}`. Supported specs are `auto`, `int`, `fixed:N` and `percent:N` (N:0–15). Commas and percent signs are TeX-escaped, locale spacing becomes a thin space. Invalid specs show a red `?` with a positioned renderer diagnostic. Only placeholders are live; literal numbers stay as authored.
+In math, `{{expr}}` retains its original numeric TeX output; `{{expr | fixed:2}}` uses locale-aware formatting, like `:value[expr]{format=fixed:2}`. Supported specs are `auto`, `int`, `fixed` (short for `fixed:0`), `fixed:N` and `percent:N` (N:0–15). Commas and percent signs are TeX-escaped, locale spacing becomes a thin space. Invalid specs show a red `?` with a positioned renderer diagnostic. Only placeholders are live; literal numbers stay as authored.
 
 ## Numeric select lists (0.6.0)
 
@@ -136,7 +136,7 @@ calc. Keep `:value[expression]` for outputs. Existing `:input[name]` and its vis
 
 Use `:::radio[Delivery]{input=delivery}` with the same options for native radio
 buttons under a visible legend. Both choice controls use calc defaults for reset
-and for saved values no longer offered. Version 0.9.0 accepts proven constant expressions in input defaults, range endpoints, option values and numeric control attributes. Version 0.10.0 also accepts constant `{{expression}}` in bracket labels. Inside an option label, `{{value}}` refers to that option’s declared number. See the [radio example](examples/radio-control.md) and [trip budget](examples/trip-budget.md).
+and for saved values no longer offered. Version 0.9.0 accepts proven constant expressions in input defaults, range endpoints, option values and numeric control attributes. Version 0.10.0 also accepts constant `{{expression}}` in bracket labels. Control labels also accept the same optional format suffix as math, for example `{{base | fixed:2}}`. Inside an option label, `{{value}}` refers to that option’s declared number. See the [radio example](examples/radio-control.md) and [trip budget](examples/trip-budget.md).
 
 Checkbox collections and button assignment actions remain proposals. Complete quiz submission/Retry
 UI also remains future work (#48); pure self-check helpers do not provide it.

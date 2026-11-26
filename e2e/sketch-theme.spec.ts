@@ -30,7 +30,10 @@ test('the sketch look applies only under .active-sketch and keeps controls nativ
   // Still real form controls: clicking and the keyboard toggle them.
   await radio.click();
   await expect(radio).toBeChecked();
-  await checkbox.focus();
+  // Tab from the last radio to the checkbox: keyboard focus shows the drawn :focus-visible ring.
+  await page.locator('input[type="radio"]').last().focus();
+  await page.keyboard.press('Tab');
+  await expect(checkbox).toBeFocused();
   await page.keyboard.press('Space');
   await expect(checkbox).toBeChecked();
   await expect(checkbox).toHaveCSS('outline-style', 'dashed');

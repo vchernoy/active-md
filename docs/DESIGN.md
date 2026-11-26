@@ -22,7 +22,7 @@ Small, safe and usable as soon as possible in both course-platform and TypeBridg
   - `:edit{input=x}`, a number box (current 0.6.0 spelling);
   - `:slider{input=x min=… max=… step=…}` (current 0.6.0 spelling; original `:input` forms remain compatible);
   - `:value[expr]{format=…}`, read-only;
-  - `{{expr}}` inside math (unchanged numeric TeX), or `{{expr | spec}}` for the same locale-aware formats as `:value` (`auto`, `int`, `fixed:N`, `percent:N`). A single `|` separates the expression and format; pipes are not calc operators. Formatted separators and TeX special characters are escaped before KaTeX sees them; invalid formats produce a red `?` and a positioned diagnostic. Server defaults and live updates share this substitution path.
+  - `{{expr}}` inside math (unchanged numeric TeX), or `{{expr | spec}}` for the same locale-aware formats as `:value` (`auto`, `int`, `fixed`, `fixed:N`, `percent:N`). A single `|` separates the expression and format; pipes are not calc operators. Formatted separators and TeX special characters are escaped before KaTeX sees them; invalid formats produce a red `?` and a positioned diagnostic. Server defaults and live updates share this substitution path.
 - **Not in v0:**
   - functions;
   - lists and tables generated from them;
@@ -1033,7 +1033,9 @@ input plan = 2
 ### Constant control labels (#128)
 
 Explicit edit and slider bracket labels, radio and select group labels, and
-their option labels accept `{{expression}}`. Calc must prove a finite numeric
+their option labels accept `{{expression}}` and `{{expression | format}}`. The
+format choices are shared with math and `:value`. Use `fixed` as shorthand for
+`fixed:0`. Calc must prove a finite numeric
 constant. Any direct or transitive reference to an input is rejected even if
 simplification could remove it. Labels use the ordinary localized numeric
 format and are computed before mounting.
@@ -1048,8 +1050,12 @@ base = 100
 input plan = base in base..(base * 2)
 ~~~
 
-:::radio[Plans starting at {{base}}]{input=plan}
-::option[Basic — {{value * 12}} annually]{value=base}
+Base price in prose: :value[base]{format=fixed:2}.
+
+Base price in math: $b = {{base | fixed:2}}$.
+
+:::radio[Plans starting at {{base | fixed:2}}]{input=plan}
+::option[Basic — {{value * 12 | fixed:2}} annually]{value=base}
 ::option[Plus — {{value * 12}} annually]{value="base * 2"}
 :::
 ```

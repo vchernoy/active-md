@@ -1,15 +1,16 @@
 /**
  * Number formatting and parsing for bindings.
- * Formats: "auto" (default; up to 6 significant decimals), "fixed:N", "percent:N" (0.08 → 8%), "int".
+ * Formats: "auto" (default; up to 6 significant decimals), "fixed" (0 digits), "fixed:N", "percent:N" (0.08 → 8%), "int".
  */
 export type Format = { kind: 'auto' } | { kind: 'fixed'; digits: number } | { kind: 'percent'; digits: number } | { kind: 'int' };
 
 export function parseFormat(spec: string | undefined): Format | string {
   if (!spec || spec === 'auto') return { kind: 'auto' };
+  if (spec === 'fixed') return { kind: 'fixed', digits: 0 };
   if (spec === 'int') return { kind: 'int' };
   const m = /^(fixed|percent):(\d{1,2})$/.exec(spec);
   if (m && Number(m[2]) <= 15) return { kind: m[1] as 'fixed' | 'percent', digits: Number(m[2]) };
-  return `unknown format "${spec}" (use auto, int, fixed:N or percent:N)`;
+  return `unknown format "${spec}" (use auto, int, fixed, fixed:N or percent:N, with N from 0 to 15)`;
 }
 
 export function formatNumber(value: number, format: Format = { kind: 'auto' }, locale?: string): string {

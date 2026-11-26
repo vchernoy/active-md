@@ -9,7 +9,7 @@ test('current playground sample uses readable controls and live travel/lodging c
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto(server.resolvedUrls!.local[0]!);
   await page.locator('#mode-view').click();
-  await expect(page.getByRole('spinbutton', { name: 'Deposit', exact: true })).toHaveValue('10000');
+  await expect(page.getByRole('spinbutton', { name: 'Deposit (starts at 10,000.00)', exact: true })).toHaveValue('10000');
   const rate = page.getByRole('slider', { name: 'Rate (%/year)', exact: true });
   await rate.focus(); await rate.press('ArrowRight');
   await expect(rate).toHaveValue('8.5');

@@ -10,7 +10,8 @@ import type { ContainerDirective, LeafDirective, TextDirective } from 'mdast-uti
 import type { InlineMath, Math } from 'mdast-util-math';
 import { toString } from 'mdast-util-to-string';
 import type { VFile } from 'vfile';
-import { mathBinding, PLACEHOLDER, substitute } from './tex.js';
+import { PLACEHOLDER, substitute } from './tex.js';
+import { numericBinding } from './numeric-binding.js';
 
 export type ActiveOptions = {
   /** Prepare validated quiz metadata without changing HTML or enabling runtime controls. */
@@ -373,17 +374,19 @@ export function remarkActive(options: ActiveOptions = {}) {
         const end = source.indexOf('}}', start + 2);
         if (end < 0) return fail('unclosed interpolation');
         if (++labelExpressions > 256) return fail('document exceeds 256 label expressions');
-        const expression = source.slice(start + 2, end).trim();
-        if (!expression || expression.includes('{') || expression.includes('}')) return fail('malformed interpolation');
+        const placeholder = source.slice(start + 2, end).trim();
+        if (!placeholder || placeholder.includes('{') || placeholder.includes('}')) return fail('malformed interpolation');
+        const { expression, format, problem } = numericBinding(placeholder);
+        if (problem) return fail(problem);
         const compiled = session.compile(expression, 'control-label', literals);
         const diagnostic = compiled.diagnostics[0];
         if (diagnostic) return fail(diagnostic.message);
-        if ([...compiled.sourceDeps].some(name => inputDependent.has(name))) return fail('interpolation depends on a Calc input');
+        if ([...compiled.sourceDeps].some(name => inputDependent.has(name))) return fail('interpolation depends on a Calc input. Control labels use constants. Use :value beside the control to show a live result');
         if (compiled.constant === undefined || !Number.isFinite(compiled.constant)) {
           const result = compiled.evaluate();
           return fail(result.kind === 'error' ? result.message : 'interpolation needs a proven finite numeric constant');
         }
-        rendered += formatNumber(compiled.constant, undefined, options.locale);
+        rendered += formatNumber(compiled.constant, format, options.locale);
         cursor = end + 2;
       }
       return rendered + source.slice(cursor);
@@ -509,7 +512,7 @@ export function remarkActive(options: ActiveOptions = {}) {
       const display = node.type === 'math' || (start !== undefined && String(file.value).startsWith('$$', start));
       const exprs = [...node.value.matchAll(PLACEHOLDER)].map(m => m[1]!.trim());
       const results: Result[] = exprs.map(e => {
-        const binding = mathBinding(e);
+        const binding = numericBinding(e);
         const c = session.compile(binding.expression, 'math');
         const r: Result = isVisible(node) ? c.evaluate() : { kind: 'value', value: 0 };
         // The formula only shows a red "?", so the author needs the reason: a compile or an evaluation error.

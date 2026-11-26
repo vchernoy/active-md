@@ -11,7 +11,7 @@ test('readable controls preserve names, prose, keyboard, restore and independent
   const initial = await page.evaluate(async paths => {
     const { renderActive } = await import(paths.remark) as typeof import('../packages/remark/src/index.js');
     const { mount } = await import(paths.runtime) as typeof import('../packages/runtime/src/index.js');
-    const source = '```calc\nbase = 2\ninput x = base in 0..10\ninput plan = base in 2..4\ny = x * 3\n```\n\nStart :edit[Investment {{base}}]{input=x}, then :input[x].\n\n::edit[Standalone investment]{input=x}\n\n::edit[InvestmentWithAVeryLongUnbrokenLabelThatMustWrapInsideANarrowPhoneViewportWithoutOverflow]{input=x}\n\n::slider[Amount {{base * 2}}]{input=x step=1}\n\n:value[y]\n\n:::radio[Plan {{base}}]{input=plan}\n::option[Rate {{value}}]{value=base}\n::option[Rate {{value}}]{value=4}\n:::';
+    const source = '```calc\nbase = 2\ninput x = base in 0..10\ninput plan = base in 2..4\ny = x * 3\n```\n\nStart :edit[Investment {{base | fixed:2}}]{input=x}, then :input[x].\n\n::edit[Standalone investment]{input=x}\n\n::edit[InvestmentWithAVeryLongUnbrokenLabelThatMustWrapInsideANarrowPhoneViewportWithoutOverflow]{input=x}\n\n::slider[Amount {{base * 2}}]{input=x step=1}\n\n:value[y]\n\n:::radio[Plan {{base}}]{input=plan}\n::option[Rate {{value | fixed}}]{value=base}\n::option[Rate {{value | fixed}}]{value=4}\n:::';
     const roots = [0, 1].map(index => { const root = document.createElement('div'); root.id = 'readable-' + index; root.innerHTML = renderActive(source).html; document.body.append(root); return root; });
     let events = 0; roots[0]!.addEventListener('input', () => events++); roots[0]!.addEventListener('change', () => events++);
     const mounted = roots.map((root, index) => mount(root, { initialInputs: new Map([['x', index ? 4 : 7]]) }));
@@ -20,11 +20,11 @@ test('readable controls preserve names, prose, keyboard, restore and independent
   }, paths);
   expect(initial).toEqual({ events: 0, values: [7, 4] });
   const first = page.locator('#readable-0'), second = page.locator('#readable-1');
-  await expect(first.getByRole('spinbutton', { name: 'Investment 2', exact: true })).toHaveValue('7');
+  await expect(first.getByRole('spinbutton', { name: 'Investment 2.00', exact: true })).toHaveValue('7');
   await expect(first.getByRole('spinbutton', { name: 'x', exact: true })).toHaveValue('7');
   const slider = first.getByRole('slider', { name: 'Amount 4', exact: true }); await slider.focus(); await page.keyboard.press('ArrowRight');
-  await expect(slider).toHaveValue('8'); await expect(first.getByRole('spinbutton', { name: 'Investment 2', exact: true })).toHaveValue('8');
-  await expect(second.getByRole('spinbutton', { name: 'Investment 2', exact: true })).toHaveValue('4');
+  await expect(slider).toHaveValue('8'); await expect(first.getByRole('spinbutton', { name: 'Investment 2.00', exact: true })).toHaveValue('8');
+  await expect(second.getByRole('spinbutton', { name: 'Investment 2.00', exact: true })).toHaveValue('4');
   await expect(first.locator('p').first()).toHaveText('Start , then .');
   await expect(first.locator('.active-input-label')).toHaveCount(3);
   const radio = first.getByRole('radio', { name: 'Rate 4', exact: true });
@@ -40,7 +40,7 @@ test('readable controls preserve names, prose, keyboard, restore and independent
   await expect(slider).toHaveAccessibleName('Amount 4');
   await expect(second.getByRole('slider')).toHaveAccessibleName('Amount 4');
   await page.evaluate(() => (window as unknown as { readable: { resetInputs(): void }[] }).readable[0]!.resetInputs());
-  await expect(slider).toHaveValue('2'); await expect(first.getByRole('spinbutton', { name: 'Investment 2', exact: true })).toHaveValue('2');
+  await expect(slider).toHaveValue('2'); await expect(first.getByRole('spinbutton', { name: 'Investment 2.00', exact: true })).toHaveValue('2');
   await expect(first.getByRole('radio', { name: 'Rate 2' })).toBeChecked();
   await expect(radio).toHaveAccessibleName('Rate 4');
   expect(await first.evaluate(root => root.scrollWidth <= innerWidth)).toBe(true);

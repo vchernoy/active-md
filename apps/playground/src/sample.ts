@@ -3,7 +3,8 @@ export const SAMPLE = String.raw`# Compound interest
 How much does a deposit grow? Change the numbers; everything below updates.
 
 ` + '```calc' + String.raw`
-input principal = 10000 in 0..10000000
+starting_deposit = 10000
+input principal = starting_deposit in 0..10000000
 input rate = 8 in 0..30          // % per year
 input years = 10 in 1..50
 growth = (1 + rate / 100) ^ years
@@ -11,7 +12,7 @@ final = principal * growth
 earned = final - principal
 ` + '```' + String.raw`
 
-Deposit :edit[Deposit]{input=principal}, at :slider[Rate (%/year)]{input=rate step=0.5}% per year
+Deposit :edit[Deposit (starts at {{starting_deposit | fixed:2}})]{input=principal}, at :slider[Rate (%/year)]{input=rate step=0.5}% per year
 for :edit[Term (years)]{input=years step=1} years.
 
 After :value[years] years you have **:value[final]{format=fixed:2}**,
@@ -22,7 +23,9 @@ $$ P_n = P_0 \left(1 + \frac{r}{100}\right)^{n} = {{principal}} \cdot \left(1 + 
 :::tip[How it works]
 The ` + '`calc`' + String.raw` block defines inputs and formulas; readers don't see it.
 ` + '`:edit{input=name}`' + String.raw` shows a control, ` + '`:value[expr]`' + String.raw` shows a result, and
-` + '`{{expr}}`' + String.raw` puts a value into a formula.
+` + '`{{expr}}`' + String.raw` puts a value into a formula. The starting deposit is :value[starting_deposit]{format=fixed:2}
+in prose, $P_0 = {{starting_deposit | fixed:2}}$ in math, and uses the same format
+in the deposit control’s fixed label.
 :::
 
 ## A second example: splitting a trip

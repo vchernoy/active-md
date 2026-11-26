@@ -2,6 +2,11 @@
 
 All three packages share one version.
 
+## 0.11.0
+
+- Constant control labels accept the same optional format suffix as math, such as `{{base | fixed:2}}` (#132).
+- `fixed` is shorthand for `fixed:0` in prose values, math, and control labels (#132).
+
 ## 0.10.0
 
 - Standalone edit and slider controls display their explicit bracket labels. Inline labels continue to supply accessible names (#127, #129).

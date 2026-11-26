@@ -1,26 +1,15 @@
-import { formatNumber, parseFormat, type Format, type Result } from '@vchernoy/calc';
+import { formatNumber, type Format, type Result } from '@vchernoy/calc';
 import type { KatexOptions as KatexSettings } from 'katex';
+import { numericBinding } from './numeric-binding.js';
+
+export { numericBinding as mathBinding, type NumericBinding as MathBinding } from './numeric-binding.js';
 
 /** `{{expr}}` inside TeX. An expression ends at the first "}}". */
 export const PLACEHOLDER = /\{\{([^{}]*?)\}\}/g;
 
-export type MathBinding = { expression: string; format?: Format; problem?: string };
-
-/** A single optional format separator; pipes are not calc operators. */
-export function mathBinding(source: string): MathBinding {
-  const parts = source.split('|');
-  const expression = parts[0]!.trim();
-  if (parts.length === 1) return { expression };
-  if (parts.length !== 2) return { expression, problem: 'use one | format separator' };
-  const spec = parts[1]!.trim();
-  if (!expression || !spec) return { expression, problem: 'expected expression | format' };
-  const format = parseFormat(spec);
-  return typeof format === 'string' ? { expression, problem: format } : { expression, format };
-}
-
 /** The calc expressions used in a TeX template, without optional format specs. */
 export function placeholders(tex: string): string[] {
-  return [...tex.matchAll(PLACEHOLDER)].map(m => mathBinding(m[1]!).expression);
+  return [...tex.matchAll(PLACEHOLDER)].map(m => numericBinding(m[1]!).expression);
 }
 
 /** Escape locale-formatted numeric text before it crosses the TeX boundary. */
@@ -96,7 +85,7 @@ export function substitute(tex: string, results: readonly Result[], locale?: str
     const textMode = inText(offset);
     cursor = Math.max(cursor, offset + match.length); pendingArguments.shift();
     const r = results[i++];
-    const binding = mathBinding(source);
+    const binding = numericBinding(source);
     if (binding.problem || r?.kind !== 'value') return '{\\color{red}?}';
     const number = binding.format ? formattedTexNumber(r.value, binding.format, locale) : texNumber(r.value);
     const compound = r.value < 0 || !/^\d+(?:\.\d+)?$/.test(number);

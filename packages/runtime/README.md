@@ -19,6 +19,16 @@ const live = mount(container, { locale });   // later: live.destroy()
 
 The optional stylesheet is scoped to `.active-doc`, sizes number/range controls, marks invalid inputs with the current text color, and honors KaTeX MathML column alignment. Override `--active-input-ch` (default `8`) to choose a number input width. Load this stylesheet with the renderer in lazy integrations; importing the runtime JavaScript does not load CSS automatically. It adds no fonts, requests or theme palette.
 
+### Optional hand-drawn look
+
+```ts
+import '@vchernoy/active-runtime/style.css';
+import '@vchernoy/active-runtime/sketch.css';
+container.classList.add('active-sketch'); // remove the class to go back to the plain look
+```
+
+`sketch.css` draws inputs, dropdowns, radios, checkboxes, sliders, the quiz Check button, questions and callouts with uneven, hand-drawn outlines. It applies only under an ancestor with the `active-sketch` class, so a host can switch it on and off at any time. It is CSS only: the controls stay native, so keyboard, focus and assistive technology work as without it. It follows the text color in light and dark themes and adds no fonts or requests. Customize with `--active-sketch-ink` (line color), `--active-sketch-paper` (control background) and `--active-sketch-font` (for example a bundled handwriting font for buttons). Button tilts are turned off under `prefers-reduced-motion`.
+
 
 ## Restoring reader inputs (0.5.0)
 

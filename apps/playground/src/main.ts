@@ -6,9 +6,11 @@ import { watchMathScroll } from './math-scroll';
 import { SAMPLE } from './sample';
 import { decodeDocument, DocumentTooLarge, MAX_DOCUMENT_BYTES, shareLink } from './share';
 import '@vchernoy/active-runtime/style.css';
+import '@vchernoy/active-runtime/sketch.css';
 import './style.css';
 
 const STORE_KEY = 'active-md.playground.source.v1';
+const SKETCH_KEY = 'active-md.playground.sketch.v1';
 const locale = navigator.language || 'en-US';
 // The page ships KaTeX's CSS and fonts (bundled, no network), so use its HTML output; MathML stays for screen readers.
 const output = 'htmlAndMathml' as const;
@@ -129,6 +131,21 @@ document.addEventListener('keydown', e => {
     setMode(mode === 'edit' ? 'view' : 'edit');
   }
 });
+
+// Optional hand-drawn look (runtime sketch.css): one class on the document's container, so it
+// switches instantly and survives re-rendering.
+const sketchButton = $<HTMLButtonElement>('sketch');
+function setSketch(on: boolean, remember = true): void {
+  doc.classList.toggle('active-sketch', on);
+  sketchButton.setAttribute('aria-pressed', String(on));
+  if (remember) {
+    try { localStorage.setItem(SKETCH_KEY, on ? 'on' : 'off'); } catch { /* storage may be blocked; the toggle still works */ }
+  }
+}
+let sketchSaved = false;
+try { sketchSaved = localStorage.getItem(SKETCH_KEY) === 'on'; } catch { /* default: plain */ }
+setSketch(sketchSaved, false);
+sketchButton.addEventListener('click', () => setSketch(sketchButton.getAttribute('aria-pressed') !== 'true'));
 
 $('sample').addEventListener('click', () => {
   if (source.value !== SAMPLE && source.value.trim() && !confirm('Replace your text with the example?')) return;

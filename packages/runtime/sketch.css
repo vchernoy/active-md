@@ -178,3 +178,27 @@
     transform: none;
   }
 }
+
+/* Forced colors (e.g. Windows High Contrast) replace the backgrounds that draw the radio dot, the
+   tick and the slider; fall back to native controls there so checked states stay visible. */
+@media (forced-colors: active) {
+  .active-sketch .active-doc input[type="radio"],
+  .active-sketch .active-doc input[type="checkbox"],
+  .active-sketch .active-doc input[type="range"],
+  .active-sketch .active-doc input[type="range"]::-webkit-slider-thumb {
+    appearance: auto;
+  }
+  .active-sketch .active-doc input[type="radio"],
+  .active-sketch .active-doc input[type="checkbox"] {
+    width: auto;
+    height: auto;
+    margin: revert;
+    border: revert;
+    border-radius: revert;
+    background: revert;
+  }
+  .active-sketch .active-doc input[type="radio"]::before,
+  .active-sketch .active-doc input[type="checkbox"]::before {
+    content: none;
+  }
+}

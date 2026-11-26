@@ -39,6 +39,18 @@ test('the sketch look applies only under .active-sketch and keeps controls nativ
   expect(requests).toEqual([]);
 });
 
+test('forced colors fall back to native radios and checkboxes so checked states stay visible', async ({ page }) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  await page.setContent(`<div class="active-sketch">${renderActive(markdown, { quizManifest: true }).html}</div>`);
+  await page.addStyleTag({ content: base });
+  await page.addStyleTag({ content: sketch });
+  for (const kind of ['radio', 'checkbox']) {
+    const input = page.locator(`input[type="${kind}"]`).first();
+    await expect(input).not.toHaveCSS('appearance', 'none');
+    expect(await input.evaluate(el => getComputedStyle(el, '::before').content)).toBe('none');
+  }
+});
+
 test.describe('playground', () => {
   let server: ViteDevServer;
   let url: string;

@@ -89,6 +89,9 @@ export function substitute(tex: string, results: readonly Result[], locale?: str
     if (binding.problem || r?.kind !== 'value') return '{\\color{red}?}';
     const number = binding.format ? formattedTexNumber(r.value, binding.format, locale) : texNumber(r.value);
     const compound = r.value < 0 || !/^\d+(?:\.\d+)?$/.test(number);
+    // A positive number whose only non-digits are grouping/decimal separators reads unambiguously
+    // after a binary operator (1000 + 2,000); it still needs parentheses before ^ (2,000² is unclear).
+    const grouped = r.value >= 0 && /^\d+(?:(?:\{,\}|\\,|\.)\d+)+$/.test(number);
     const power = /^\s*\^/.test(tex.slice(offset + match.length));
     let end = offset;
     while (end > 0 && /\s/.test(tex[end - 1]!)) end--;
@@ -102,7 +105,7 @@ export function substitute(tex: string, results: readonly Result[], locale?: str
     // Unknown built-in/user macros may enter text mode only during expansion.
     // Let KaTeX choose at parse time: math gets visible parentheses, text gets
     // the unchanged number. Known text/verbatim contexts keep their old bytes.
-    return `{${!textMode && compound && (power || binary)
+    return `{${!textMode && compound && (power || (binary && !grouped))
       ? `\\TextOrMath{${number}}{\\left(${number}\\right)}` : number}}`;
   });
 }

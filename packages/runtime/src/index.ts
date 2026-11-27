@@ -335,3 +335,4 @@ export { compileQuizManifest, type QuizCompilation } from './quiz-compile.js';
 export { checkQuizGroup, type QuizResponses, type QuizGroupCheck } from './quiz-check.js';
 export type { CompletedQuizAttempt, CompletedQuizResponse } from './quiz-attempt.js';
 export type { QuizSeedSource } from './quiz-ui.js';
+export { ACTIVE_STYLES, activeStyle, type ActiveStyle } from './styles.js';

@@ -1,0 +1,382 @@
+/*
+ * Optional document styles for rendered active-md documents.
+ * Import after style.css and set data-active-style on any ancestor of the `.active-doc` element:
+ *
+ *   sketch      hand-drawn outlines (the class `active-sketch` is an alias)
+ *   brutal      neo-brutalism: thick outlines, hard shadows, a bright accent
+ *   notebook    lined paper with blue ink
+ *   chalkboard  chalk on a dark green board
+ *
+ * Remove the attribute (or set "plain") to return to the plain look. CSS only: controls stay native,
+ * so keyboard, focus and assistive technology behave exactly as without a style. No fonts or requests:
+ * font stacks name only fonts already installed on the device.
+ *
+ * Customize with --active-style-ink (lines), --active-style-paper (control background),
+ * --active-style-accent (button and checked fill) and --active-style-font (buttons and headings).
+ * The 0.12 sketch variables (--active-sketch-ink, --active-sketch-paper, --active-sketch-font) still work.
+ */
+
+/* ---------- Tokens per style ---------- */
+
+:is([data-active-style="sketch"], .active-sketch) {
+  --as-ink: var(--active-style-ink, var(--active-sketch-ink, currentColor));
+  --as-paper: var(--active-style-paper, var(--active-sketch-paper, transparent));
+  --as-accent: var(--active-style-accent, transparent);
+  --as-accent-ink: currentColor;
+  --as-font: var(--active-style-font, var(--active-sketch-font, inherit));
+  --as-border: 2px;
+  /* Uneven corner radii make a rectangle look drawn by hand; several shapes avoid repetition. */
+  --as-shape-1: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --as-shape-2: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  --as-shape-3: 225px 25px 205px 35px / 25px 205px 35px 225px;
+  --as-round: 48% 52% 45% 55% / 55% 45% 52% 48%;
+  --as-shadow: 2px 3px 0;
+  --as-shadow-hover: 3px 4px 0;
+  --as-tilt: -0.6deg;
+  --as-tilt-hover: 0.4deg;
+  --as-box-mix: 55%;
+  --as-box-shadow: 0 0 0;
+  /* Backward-compatible names from 0.12. */
+  --active-sketch-shape-1: var(--as-shape-1);
+  --active-sketch-shape-2: var(--as-shape-2);
+  --active-sketch-shape-3: var(--as-shape-3);
+}
+
+[data-active-style="brutal"] {
+  --as-ink: var(--active-style-ink, currentColor);
+  --as-paper: var(--active-style-paper, transparent);
+  --as-accent: var(--active-style-accent, #ffd23f);
+  --as-accent-ink: #111;
+  --as-font: var(--active-style-font, inherit);
+  --as-border: 3px;
+  --as-shape-1: 6px;
+  --as-shape-2: 6px;
+  --as-shape-3: 8px;
+  --as-round: 50%;
+  --as-shadow: 4px 4px 0;
+  --as-shadow-hover: 6px 6px 0;
+  --as-tilt: 0deg;
+  --as-tilt-hover: 0deg;
+  --as-box-mix: 100%;
+  --as-box-shadow: 6px 6px 0;
+}
+
+[data-active-style="notebook"] {
+  --as-ink: var(--active-style-ink, #1f3f99);
+  --as-paper: var(--active-style-paper, transparent);
+  --as-accent: var(--active-style-accent, transparent);
+  --as-accent-ink: var(--as-ink);
+  --as-font: var(--active-style-font, "Segoe Print", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive);
+  --as-border: 2px;
+  --as-shape-1: 3px;
+  --as-shape-2: 3px;
+  --as-shape-3: 4px;
+  --as-round: 50%;
+  --as-shadow: 0 0 0;
+  --as-shadow-hover: 1px 2px 0;
+  --as-tilt: 0deg;
+  --as-tilt-hover: 0deg;
+  --as-box-mix: 45%;
+  --as-box-shadow: 0 0 0;
+  --as-line: #b9d0ee;
+  --as-surface: #fffef7;
+  --as-margin: #e8a0a0;
+}
+
+[data-active-style="chalkboard"] {
+  --as-ink: var(--active-style-ink, #f3f6ef);
+  --as-paper: var(--active-style-paper, transparent);
+  --as-accent: var(--active-style-accent, transparent);
+  --as-accent-ink: var(--as-ink);
+  --as-font: var(--active-style-font, "Chalkboard SE", "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive);
+  --as-border: 2px;
+  --as-shape-1: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --as-shape-2: 15px 255px 15px 225px / 225px 15px 255px 15px;
+  --as-shape-3: 225px 25px 205px 35px / 25px 205px 35px 225px;
+  --as-round: 48% 52% 45% 55% / 55% 45% 52% 48%;
+  --as-shadow: 0 0 0;
+  --as-shadow-hover: 0 0 6px;
+  --as-tilt: 0deg;
+  --as-tilt-hover: 0deg;
+  --as-box-mix: 60%;
+  --as-box-shadow: 0 0 0;
+  --as-surface: #23392f;
+}
+
+/* ---------- Pages: notebook paper and the chalkboard set their own surface ---------- */
+
+[data-active-style="notebook"] .active-doc {
+  color-scheme: light;
+  color: #22304d;
+  background-color: #fffef7;
+  /* Ruled lines every line of text, and a red margin line. */
+  background-image:
+    linear-gradient(90deg, transparent 2.4rem, var(--as-margin) 2.4rem, var(--as-margin) calc(2.4rem + 2px), transparent calc(2.4rem + 2px)),
+    linear-gradient(transparent calc(1.75rem - 1px), var(--as-line) calc(1.75rem - 1px));
+  background-size: 100% 100%, 100% 1.75rem;
+  line-height: 1.75rem;
+  padding: 0.5rem 1rem 1rem 3.2rem;
+  border-radius: 4px;
+  /* The light palette on light paper, whatever the page theme. */
+  --active-callout-note: #2563eb;
+  --active-callout-tip: #15803d;
+  --active-callout-warning: #b45309;
+  --active-callout-danger: #c62828;
+  --active-callout-important: #7c3aed;
+  --active-callout-exercise: #0e7490;
+  --active-mark-red: #b91c1c; --active-mark-green: #166534; --active-mark-blue: #1d4ed8;
+  --active-mark-orange: #9a3412; --active-mark-purple: #6b21a8; --active-mark-gray: #4b5563;
+}
+[data-active-style="chalkboard"] .active-doc {
+  color-scheme: dark;
+  color: #eef2ea;
+  background-color: #23392f;
+  background-image: radial-gradient(ellipse at 30% 20%, #ffffff0d, transparent 60%), radial-gradient(ellipse at 80% 90%, #ffffff08, transparent 55%);
+  padding: 0.75rem 1.25rem 1.25rem;
+  border: 10px solid #6b4a2b;
+  border-radius: 6px;
+  /* The dark palette on the dark board, whatever the page theme. */
+  --active-callout-note: #8fb8ff;
+  --active-callout-tip: #8ee6a5;
+  --active-callout-warning: #ffd479;
+  --active-callout-danger: #ff9e94;
+  --active-callout-important: #d2b8ff;
+  --active-callout-exercise: #7fdfee;
+  --active-mark-red: #fca5a5; --active-mark-green: #86efac; --active-mark-blue: #93c5fd;
+  --active-mark-orange: #fdba74; --active-mark-purple: #d8b4fe; --active-mark-gray: #d1d5db;
+}
+:is([data-active-style="notebook"], [data-active-style="chalkboard"]) .active-doc :is(h1, h2, h3, h4) {
+  font-family: var(--as-font);
+}
+/* Code keeps a readable pair on the fixed paper and board, whatever the host gave code. */
+[data-active-style="notebook"] .active-doc :is(code, pre) {
+  background: #efe9d6;
+  color: #22304d;
+}
+[data-active-style="chalkboard"] .active-doc :is(code, pre) {
+  background: #ffffff1a;
+  color: #f6f8f2;
+}
+[data-active-style="notebook"] .active-doc pre code,
+[data-active-style="chalkboard"] .active-doc pre code {
+  background: transparent;
+}
+/* The paper and the board fix their own text colour; host-coloured helper text follows it. */
+:is([data-active-style="notebook"], [data-active-style="chalkboard"]) .active-doc :is(.active-input-label, .active-input-problem, .active-quiz-status, label, legend) {
+  color: inherit;
+}
+[data-active-style="brutal"] .active-doc :is(h1, h2, h3) {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Shared control rules (every known style; unknown names stay plain) ---------- */
+
+/* Text fields and dropdowns */
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc :is(.active-input input[type="number"], .active-answer, .active-input select) {
+  border: var(--as-border) solid var(--as-ink);
+  border-radius: var(--as-shape-1);
+  background: var(--as-paper);
+  color: inherit;
+  padding: 0.25em 0.6em;
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-input select {
+  border-radius: var(--as-shape-2);
+}
+/* Notebook: answers are written on the line. */
+[data-active-style="notebook"] .active-doc :is(.active-input input[type="number"], .active-answer) {
+  border-width: 0 0 var(--as-border);
+  border-radius: 0;
+  font-family: var(--as-font);
+  color: var(--as-ink);
+}
+
+/* Buttons: a card with a hard shadow, pressed on click */
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-quiz-check {
+  border: var(--as-border) solid var(--as-ink);
+  border-radius: var(--as-shape-3);
+  background: var(--as-accent);
+  /* The text is painted separately so color (and with it currentColor, the outline and the
+     shadow) stays the document's ink even when the button text needs another colour. */
+  color: inherit;
+  -webkit-text-fill-color: var(--as-accent-ink);
+  font-family: var(--as-font);
+  font-weight: 700;
+  box-shadow: var(--as-shadow) var(--as-ink);
+  transform: rotate(var(--as-tilt));
+  cursor: pointer;
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-quiz-check:hover:not(:disabled) {
+  transform: rotate(var(--as-tilt-hover)) translate(-1px, -1px);
+  box-shadow: var(--as-shadow-hover) var(--as-ink);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-quiz-check:active:not(:disabled) {
+  transform: translate(2px, 3px);
+  box-shadow: none;
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-quiz-check:disabled {
+  border-style: dashed;
+  box-shadow: none;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Radios and checkboxes: drawn boxes and circles, filled when checked */
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc :is(input[type="radio"], input[type="checkbox"]) {
+  appearance: none;
+  width: 1.15em;
+  height: 1.15em;
+  margin: 0;
+  border: var(--as-border) solid var(--as-ink);
+  background: var(--as-paper);
+  /* Controls default to FieldText; the ink must follow the document text color. */
+  color: inherit;
+  display: inline-grid;
+  place-content: center;
+  vertical-align: -0.2em;
+  cursor: pointer;
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="radio"] {
+  border-radius: var(--as-round);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="checkbox"] {
+  border-radius: var(--as-shape-2);
+}
+[data-active-style="brutal"] .active-doc :is(input[type="radio"], input[type="checkbox"]):checked {
+  background: var(--as-accent);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="radio"]::before {
+  content: "";
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 45% 55% 50% 50% / 50% 50% 55% 45%;
+  background: var(--as-ink);
+  transform: scale(0);
+}
+[data-active-style="brutal"] .active-doc input[type="radio"]::before {
+  background: var(--as-accent-ink);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="checkbox"]::before {
+  content: "";
+  width: 0.8em;
+  height: 0.8em;
+  /* A drawn tick; currentColor is not available inside a data URL, so the tick uses the mask. */
+  background: var(--as-ink);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.2 8.6c1.4 1 2.4 2.3 3.3 3.8C7.7 8.3 10.4 5 13.9 2.6' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.2 8.6c1.4 1 2.4 2.3 3.3 3.8C7.7 8.3 10.4 5 13.9 2.6' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  transform: scale(0);
+}
+[data-active-style="brutal"] .active-doc input[type="checkbox"]::before {
+  background: var(--as-accent-ink);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc :is(input[type="radio"], input[type="checkbox"]):checked::before {
+  transform: scale(1);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc :is(input[type="radio"], input[type="checkbox"]):disabled {
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+/* Sliders: a drawn track and knob */
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="range"] {
+  appearance: none;
+  background: transparent;
+  color: inherit;
+  height: 1.6em;
+  cursor: pointer;
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="range"]::-webkit-slider-runnable-track {
+  height: 0.45em;
+  border: var(--as-border) solid var(--as-ink);
+  border-radius: var(--as-shape-1);
+  background: var(--as-paper);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="range"]::-moz-range-track {
+  height: 0.45em;
+  border: var(--as-border) solid var(--as-ink);
+  border-radius: var(--as-shape-1);
+  background: var(--as-paper);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: calc(-0.55em + 0.1em);
+  border: var(--as-border) solid var(--as-ink);
+  border-radius: var(--as-round);
+  background: Canvas;
+  box-shadow: 1px 2px 0 var(--as-ink);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="range"]::-moz-range-thumb {
+  width: 1.1em;
+  height: 1.1em;
+  border: var(--as-border) solid var(--as-ink);
+  border-radius: var(--as-round);
+  background: Canvas;
+  box-shadow: 1px 2px 0 var(--as-ink);
+}
+[data-active-style="brutal"] .active-doc input[type="range"]::-webkit-slider-thumb { background: var(--as-accent); }
+[data-active-style="brutal"] .active-doc input[type="range"]::-moz-range-thumb { background: var(--as-accent); }
+:is([data-active-style="notebook"], [data-active-style="chalkboard"]) .active-doc input[type="range"]::-webkit-slider-thumb { background: var(--as-surface); }
+:is([data-active-style="notebook"], [data-active-style="chalkboard"]) .active-doc input[type="range"]::-moz-range-thumb { background: var(--as-surface); }
+
+/* Boxes: questions and callouts */
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-question {
+  border: var(--as-border) solid color-mix(in srgb, var(--as-ink) var(--as-box-mix), transparent);
+  border-radius: var(--as-shape-2);
+  box-shadow: var(--as-box-shadow) var(--as-ink);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-question-correct {
+  border-color: var(--active-callout-tip);
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-question-incorrect {
+  border-color: var(--active-callout-danger);
+  border-style: dashed;
+}
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .callout {
+  border: var(--as-border) solid var(--active-callout-color);
+  border-left-width: calc(var(--as-border) + 3px);
+  border-radius: var(--as-shape-1);
+}
+[data-active-style="brutal"] .active-doc .callout {
+  border-color: var(--as-ink);
+  border-left-color: var(--active-callout-color);
+  background: color-mix(in srgb, var(--active-callout-color) 16%, transparent);
+  box-shadow: var(--as-box-shadow) var(--as-ink);
+}
+
+/* Focus stays obvious, drawn in the same spirit */
+:is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc :is(input, select, button):focus-visible {
+  outline: 2px dashed var(--as-ink);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-quiz-check,
+  :is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-quiz-check:hover:not(:disabled),
+  :is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-quiz-check:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Forced colors (e.g. Windows High Contrast) replace the backgrounds that draw the radio dot, the
+   tick and the slider; fall back to native controls there so checked states stay visible. */
+@media (forced-colors: active) {
+  :is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc :is(input[type="radio"], input[type="checkbox"], input[type="range"]),
+  :is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc input[type="range"]::-webkit-slider-thumb {
+    appearance: auto;
+  }
+  :is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc :is(input[type="radio"], input[type="checkbox"]) {
+    width: auto;
+    height: auto;
+    margin: revert;
+    border: revert;
+    border-radius: revert;
+    background: revert;
+  }
+  :is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc :is(input[type="radio"], input[type="checkbox"])::before {
+    content: none;
+  }  :is([data-active-style="sketch"], [data-active-style="brutal"], [data-active-style="notebook"], [data-active-style="chalkboard"], .active-sketch) .active-doc .active-quiz-check {
+    -webkit-text-fill-color: currentColor;
+  }
+}

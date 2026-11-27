@@ -7,6 +7,7 @@ export default defineConfig({
     // Test packages against each other's sources, not stale builds.
     alias: {
       '@vchernoy/active-runtime/style.css': fileURLToPath(new URL('./packages/runtime/style.css', import.meta.url)),
+      '@vchernoy/active-runtime/styles.css': fileURLToPath(new URL('./packages/runtime/styles.css', import.meta.url)),
       '@vchernoy/active-runtime/sketch.css': fileURLToPath(new URL('./packages/runtime/sketch.css', import.meta.url)),
       '@vchernoy/active-runtime': fileURLToPath(new URL('./packages/runtime/src/index.ts', import.meta.url)),
       '@vchernoy/calc': fileURLToPath(new URL('./packages/calc/src/index.ts', import.meta.url)),

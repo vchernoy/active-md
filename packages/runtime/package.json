@@ -28,16 +28,19 @@
       "import": "./dist/index.js"
     },
     "./style.css": "./style.css",
-    "./sketch.css": "./sketch.css"
+    "./sketch.css": "./sketch.css",
+    "./styles.css": "./styles.css"
   },
   "files": [
     "dist",
     "style.css",
-    "sketch.css"
+    "sketch.css",
+    "styles.css"
   ],
   "sideEffects": [
     "./style.css",
-    "./sketch.css"
+    "./sketch.css",
+    "./styles.css"
   ],
   "engines": {
     "node": ">=18"

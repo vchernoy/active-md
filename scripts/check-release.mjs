@@ -26,8 +26,8 @@ for (const { dir, pkg } of manifests) {
   }
   const [packed] = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: dir, encoding: 'utf8' }));
   const files = packed.files.map(f => f.path);
-  for (const f of files) if (!ALLOWED.some(re => re.test(f)) && !(dir === 'packages/runtime' && (f === 'style.css' || f === 'sketch.css'))) problems.push(`${pkg.name} would publish ${f}`);
-  for (const need of ['dist/index.js', 'dist/index.d.ts', 'README.md', 'LICENSE', ...(dir === 'packages/runtime' ? ['style.css', 'sketch.css'] : [])]) {
+  for (const f of files) if (!ALLOWED.some(re => re.test(f)) && !(dir === 'packages/runtime' && ['style.css', 'sketch.css', 'styles.css'].includes(f))) problems.push(`${pkg.name} would publish ${f}`);
+  for (const need of ['dist/index.js', 'dist/index.d.ts', 'README.md', 'LICENSE', ...(dir === 'packages/runtime' ? ['style.css', 'sketch.css', 'styles.css'] : [])]) {
     if (!files.includes(need)) problems.push(`${pkg.name} is missing ${need} (did the build run?)`);
   }
   if (files.some(f => /\.test\.|\/test\//.test(f))) problems.push(`${pkg.name} would publish tests`);

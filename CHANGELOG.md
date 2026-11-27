@@ -2,6 +2,10 @@
 
 All three packages share one version.
 
+## Unreleased
+
+- Math: a positive number formatted only with grouping or decimal separators no longer gets parentheses after a binary operator: `$$1000 + {{2000|fixed}}$$` shows 1000+2,000 instead of 1000+(2,000) (#139). Negative numbers, scientific notation and the `^` case keep them.
+
 ## 0.13.0
 
 - Document styles: `@vchernoy/active-runtime/styles.css` with `data-active-style` = `sketch`, `brutal` (neo-brutalism), `notebook` and `chalkboard`, plus `ACTIVE_STYLES` / `activeStyle()` for host pickers. The 0.12 `active-sketch` class and `sketch.css` keep working. Buttons keep their outline in the document ink when their text uses another colour. The playground's Hand-drawn toggle becomes a Style list (a saved Hand-drawn choice carries over).

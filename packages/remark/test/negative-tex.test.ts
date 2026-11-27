@@ -29,7 +29,9 @@ it('groups scientific/locale-formatted compound numbers only where context requi
   expect(substitute('{{x}}^2', values(1e24))).toBe(`${grouped('1\\times 10^{24}')}^2`);
   expect(substitute('= {{x}}', values(1e24))).toBe('= {1\\times 10^{24}}');
   expect(substitute('{{x | fixed:2}}^2', values(-3), 'en-US')).toBe(`${grouped('-3.00')}^2`);
-  expect(substitute('2 * {{x | fixed:2}}', values(1234), 'ru-RU')).toBe(`2 * ${grouped('1\\,234{,}00')}`);
+  // Grouping alone needs no parentheses after a binary operator (#139), only before ^.
+  expect(substitute('2 * {{x | fixed:2}}', values(1234), 'ru-RU')).toBe('2 * {1\\,234{,}00}');
+  expect(substitute('{{x | fixed:2}}^2', values(1234), 'ru-RU')).toBe(`${grouped('1\\,234{,}00')}^2`);
 });
 
 it('keeps text and verbatim placeholders valid, then resumes math context after the label', () => {
@@ -88,4 +90,19 @@ it.each(['underbar', 'llap', 'rlap', 'clap'])('defers built-in \\%s text context
 it('also respects a user-defined wrapper that enters text mode during expansion', () => {
   const result = substitute('\\def\\label#1{\\text{#1}}\\label{Cost - {{x}}} + {{x}}^2', values(-3, -3));
   expect(() => katex.renderToString(result, { throwOnError: true })).not.toThrow();
+});
+
+it('leaves positive grouped numbers bare after a binary operator, matching the reported formulas (#139)', () => {
+  expect(substitute('1000 + {{x | fixed}}', values(200), 'en-US')).toBe('1000 + {200}');
+  expect(substitute('1000 + {{x}}', values(2000), 'en-US')).toBe('1000 + {2000}');
+  expect(substitute('1000 + {{x | fixed:0}}', values(2000), 'en-US')).toBe('1000 + {2{,}000}');
+  expect(substitute('1000 + {{x | fixed}}', values(2000), 'en-US')).toBe('1000 + {2{,}000}');
+  expect(substitute('1000 + {{x | fixed:2}}', values(2000), 'en-US')).toBe('1000 + {2{,}000.00}');
+  for (const operator of ['\\cdot', '\\times', '\\div', '-', '*', '/']) {
+    expect(substitute(`a ${operator} {{x | fixed:2}}`, values(1234.5), 'en-US')).toBe(`a ${operator} {1{,}234.50}`);
+  }
+  // Negative, scientific and power cases keep their parentheses.
+  expect(substitute('1000 + {{x | fixed}}', values(-2000), 'en-US')).toBe(`1000 + ${grouped('-2{,}000')}`);
+  expect(substitute('2 \\times {{x}}', values(1.2e24))).toBe(`2 \\times ${grouped('1.2\\times 10^{24}')}`);
+  expect(substitute('{{x | fixed}}^2', values(2000), 'en-US')).toBe(`${grouped('2{,}000')}^2`);
 });

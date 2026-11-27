@@ -475,8 +475,10 @@ The reciprocal is :value[1/x].
 - **`{{expr}}` inside other LaTeX** inserts the formatted value, for example `\frac{ {{stay}} }{ {{people}} }`.
 
 Negative or compound numeric math substitutions (scientific notation or formatted grouping)
-get visible `\left(…\right)` parentheses when immediately followed by `^` or immediately
-after a binary `\cdot`, `\times`, `\div`, `+`, `-`, `*` or `/`. Plain positive numbers
+get visible `\left(…\right)` parentheses when immediately followed by `^`. Negative numbers
+and scientific notation also get them immediately after a binary `\cdot`, `\times`, `\div`,
+`+`, `-`, `*` or `/`; a positive number whose only non-digits are grouping or decimal
+separators does not, because `1000 + 2,000` is unambiguous (#139). Plain positive numbers
 are unchanged; an equality, unary sign or TeX argument alone does not request parentheses.
 Authored parentheses remain untouched. Every substituted value still forms one TeX group
 for commands/exponents. Text-mode commands such as `\text`/`\emph`/`\operatorname`, boxed labels (`\fbox`,

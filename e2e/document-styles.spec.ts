@@ -98,6 +98,22 @@ test('notebook paper and the chalkboard keep host-coloured labels readable', asy
   }
 });
 
+test('notebook and chalkboard keep inline code and code blocks readable over host code colours', async ({ page }) => {
+  // The host gives code a near-white panel (light theme) or a dark panel (dark theme).
+  for (const panel of ['rgb(246, 248, 250)', 'rgb(21, 27, 35)']) {
+    await page.setContent(`<style>.active-doc code, .active-doc pre { background: ${panel}; color: inherit; }</style><div id="wrap">${renderActive('Use `x` here.\n\n```\nblock\n```').html}</div>`);
+    await page.addStyleTag({ content: base });
+    await page.addStyleTag({ content: styles });
+    for (const [style, bg, fg] of [['notebook', 'rgb(239, 233, 214)', 'rgb(34, 48, 77)'], ['chalkboard', 'rgba(255, 255, 255, 0.1)', 'rgb(246, 248, 242)']] as const) {
+      await setStyle(page, style);
+      await expect(page.locator('p code')).toHaveCSS('background-color', bg);
+      await expect(page.locator('p code')).toHaveCSS('color', fg);
+      await expect(page.locator('pre')).toHaveCSS('background-color', bg);
+      await expect(page.locator('pre code')).toHaveCSS('color', fg);
+    }
+  }
+});
+
 test.describe('playground', () => {
   let server: ViteDevServer;
   let url: string;

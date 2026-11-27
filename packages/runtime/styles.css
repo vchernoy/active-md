@@ -148,6 +148,19 @@
 :is([data-active-style="notebook"], [data-active-style="chalkboard"]) .active-doc :is(h1, h2, h3, h4) {
   font-family: var(--as-font);
 }
+/* Code keeps a readable pair on the fixed paper and board, whatever the host gave code. */
+[data-active-style="notebook"] .active-doc :is(code, pre) {
+  background: #efe9d6;
+  color: #22304d;
+}
+[data-active-style="chalkboard"] .active-doc :is(code, pre) {
+  background: #ffffff1a;
+  color: #f6f8f2;
+}
+[data-active-style="notebook"] .active-doc pre code,
+[data-active-style="chalkboard"] .active-doc pre code {
+  background: transparent;
+}
 /* The paper and the board fix their own text colour; host-coloured helper text follows it. */
 :is([data-active-style="notebook"], [data-active-style="chalkboard"]) .active-doc :is(.active-input-label, .active-input-problem, .active-quiz-status, label, legend) {
   color: inherit;

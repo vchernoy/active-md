@@ -2,7 +2,7 @@
 
 All three packages share one version.
 
-## Unreleased
+## 0.12.0
 
 - Optional hand-drawn look: `@vchernoy/active-runtime/sketch.css` restyles controls, questions and callouts with uneven outlines under an `.active-sketch` ancestor class (CSS only; controls stay native). The playground has a remembered Hand-drawn toggle.
 

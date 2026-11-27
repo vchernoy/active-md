@@ -1,6 +1,6 @@
 {
   "name": "@vchernoy/remark-active",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "A remark plugin for active-md: calc blocks, :input, :value and {{\u2026}} in math",
   "keywords": [
     "remark",
@@ -50,7 +50,7 @@
   "dependencies": {
     "@types/hast": "3.0.5",
     "@types/mdast": "4.0.4",
-    "@vchernoy/calc": "0.11.0",
+    "@vchernoy/calc": "0.12.0",
     "github-slugger": "2.0.0",
     "hast-util-to-string": "3.0.1",
     "katex": "0.19.1",

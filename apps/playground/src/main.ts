@@ -1,4 +1,4 @@
-import { mount, type Mounted } from '@vchernoy/active-runtime';
+import { ACTIVE_STYLES, activeStyle, mount, type ActiveStyle, type Mounted } from '@vchernoy/active-runtime';
 import { renderActive, type RenderMessage } from '@vchernoy/remark-active';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -6,11 +6,12 @@ import { watchMathScroll } from './math-scroll';
 import { SAMPLE } from './sample';
 import { decodeDocument, DocumentTooLarge, MAX_DOCUMENT_BYTES, shareLink } from './share';
 import '@vchernoy/active-runtime/style.css';
-import '@vchernoy/active-runtime/sketch.css';
+import '@vchernoy/active-runtime/styles.css';
 import './style.css';
 
 const STORE_KEY = 'active-md.playground.source.v1';
-const SKETCH_KEY = 'active-md.playground.sketch.v1';
+const STYLE_KEY = 'active-md.playground.style.v1';
+const LEGACY_SKETCH_KEY = 'active-md.playground.sketch.v1';
 const locale = navigator.language || 'en-US';
 // The page ships KaTeX's CSS and fonts (bundled, no network), so use its HTML output; MathML stays for screen readers.
 const output = 'htmlAndMathml' as const;
@@ -132,20 +133,24 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Optional hand-drawn look (runtime sketch.css): one class on the document's container, so it
-// switches instantly and survives re-rendering.
-const sketchButton = $<HTMLButtonElement>('sketch');
-function setSketch(on: boolean, remember = true): void {
-  doc.classList.toggle('active-sketch', on);
-  sketchButton.setAttribute('aria-pressed', String(on));
+// Optional document style (runtime styles.css): one attribute on the document's container, so it
+// switches instantly and survives re-rendering. 0.12's Hand-drawn toggle becomes the "sketch" style.
+const styleSelect = $<HTMLSelectElement>('doc-style');
+for (const style of ACTIVE_STYLES) styleSelect.add(new Option(style.label, style.id));
+function setStyle(style: ActiveStyle, remember = true): void {
+  if (style === 'plain') delete doc.dataset.activeStyle;
+  else doc.dataset.activeStyle = style;
+  styleSelect.value = style;
   if (remember) {
-    try { localStorage.setItem(SKETCH_KEY, on ? 'on' : 'off'); } catch { /* storage may be blocked; the toggle still works */ }
+    try { localStorage.setItem(STYLE_KEY, style); } catch { /* storage may be blocked; the choice still applies */ }
   }
 }
-let sketchSaved = false;
-try { sketchSaved = localStorage.getItem(SKETCH_KEY) === 'on'; } catch { /* default: plain */ }
-setSketch(sketchSaved, false);
-sketchButton.addEventListener('click', () => setSketch(sketchButton.getAttribute('aria-pressed') !== 'true'));
+let savedStyle: ActiveStyle = 'plain';
+try {
+  savedStyle = activeStyle(localStorage.getItem(STYLE_KEY) ?? (localStorage.getItem(LEGACY_SKETCH_KEY) === 'on' ? 'sketch' : 'plain'));
+} catch { /* default: plain */ }
+setStyle(savedStyle, false);
+styleSelect.addEventListener('change', () => setStyle(activeStyle(styleSelect.value)));
 
 $('sample').addEventListener('click', () => {
   if (source.value !== SAMPLE && source.value.trim() && !confirm('Replace your text with the example?')) return;

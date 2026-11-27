@@ -2,6 +2,10 @@
 
 All three packages share one version.
 
+## Unreleased
+
+- Document styles: `@vchernoy/active-runtime/styles.css` with `data-active-style` = `sketch`, `brutal` (neo-brutalism), `notebook` and `chalkboard`, plus `ACTIVE_STYLES` / `activeStyle()` for host pickers. The 0.12 `active-sketch` class and `sketch.css` keep working. Buttons keep their outline in the document ink when their text uses another colour. The playground's Hand-drawn toggle becomes a Style list (a saved Hand-drawn choice carries over).
+
 ## 0.12.0
 
 - Optional hand-drawn look: `@vchernoy/active-runtime/sketch.css` restyles controls, questions and callouts with uneven outlines under an `.active-sketch` ancestor class (CSS only; controls stay native). The playground has a remembered Hand-drawn toggle.

@@ -2,7 +2,7 @@
 
 All three packages share one version.
 
-## Unreleased
+## 0.13.1
 
 - Math: a positive number formatted only with grouping or decimal separators no longer gets parentheses after a binary operator: `$$1000 + {{2000|fixed}}$$` shows 1000+2,000 instead of 1000+(2,000) (#139). Negative numbers, scientific notation and the `^` case keep them.
 

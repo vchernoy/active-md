@@ -1,6 +1,6 @@
 {
   "name": "@vchernoy/calc",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "A small, safe, single-assignment calculation language for live documents",
   "keywords": [
     "calculator",
